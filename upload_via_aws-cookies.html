@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Wedding Photo Upload</title>
+<style>
+:root {
+  --primary-color:   hsl(127 33.5% 54.9%);
+  --secondary-color: #e6eef9;
+}
+
+body{font-family:system-ui;margin:0;background:#fafafa;color:#222}
+header{padding:10px}
+#addBtn{background-color: var(--primary-color);color: white;margin:0;padding:0.5rem 1rem;cursor:pointer;width:100%;font-size:1rem; border-radius: 8px; border: none;font-weight: 700;}
+
+/* make the tabs container a pill with a glider */
+#tabs.tabs {
+  margin: 0 10px 10px;
+  position: relative;
+  display: flex;
+  gap: .5rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow:
+    0 0 1px rgba(0,0,0,0.15),
+    0 6px 12px rgba(0,0,0,0.15);
+}
+
+#tabs.tabs > * {
+border-radius: 8px;
+}
+
+/* hide your old borders & backgrounds */
+#tabs.tabs .tab-header {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: color .15s ease-in;
+}
+
+/* active tab label color */
+#tabs.tabs .tab-header.active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* the moving “glider” */
+#tabs.tabs .glider {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: calc(50% - 5px); /* half width minus half margin */
+  background: var(--secondary-color);
+  margin: 5px;
+  z-index: 1;
+  transition: transform .5s ease-out;
+}
+
+/* glider position when each tab is active */
+#tabAll.active  ~ .glider { transform: translateX(0%); }
+#tabMine.active ~ .glider { transform: translateX(100%); }
+
+
+
+.tab-header{padding:.4rem 1rem;border:1px solid #ccc;border-bottom:none;
+            background:#eee;cursor:pointer;border-radius:6px 6px 0 0}
+.tab-header.active{background:#fff;font-weight:600}
+.tab-panel{display:none}
+.tab-panel.active{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+                  gap:.75rem;padding:0 10px 2rem}
+figure{margin:0;position:relative}
+img,video{box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;cursor:pointer;}
+
+/* the white “checkbox” */
+.select-box {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.6);
+  border-radius: 4px;
+  box-sizing: border-box;
+  z-index: 3;
+}
+
+/* when selected, fill it */
+figure.selected .select-box {
+  background: #fff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+figure.selected img:not(.video-icon),
+figure.selected video {
+  width: calc(100% - 8px);
+  border: 4px solid black;
+}
+
+/* toolbar at bottom */
+#selectionToolbar {
+  position: fixed;
+  bottom: 0; left: 0;
+  width: 100%;
+  padding: 0.5rem;
+  background: #fff;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+  display: none;
+  align-items: center;          /* vertical center */
+  justify-content: space-between;
+  text-align: center;
+  z-index: 20000;
+  box-sizing: border-box;
+  gap: 0.5rem;
+}
+
+#deselectAll {
+  position: absolute;
+  right: 1.2rem; top: calc(50% - 0.1rem);
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+#selectionToolbar button {
+  padding: 0.6rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+#downloadSelected {
+  flex: 1;                      /* take up all available space */
+  margin-right: 2.5rem;
+  background: var(--primary-color);
+  color: #fff;
+}
+
+#deleteSelected {
+  flex: none;                   /* only as big as its content */
+  background: #f44336;
+  color: #fff;
+}
+
+.del{position:absolute;top:4px;right:4px;border-radius:4px;font-size:.75rem;cursor:pointer}
+.video-icon {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;      /* scale down the 48×48 PNG */
+  height: 24px;
+  pointer-events: none;
+  z-index: 2;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 3px;
+}
+
+#overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+         background:rgba(0,0,0,.8);z-index:10000}
+#overlay.visible{display:flex}
+#overlay img,#overlay video{max-width:90vw;max-height:min(87vh, calc(100% - 30px));  
+  position: absolute; top:49.5%; transform:translateY(-50%);
+  
+  width: auto;
+  height: auto;
+  aspect-ratio: auto;
+  object-fit: contain;border-radius:8px}
+#timestamp{position:absolute;top:1rem;left:50%;transform:translateX(-50%);
+           color:#fff;font-size:1.1rem;font-weight:600; text-align: center;z-index:10001; text-shadow: 1px 1px 5px black;}
+#downloadBtn{position:fixed;bottom:0.75rem;left:50%;transform:translateX(-50%);
+             padding:.6rem 1.2rem;background:#fff;border:1px solid #444;border-radius:6px;
+             cursor:pointer;font-weight:600;z-index:10001}
+</style>
+</head>
+<body>
+<header>
+  <button id="addBtn">Add Photos / Videos</button>
+  <input id="filePicker" type="file" multiple accept="image/*,video/*" hidden>
+</header>
+
+<div id="tabs" class="tabs">
+  <div id="tabAll"  class="tab-header active">All Uploads</div>
+  <div id="tabMine" class="tab-header">My Uploads</div>
+  <span class="glider"></span>
+</div>
+
+<section id="panelAll"  class="tab-panel active"></section>
+<section id="panelMine" class="tab-panel"></section>
+<footer id="loadMoreContainer" style="text-align:center; padding:1rem;">
+  <button id="loadMoreBtn" style="padding:.5rem 1rem; font-size:1rem;">Load more</button>
+</footer>
+
+<div id="selectionToolbar">
+  <button id="deleteSelected">Delete</button>
+  <button id="downloadSelected">Download</button>
+  <span id="deselectAll">&times;</span>
+</div>
+
+<div id="overlay">
+  <div id="timestamp"></div>
+</div>
+<button id="downloadBtn" style="display:none">Download</button>
+
+<script type="module">
+// ── AWS config ─────────────────────────────────────────────────────────────
+const REGION  = "us-west-2";
+const ID_POOL = "us-west-2:8e34a4e5-741b-402e-9bfb-eeb90b5643e3";
+const BUCKET  = "weddingphotos-2025";
+
+import { parse } from
+  "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs"; 
+import {
+  S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand
+} from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
+import { fromCognitoIdentityPool }
+  from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
+
+
+import JSZip from 'https://esm.sh/jszip@3.10.1';
+
+const selectedKeys = new Set();
+const toolbar       = document.getElementById('selectionToolbar');
+const btnDownload   = document.getElementById('downloadSelected');
+const btnDelete     = document.getElementById('deleteSelected');
+
+const btnDeselect = document.getElementById('deselectAll');
+btnDeselect.onclick = () => {
+  // clear all selections
+  document.querySelectorAll('figure.selected').forEach(f => f.classList.remove('selected'));
+  selectedKeys.clear();
+  updateToolbar();
+};
+
+function updateToolbar() {
+  const count = selectedKeys.size;
+  if (count === 0) {
+    toolbar.style.display = 'none';
+    return;
+  }
+  toolbar.style.display = 'flex';
+  btnDownload.textContent = `Download (${count})`;
+
+  // only show Delete if *all* selectedKeys are in your own set
+  const mineSet = mine();
+  const allOwned = Array.from(selectedKeys).every(key => mineSet.has(key));
+  btnDelete.style.display = allOwned ? 'inline-block' : 'none';
+  btnDelete.textContent = allOwned
+    ? `Delete (${count})`
+    : '';
+}
+
+
+
+const s3 = new S3Client({
+  region: REGION,
+  credentials: fromCognitoIdentityPool({ identityPoolId: ID_POOL, clientConfig:{region:REGION}})
+});
+
+// ── use localStorage instead of cookies ────────────────────────────────────
+function getUploads(){
+  try { return JSON.parse(localStorage.getItem("myUploads") || "[]"); }
+  catch { return []; }
+}
+function saveUploads(arr){
+  localStorage.setItem("myUploads", JSON.stringify(arr));
+}
+function remember(key){
+  const arr = getUploads();
+  if (!arr.includes(key)) {
+    arr.push(key);
+    saveUploads(arr);
+  }
+}
+function mine(){
+  return new Set(getUploads());
+}
+
+// ── DOM refs & tabs ───────────────────────────────────────────────────────
+const picker   = document.getElementById('filePicker');
+const addBtn   = document.getElementById('addBtn');
+const panelAll = document.getElementById('panelAll');
+const panelMine= document.getElementById('panelMine');
+const overlay  = document.getElementById('overlay');
+const tsLabel  = document.getElementById('timestamp');
+const dlBtn    = document.getElementById('downloadBtn');
+
+document.getElementById('tabAll').onclick  = ()=>switchTab(true);
+document.getElementById('tabMine').onclick = ()=>switchTab(false);
+function switchTab(showAll){
+  document.getElementById('tabAll').classList.toggle('active',  showAll);
+  document.getElementById('tabMine').classList.toggle('active', !showAll);
+  panelAll.classList.toggle('active',  showAll);
+  panelMine.classList.toggle('active', !showAll);
+}
+
+// ── upload flow ──────────────────────────────────────────────────────────
+addBtn.onclick = ()=>picker.click();
+picker.onchange = async ev => {
+  const newKeys = [];
+  for (const file of ev.target.files) {
+    const key = `${Date.now()}_${file.name}`;
+    await s3.send(new PutObjectCommand({
+      Bucket:      BUCKET,
+      Key:         key,
+      Body:        file,
+      ContentType: file.type
+    }));
+    remember(key);
+    newKeys.push(key);
+  }
+  picker.value = "";
+  // only append the ones we just added
+  await appendNew(newKeys);
+};
+
+
+
+// ── overlay & download ────────────────────────────────────────────────────
+let currentSrc = "", currentName = "";
+function openOverlay(src,isVideo,tsReadable,fileName){
+  currentSrc = src; currentName = fileName;
+  overlay.innerHTML = "";
+  tsLabel.textContent = `${tsReadable}`;
+  overlay.appendChild(tsLabel);
+  overlay.appendChild(isVideo
+    ? Object.assign(document.createElement('video'), {src,controls:true})
+    : Object.assign(document.createElement('img'),   {src})
+  );
+  overlay.classList.add('visible');
+  dlBtn.style.display = 'block';
+}
+function closeOverlay(){
+  /* ① stop video if one is present */
+  const vid = overlay.querySelector('video');
+  if (vid) {
+    vid.pause();
+    vid.currentTime = 0;
+  }
+
+  overlay.classList.remove('visible');
+  dlBtn.style.display = 'none';
+}
+overlay.onclick = e=>{ if(e.target===overlay) closeOverlay(); };
+window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeOverlay(); });
+
+dlBtn.onclick = async ()=>{
+  dlBtn.disabled = true;
+  console.log("Downloading", currentSrc);
+  dlBtn.textContent = "Downloading...";
+  try {
+    const resp = await fetch(currentSrc);
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), {
+      href: url, download: currentName
+    });
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } finally { dlBtn.disabled = false;   dlBtn.textContent = "Download";}
+};
+
+// ── gallery render (newest→oldest) ───────────────────────────────────────
+// ── lazy-load observer ─────────────────────────────────────────────────────
+const io = new IntersectionObserver(entries => {
+  for (let e of entries) {
+    if (e.isIntersecting) {
+      const el = e.target;
+      el.src = el.dataset.src;
+      if (el.tagName === 'VIDEO') el.load();
+      io.unobserve(el);
+    }
+  }
+}, { rootMargin: '200px' });
+
+// ── paging variables ───────────────────────────────────────────────────────
+const batchSize = 20;
+let loadedCount = batchSize;
+const loadMoreBtn = document.getElementById('loadMoreBtn');
+loadMoreBtn.onclick = () => {
+  loadedCount += batchSize;
+  render();
+};
+
+// ── paged & lazy render ────────────────────────────────────────────────────
+async function render() {
+  const { Contents=[] } = await s3.send(new ListObjectsV2Command({ Bucket:BUCKET }));
+
+  async function mapWithLimit(inputs, fn, limit=5) {
+    const ret = [];
+    let i = 0;
+    async function worker() {
+      while (i < inputs.length) {
+        const idx = i++;
+        ret[idx] = await fn(inputs[idx]);
+      }
+    }
+    await Promise.all(Array(limit).fill().map(worker));
+    return ret;
+  }
+  let page = Contents.slice(0, loadedCount);
+  if (page.length === 0) {
+    panelAll.innerHTML = panelMine.innerHTML = "<p>No uploads yet</p>";
+    return;
+  }
+  // sort by *chosenDate* later, so first build an array with dates
+  const withDates = await mapWithLimit(page, async ({Key,LastModified})=>{ 
+
+
+    return { Key, LastModified, takenDate: await getExifDate(Key, LastModified)  };
+  });
+
+  // 3) Now sort by our chosenDate (newest→oldest)
+  withDates.sort((a, b) => b.takenDate - a.takenDate);
+
+  // console.log("withDates", withDates);
+
+  // Now render in that order
+  const mySet = mine();
+  panelAll.innerHTML = panelMine.innerHTML = "";
+
+  for (const { Key, takenDate } of withDates) {
+    buildFigure(Key, takenDate, mySet);
+  }
+
+  loadMoreBtn.style.display = (loadedCount < Contents.length) ? 'inline-block' : 'none';
+}
+
+
+/* ---------- helpers -------------------------------------------------- */
+// add a data-attribute that we can sort on
+function tagWithTaken(fig, date) {
+  fig.dataset.taken = String(date.getTime());   // newest → largest number
+}
+
+// (re)sort all children in a panel by that attribute (DESC)
+function sortPanel(panel) {
+  [...panel.children]                       // live HTMLCollection → array
+    .sort((a, b) => Number(b.dataset.taken) - Number(a.dataset.taken))
+    .forEach(el => panel.appendChild(el));  // re-append in correct order
+}
+
+// quickly wire clone → delete handler
+function rewireDelete(origFig, cloneFig) {
+  const o = origFig.querySelector('.del');
+  const c = cloneFig.querySelector('.del');
+  if (o && c) c.onclick = o.onclick;
+}
+
+async function appendNew(keys) {
+  const me = mine();
+
+  for (const Key of keys) {
+    // head + EXIF → takenDate
+    const head      = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key }));
+    const ms        = head.Metadata?.taken ? +head.Metadata.taken : Date.now();
+    const takenDate = await getExifDate(Key, ms);
+
+    /* build but DON’T append yet */
+    const fig = await buildFigure(Key, takenDate, me);
+
+    loadedCount++;              // keep paging logic happy
+  }
+
+  /* finally: re-sort both panels so the new items land in place */
+  sortPanel(panelAll);
+  sortPanel(panelMine);
+
+  /* update "Load more" visibility */
+  const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET }));
+  loadMoreBtn.style.display = loadedCount < Contents.length ? 'inline-block' : 'none';
+}
+
+async function getExifDate(Key, LastModified) {
+  const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
+  let exif = {};
+  try {
+    exif = await parse(url, ["DateTimeOriginal"]) || {};
+  } catch (err) {
+    console.warn("EXIF parse failed for", url, err);
+  }
+  const origDate = exif.DateTimeOriginal;
+  const origMs   = origDate instanceof Date ? origDate.getTime() : NaN;
+  const modMs    = new Date(LastModified).getTime();
+
+  return new Date(origMs || modMs);
+}
+
+async function buildFigure(Key, takenDate, mySet) {
+    const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
+    const isMine     = mySet.has(Key);
+    const isVideo    = /\.(mp4|mov|webm)$/i.test(Key);
+    const timePart = takenDate.toLocaleTimeString("en-US", {
+      hour:   "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+    const datePart = takenDate.toLocaleDateString("en-US", {
+      month: "short",
+      day:   "2-digit",
+      year:  "numeric"
+    });
+    const tsReadable = `${timePart}, ${datePart}`;
+
+    // build the figure
+    const fig = document.createElement('figure');
+    fig.dataset.key = Key;
+    tagWithTaken(fig, takenDate);
+    fig.style.cursor = 'pointer';
+    // --- long-press support ---
+    let longPress = false;
+    let lpTimer;
+
+    // thumbnail or video placeholder
+    if (isVideo) {
+      const v = document.createElement('video');
+      v.muted = true; v.controls = false; v.preload = 'none';
+      v.dataset.src = url;
+      fig.appendChild(v);
+      io.observe(v);
+
+      // add video icon
+      const icon = document.createElement('img');
+      icon.src   = 'https://img.icons8.com/fluency-systems-regular/48/video.png';
+      icon.alt   = 'video';
+      icon.className = 'video-icon';
+      fig.appendChild(icon);
+    } else {
+      const img = document.createElement('img');
+      img.loading   = 'lazy';
+      img.dataset.src = url;
+      fig.appendChild(img);
+      io.observe(img);
+    }
+
+    // add selection box to every item
+    const box = document.createElement('div');
+    box.className = 'select-box';
+    box.onclick = e => {
+      e.stopPropagation();
+      const isSelected = selectedKeys.has(Key);
+
+      if (isSelected) {
+        selectedKeys.delete(Key);
+      } else {
+        selectedKeys.add(Key);
+      }
+
+      // toggle the class on *every* matching figure
+      document.querySelectorAll(`figure[data-key="${Key}"]`)
+        .forEach(f => f.classList.toggle('selected', !isSelected));
+
+      updateToolbar();
+    };
+
+    fig.appendChild(box);
+
+    fig.addEventListener('mousedown', e => {
+      // only trigger long-press when not already multi-selecting
+      if (selectedKeys.size === 0) {
+        lpTimer = setTimeout(() => {
+          longPress = true;
+          box.click();         // toggle selection
+        }, 500);
+      }
+    });
+
+    fig.addEventListener('mouseup', e => {
+      clearTimeout(lpTimer);
+    });
+
+    // override click behavior
+    fig.onclick = e => {
+      if (longPress) {
+        // consumed by the long-press toggle
+        longPress = false;
+        return;
+      }
+      if (selectedKeys.size > 0) {
+        box.click();         // regular click now toggles once you've started selecting
+      } else {
+        openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
+      }
+    };
+
+    // always add to “All”
+    panelAll.appendChild(fig);
+
+    // if it’s mine, clone *and* re-attach handlers for “My Uploads”
+    if (isMine) {
+      // Clone the figure for the “My Uploads” pane
+      const clone = fig.cloneNode(true);
+
+      // 0) get the original box and the clone's box
+      const origBox  = fig.querySelector('.select-box');
+      const cloneBox = clone.querySelector('.select-box');
+      // 1) re-bind the click handler
+      if (origBox && cloneBox) {
+        cloneBox.onclick = origBox.onclick;
+      }
+
+      // 1) Re-attach lazy-load observer to the cloned thumb
+      const thumb = clone.querySelector('img, video');
+      if (thumb) io.observe(thumb);
+
+      // 2) Re-bind the click to openOverlay
+      clone.onclick = fig.onclick;
+
+      // 3) Swap out the delete button’s handler to just open (no delete)
+      const origDel  = fig .querySelector('.del');   // original delete handler
+      const cloneDel = clone.querySelector('.del');  // delete in My Uploads
+      if (origDel && cloneDel) {
+        cloneDel.onclick = origDel.onclick;          // give it *the same* handler
+      }
+
+      panelMine.appendChild(clone);
+    }
+
+  return fig;
+}
+
+// initial render
+render();
+
+
+// 1) Download Selected
+btnDownload.onclick = async () => {
+  btnDownload.textContent = "Downloading...";
+  btnDownload.disabled = true;
+
+  if (selectedKeys.size === 0) return;
+  const keys = Array.from(selectedKeys);
+  if (keys.length === 1) {
+    // single file: just fetch & download
+    const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(keys[0])}`;
+    const resp = await fetch(url);
+    const blob = await resp.blob();
+    const a    = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: keys[0].split('_').slice(1).join('_')
+    });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } else {
+    // multiple: zip them
+    const zip = new JSZip();
+    await Promise.all(keys.map(async key => {
+      const url  = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      zip.file(key.split('_').slice(1).join('_'), blob);
+    }));
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(content),
+      download: 'maiya-jared-2025.zip'
+    });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  btnDownload.textContent = `Download (${selectedKeys.size})`;
+  btnDownload.disabled = false;
+};
+
+// 2) Delete Selected
+btnDelete.onclick = async () => {
+  btnDelete.textContent = "Deleting...";
+  btnDelete.disabled = true;
+
+  const count = selectedKeys.size;
+  if (!confirm(`Are you sure you want to delete ${count} file${count>1?'s':''}?`)) {
+    return;
+  }
+  // perform deletes in parallel
+  await Promise.all(
+    Array.from(selectedKeys).map(key =>
+      s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
+    )
+  );
+
+  for (const key of Array.from(selectedKeys)) {
+    // remove both the original and any clone
+    document
+      .querySelectorAll(`figure[data-key="${key}"]`)
+      .forEach(fig => fig.remove());
+  }
+  selectedKeys.clear();
+  updateToolbar();
+  btnDelete.textContent = `Delete (${selectedKeys.size})`;
+  btnDelete.disabled = false;
+};
+
+</script>
+</body>
+</html>
