@@ -246,9 +246,21 @@ import {
 import { fromCognitoIdentityPool }
   from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
 
-
 import JSZip from 'https://esm.sh/jszip@3.10.1';
 
+
+// 0) prevent “exit on back” by having an initial state
+history.replaceState({ view: 'main' }, '');
+window.addEventListener('popstate', (e) => {
+  if (overlay.classList.contains('visible')) {
+    closeOverlay();
+  }
+});
+
+
+
+
+// set up the selection toolbar
 const selectedKeys = new Set();
 const toolbar       = document.getElementById('selectionToolbar');
 const btnDownload   = document.getElementById('downloadSelected');
@@ -279,6 +291,8 @@ function updateToolbar() {
     ? `Delete (${count})`
     : '';
 }
+
+
 
 
 
@@ -361,6 +375,9 @@ function openOverlay(src,isVideo,tsReadable,fileName){
   );
   overlay.classList.add('visible');
   dlBtn.style.display = 'block';
+
+  // push a new in-page history entry
+  history.pushState({ view: 'overlay' }, '');
 }
 function closeOverlay(){
   // console.log("closeOverlay");
@@ -371,12 +388,16 @@ function closeOverlay(){
     vid.currentTime = 0;
   }
 
+  if (history.state?.view === 'overlay') {
+    history.back(); // pops the “overlay” entry off the stack
+  }
+
   overlay.classList.remove('visible');
   dlBtn.style.display = 'none';
 }
 // listen for pointerdown on the overlay background:
 overlay.onclick = null;
-overlay.addEventListener('pointerdown', e => {
+overlay.addEventListener('pointerup', e => {
   if (e.target === overlay) {
     // prevent the click from ever firing:
     e.stopPropagation();
@@ -621,7 +642,7 @@ async function buildFigure(Key, takenDate, mySet) {
         } else if (e.target === box || selectedKeys.size > 0) {
           toggleSelection(Key);
         } else {
-          setTimeout(() => openOverlay(url, isVideo, tsReadable, Key.split('/').pop()), 0);
+          openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
         }
       });
 
