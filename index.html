@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Wedding Photo Upload</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Maiya & Jared 2025</title>
 <style>
 :root {
   --primary-color:   hsl(127 33.5% 54.9%);
@@ -72,7 +73,9 @@ border-radius: 8px;
 .tab-panel{display:none}
 .tab-panel.active{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
                   gap:.75rem;padding:0 10px 2rem}
-figure{margin:0;position:relative}
+figure{margin:0;position:relative;
+  -webkit-touch-callout: none;   /* iOS Safari */
+  touch-action: manipulation;    /* general pointer */}
 img,video{box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;cursor:pointer;}
 
 /* the white “checkbox” */
@@ -285,8 +288,9 @@ const overlay  = document.getElementById('overlay');
 const tsLabel  = document.getElementById('timestamp');
 const dlBtn    = document.getElementById('downloadBtn');
 
-document.getElementById('tabAll').onclick  = ()=>switchTab(true);
-document.getElementById('tabMine').onclick = ()=>switchTab(false);
+document.getElementById('tabAll').addEventListener('pointerdown', () => switchTab(true));
+document.getElementById('tabMine').addEventListener('pointerdown', () => switchTab(false));
+
 function switchTab(showAll){
   document.getElementById('tabAll').classList.toggle('active',  showAll);
   document.getElementById('tabMine').classList.toggle('active', !showAll);
@@ -295,7 +299,7 @@ function switchTab(showAll){
 }
 
 // ── upload flow ──────────────────────────────────────────────────────────
-addBtn.onclick = ()=>picker.click();
+addBtn.addEventListener('pointerdown', () => picker.click());
 picker.onchange = async ev => {
   const newKeys = [];
   for (const file of ev.target.files) {
@@ -319,6 +323,7 @@ picker.onchange = async ev => {
 // ── overlay & download ────────────────────────────────────────────────────
 let currentSrc = "", currentName = "";
 function openOverlay(src,isVideo,tsReadable,fileName){
+  console.log("openOverlay", src, isVideo, tsReadable);
   currentSrc = src; currentName = fileName;
   overlay.innerHTML = "";
   tsLabel.textContent = `${tsReadable}`;
@@ -331,6 +336,7 @@ function openOverlay(src,isVideo,tsReadable,fileName){
   dlBtn.style.display = 'block';
 }
 function closeOverlay(){
+  console.log("closeOverlay");
   /* ① stop video if one is present */
   const vid = overlay.querySelector('video');
   if (vid) {
@@ -341,24 +347,47 @@ function closeOverlay(){
   overlay.classList.remove('visible');
   dlBtn.style.display = 'none';
 }
-overlay.onclick = e=>{ if(e.target===overlay) closeOverlay(); };
+// listen for pointerdown on the overlay background:
+overlay.onclick = null;
+overlay.addEventListener('pointerdown', e => {
+  if (e.target === overlay) {
+    // prevent the click from ever firing:
+    e.stopPropagation();
+    closeOverlay();
+  }
+});
 window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeOverlay(); });
 
-dlBtn.onclick = async ()=>{
-  dlBtn.disabled = true;
-  console.log("Downloading", currentSrc);
-  dlBtn.textContent = "Downloading...";
+// Add a pointerdown listener instead
+dlBtn.addEventListener('pointerdown', async () => {
+  dlBtn.disabled    = true;
+  dlBtn.textContent = "Downloading…";
+
   try {
     const resp = await fetch(currentSrc);
     const blob = await resp.blob();
     const url  = URL.createObjectURL(blob);
     const a    = Object.assign(document.createElement('a'), {
-      href: url, download: currentName
+      href:     url,
+      download: currentName
     });
-    document.body.appendChild(a); a.click(); a.remove();
+    document.body.appendChild(a);
+
+    // now fire the download *on pointerdown* of that anchor:
+    a.addEventListener('pointerdown', () => {
+      a.click();
+      a.remove();
+    });
+
+    // trigger it immediately:
+    a.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
     URL.revokeObjectURL(url);
-  } finally { dlBtn.disabled = false;   dlBtn.textContent = "Download";}
-};
+  } finally {
+    dlBtn.disabled    = false;
+    dlBtn.textContent = "Download";
+  }
+});
+
 
 // ── gallery render (newest→oldest) ───────────────────────────────────────
 // ── lazy-load observer ─────────────────────────────────────────────────────
@@ -504,13 +533,12 @@ async function buildFigure(Key, takenDate, mySet) {
 
     // build the figure
     const fig = document.createElement('figure');
+    fig.style.touchAction = 'manipulation';             // for better pointer behavior
+    fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
     fig.dataset.key = Key;
     tagWithTaken(fig, takenDate);
     fig.style.cursor = 'pointer';
-    // --- long-press support ---
-    let longPress = false;
-    let lpTimer;
-
+    
     // thumbnail or video placeholder
     if (isVideo) {
       const v = document.createElement('video');
@@ -538,52 +566,48 @@ async function buildFigure(Key, takenDate, mySet) {
     box.className = 'select-box';
     box.onclick = e => {
       e.stopPropagation();
-      const isSelected = selectedKeys.has(Key);
-
-      if (isSelected) {
-        selectedKeys.delete(Key);
-      } else {
-        selectedKeys.add(Key);
-      }
-
-      // toggle the class on *every* matching figure
-      document.querySelectorAll(`figure[data-key="${Key}"]`)
-        .forEach(f => f.classList.toggle('selected', !isSelected));
-
-      updateToolbar();
+      toggleSelection(Key);
     };
-
     fig.appendChild(box);
 
-    fig.addEventListener('mousedown', e => {
-      // only trigger long-press when not already multi-selecting
-      if (selectedKeys.size === 0) {
+    function wireSelectionHandlers(fig) {
+      // block just the native long-press menu
+      fig.addEventListener('contextmenu', e => e.preventDefault());
+
+      // --- LONG-PRESS SELECTION HANDLERS ---
+      let longPress = false;
+      let lpTimer;
+
+      // on touch/pen/mouse down, start the 500ms timer
+      fig.addEventListener('pointerdown', e => {
         lpTimer = setTimeout(() => {
-          longPress = true;
-          box.click();         // toggle selection
-        }, 500);
-      }
-    });
+          longPress = true;       
+          toggleSelection(Key);
+        }, 400);
+      });
 
-    fig.addEventListener('mouseup', e => {
-      clearTimeout(lpTimer);
-    });
+      // on any exit or up, clear the timer
+      fig.addEventListener('pointerup', e => {
+        clearTimeout(lpTimer);
+        if (longPress) {
+          longPress = false;
+        } else if (selectedKeys.size > 0) {
+          toggleSelection(Key);
+        } else {
+          setTimeout(() => openOverlay(url, isVideo, tsReadable, Key.split('/').pop()), 0);
+        }
+      });
 
-    // override click behavior
-    fig.onclick = e => {
-      if (longPress) {
-        // consumed by the long-press toggle
-        longPress = false;
-        return;
-      }
-      if (selectedKeys.size > 0) {
-        box.click();         // regular click now toggles once you've started selecting
-      } else {
-        openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
-      }
-    };
+
+      ['pointercancel'].forEach(evt =>
+        fig.addEventListener(evt, () => {
+          clearTimeout(lpTimer);
+        })
+      );
+    }
 
     // always add to “All”
+    wireSelectionHandlers(fig);
     panelAll.appendChild(fig);
 
     // if it’s mine, clone *and* re-attach handlers for “My Uploads”
@@ -613,10 +637,24 @@ async function buildFigure(Key, takenDate, mySet) {
         cloneDel.onclick = origDel.onclick;          // give it *the same* handler
       }
 
+      wireSelectionHandlers(clone);
       panelMine.appendChild(clone);
     }
 
   return fig;
+}
+
+// pull out your selection logic so it’s easy to call from both tap and long-press
+function toggleSelection(Key) {
+  const was = selectedKeys.has(Key);
+  if (was) selectedKeys.delete(Key);
+  else        selectedKeys.add(Key);
+
+  // update *all* cloned figures for this Key
+  document.querySelectorAll(`figure[data-key="${Key}"]`).forEach(fig =>
+    fig.classList.toggle('selected', !was)
+  );
+  updateToolbar();
 }
 
 // initial render
