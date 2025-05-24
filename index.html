@@ -456,13 +456,12 @@ async function render() {
   }
   let page = Contents.slice(0, loadedCount);
   if (page.length === 0) {
-    panelAll.innerHTML = panelMine.innerHTML = "<p>No uploads yet</p>";
+    console.log("No uploads yet");
+    panelAll.innerHTML = "<p style='text-align: center; left: 50%; transform: translateX(50%);'>No uploads yet</p>";
     return;
   }
   // sort by *chosenDate* later, so first build an array with dates
   const withDates = await mapWithLimit(page, async ({Key,LastModified})=>{ 
-
-
     return { Key, LastModified, takenDate: await getExifDate(Key, LastModified)  };
   });
 
@@ -477,6 +476,11 @@ async function render() {
 
   for (const { Key, takenDate } of withDates) {
     buildFigure(Key, takenDate, mySet);
+  }
+
+  // if no uploads, show empty message in "My Uploads"
+  if(mySet.size === 0) {
+    panelMine.innerHTML = "<p style='text-align: center; left: 50%; transform: translateX(50%);'>No uploads yet</p>";
   }
 
   loadMoreBtn.style.display = (loadedCount < Contents.length) ? 'inline-block' : 'none';
