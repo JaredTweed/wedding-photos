@@ -11,8 +11,15 @@
 }
 
 body{font-family:system-ui;margin:0;background:#fafafa;color:#222}
+
+body * {-webkit-tap-highlight-color: transparent;}
 header{padding:10px}
-#addBtn{background-color: var(--primary-color);color: white;margin:0;padding:0.5rem 1rem;cursor:pointer;width:100%;font-size:1rem; border-radius: 8px; border: none;font-weight: 700;}
+#addBtn{box-shadow:
+    0 0 1px rgba(0,0,0,0.15),
+    0 6px 12px rgba(0,0,0,0.15);
+    background-color: var(--primary-color);color: white;margin:0;padding:0.5rem 1rem;cursor:pointer;width:100%;font-size:1rem; border-radius: 8px; border: none;font-weight: 700;}
+#addBtn:active{box-sizing: border-box;
+    transform: translateY(2px);}
 
 /* make the tabs container a pill with a glider */
 #tabs.tabs {
@@ -67,7 +74,11 @@ border-radius: 8px;
 
 
 
-.tab-header{padding:.4rem 1rem;border:1px solid #ccc;border-bottom:none;
+.tab-header{
+    /* turn off the blue tap highlight on iOS/Android */
+  -webkit-tap-highlight-color: transparent;
+  
+  padding:.4rem 1rem;border:1px solid #ccc;border-bottom:none;
             background:#eee;cursor:pointer;border-radius:6px 6px 0 0}
 .tab-header.active{background:#fff;font-weight:600}
 .tab-panel{display:none}
@@ -323,7 +334,7 @@ picker.onchange = async ev => {
 // ── overlay & download ────────────────────────────────────────────────────
 let currentSrc = "", currentName = "";
 function openOverlay(src,isVideo,tsReadable,fileName){
-  console.log("openOverlay", src, isVideo, tsReadable);
+  // console.log("openOverlay", src, isVideo, tsReadable);
   currentSrc = src; currentName = fileName;
   overlay.innerHTML = "";
   tsLabel.textContent = `${tsReadable}`;
@@ -336,7 +347,7 @@ function openOverlay(src,isVideo,tsReadable,fileName){
   dlBtn.style.display = 'block';
 }
 function closeOverlay(){
-  console.log("closeOverlay");
+  // console.log("closeOverlay");
   /* ① stop video if one is present */
   const vid = overlay.querySelector('video');
   if (vid) {
