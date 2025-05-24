@@ -415,26 +415,29 @@ dlBtn.addEventListener('pointerdown', async () => {
     const resp = await fetch(currentSrc);
     const blob = await resp.blob();
     const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement('a'), {
-      href:     url,
-      download: currentName
-    });
-    document.body.appendChild(a);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-    // now fire the download *on pointerdown* of that anchor:
-    a.addEventListener('pointerdown', () => {
+    if (isMobile) {
+      // On mobile, open blob URL in a new tab so user can save it manually
+      window.open(url, '_blank');
+    } else {
+      // On desktop, use download attribute
+      const a = document.createElement('a');
+      a.href        = url;
+      a.download    = currentName;
+      document.body.appendChild(a);
       a.click();
       a.remove();
-    });
+    }
 
-    // trigger it immediately:
-    a.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    URL.revokeObjectURL(url);
+    // give the browser a moment to spin up the download
+    setTimeout(() => URL.revokeObjectURL(url), 500);
   } finally {
     dlBtn.disabled    = false;
     dlBtn.textContent = "Download";
   }
 });
+
 
 
 // ── gallery render (newest→oldest) ───────────────────────────────────────
