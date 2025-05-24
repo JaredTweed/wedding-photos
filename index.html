@@ -10,14 +10,19 @@
   --secondary-color: #e6eef9;
 }
 
-body{font-family:system-ui;margin:0;background:#fafafa;color:#222}
+body{
+  /* turn off the blue tap highlight on iOS/Android */
+  -webkit-tap-highlight-color: transparent;
+  font-family:system-ui;margin:0;background:#fafafa;color:#222}
 
 body * {-webkit-tap-highlight-color: transparent;}
-header{padding:10px}
-#addBtn{box-shadow:
+header{padding:10px;position: relative;display:flex;}
+#addBtn{flex: 1;box-shadow:
     0 0 1px rgba(0,0,0,0.15),
-    0 6px 12px rgba(0,0,0,0.15);
-    background-color: var(--primary-color);color: white;margin:0;padding:0.5rem 1rem;cursor:pointer;width:100%;font-size:1rem; border-radius: 8px; border: none;font-weight: 700;}
+    0 6px 12px rgba(0,0,0,0.15); display:block;
+    background-color: var(--primary-color);color: white;margin:0;
+    padding:0.5rem 1rem;cursor:pointer;width:auto;height:100%;box-sizing: border-box;font-size:1rem; 
+    border-radius: 8px; border: none;font-weight: 700; text-align: center;}
 #addBtn:active{box-sizing: border-box;
     transform: translateY(2px);}
 
@@ -161,7 +166,7 @@ figure.selected video {
 }
 
 /* disable text selection on all your tappable controls */
-button,
+button, label,
 .tab-header,
 #loadMoreBtn,
 #downloadSelected,
@@ -208,8 +213,14 @@ button,
 </head>
 <body>
 <header>
-  <button id="addBtn">Add Photos / Videos</button>
-  <input id="filePicker" type="file" capture="environment" multiple accept="image/*,video/*" hidden>
+  <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+  <input
+    id="filePicker"
+    type="file"
+    capture="environment"
+    multiple
+    accept="image/*,video/*"
+    style="width:0; height:0; opacity:0; overflow:hidden;">
 </header>
 
 <div id="tabs" class="tabs">
@@ -343,7 +354,7 @@ function switchTab(showAll){
 }
 
 // ── upload flow ──────────────────────────────────────────────────────────
-addBtn.addEventListener('pointerdown', () => picker.click());
+// addBtn.addEventListener('pointerdown', () => picker.click());
 picker.onchange = async ev => {
   const newKeys = [];
   for (const file of ev.target.files) {
