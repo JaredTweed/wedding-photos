@@ -157,6 +157,22 @@ figure.selected video {
   color: #fff;
 }
 
+/* disable text selection on all your tappable controls */
+button,
+.tab-header,
+#loadMoreBtn,
+#downloadSelected,
+#deleteSelected,
+#addBtn {
+  /* standard */
+  user-select: none;
+  /* WebKit */
+  -webkit-user-select: none;
+  /* older IE/Edge */
+  -ms-user-select: none;
+}
+
+
 .del{position:absolute;top:4px;right:4px;border-radius:4px;font-size:.75rem;cursor:pointer}
 .video-icon {
   position: absolute;
