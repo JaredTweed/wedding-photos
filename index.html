@@ -342,13 +342,13 @@ function mine(){
 }
 
 // ── DOM refs & tabs ───────────────────────────────────────────────────────
-const picker   = document.getElementById('filePicker');
-const addBtn   = document.getElementById('addBtn');
-const panelAll = document.getElementById('panelAll');
-const panelMine= document.getElementById('panelMine');
-const overlay  = document.getElementById('overlay');
-const tsLabel  = document.getElementById('timestamp');
-const dlBtn    = document.getElementById('downloadBtn');
+const picker    = document.getElementById('filePicker');
+const addBtn    = document.getElementById('addBtn');
+const panelAll  = document.getElementById('panelAll');
+const panelMine = document.getElementById('panelMine');
+const overlay   = document.getElementById('overlay');
+const tsLabel   = document.getElementById('timestamp');
+const dlBtn     = document.getElementById('downloadBtn');
 
 document.getElementById('tabAll').addEventListener('pointerdown', () => switchTab(true));
 document.getElementById('tabMine').addEventListener('pointerdown', () => switchTab(false));
@@ -500,11 +500,11 @@ async function render() {
     return ret;
   }
   let page = Contents.slice(0, loadedCount);
-  if (page.length === 0) {
-    console.log("No uploads yet");
-    panelAll.innerHTML = "<p class='empty-message'>No uploads yet</p>";
-    return;
-  }
+  // if (page.length === 0) {
+  //   console.log("No uploads yet");
+  //   panelAll.innerHTML = "<p class='empty-message'>No uploads yet</p>";
+  //   return;
+  // }
   // sort by *chosenDate* later, so first build an array with dates
   const withDates = await mapWithLimit(page, async ({Key,LastModified})=>{ 
     return { Key, LastModified, takenDate: await getExifDate(Key, LastModified)  };
@@ -523,10 +523,12 @@ async function render() {
     buildFigure(Key, takenDate, mySet);
   }
 
-  // if no uploads, show empty message in "My Uploads"
-  if(mySet.size === 0) {
-    panelMine.innerHTML = "<p class='empty-message'>No uploads yet</p>";
-  }
+  // // if no uploads, show empty message in "My Uploads"
+  // if(mySet.size === 0) {
+  //   panelMine.innerHTML = "<p class='empty-message'>No uploads yet</p>";
+  // }
+
+  updatePanelMessages();
 
   loadMoreBtn.style.display = (loadedCount < Contents.length) ? 'inline-block' : 'none';
 }
@@ -553,8 +555,8 @@ function rewireDelete(origFig, cloneFig) {
 }
 
 async function appendNew(keys) {
-  // if we had a “no uploads” message showing, get rid of it now
-  document.querySelectorAll('p.empty-message').forEach(el => el.remove());
+  // // if we had a “no uploads” message showing, get rid of it now
+  // document.querySelectorAll('p.empty-message').forEach(el => el.remove());
 
   const me = mine();
 
@@ -573,6 +575,8 @@ async function appendNew(keys) {
   /* finally: re-sort both panels so the new items land in place */
   sortPanel(panelAll);
   sortPanel(panelMine);
+
+  updatePanelMessages();
 
   /* update "Load more" visibility */
   const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET }));
@@ -785,6 +789,8 @@ btnDelete.onclick = async () => {
 
   const count = selectedKeys.size;
   if (!confirm(`Are you sure you want to delete ${count} file${count>1?'s':''}?`)) {
+    btnDelete.disabled = false;
+    btnDelete.textContent = `Delete (${selectedKeys.size})`;
     return;
   }
   // perform deletes in parallel
@@ -794,17 +800,38 @@ btnDelete.onclick = async () => {
     )
   );
 
+  // remove the nodes
   for (const key of Array.from(selectedKeys)) {
-    // remove both the original and any clone
     document
       .querySelectorAll(`figure[data-key="${key}"]`)
       .forEach(fig => fig.remove());
   }
   selectedKeys.clear();
   updateToolbar();
+
+  // ── NEW: re-check for empty panels ─────────────────────────────────
+  updatePanelMessages();
+  // ────────────────────────────────────────────────────────────────────
+
   btnDelete.textContent = `Delete (${selectedKeys.size})`;
   btnDelete.disabled = false;
 };
+
+
+function updatePanelMessages() {
+  function updateEmptyMessage(panel) {
+    if (!panel.querySelector('figure')) {
+      panel.innerHTML = "<p class='empty-message'>No uploads yet</p>";
+    } else {
+      panel.querySelector('.empty-message')?.remove();
+    }
+  }
+
+  updateEmptyMessage(panelAll);
+  updateEmptyMessage(panelMine);
+}
+
+
 
 </script>
 </body>
