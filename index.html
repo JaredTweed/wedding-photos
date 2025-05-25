@@ -6,7 +6,7 @@
 <title>Maiya & Jared 2025</title>
 <style>
 :root {
-  --primary-color:   hsl(127 33.5% 54.9%);
+  --primary-color:   hsl(96 23.7% 54%);
   --secondary-color: #e6eef9;
 }
 
@@ -87,7 +87,7 @@ border-radius: 8px;
             background:#eee;cursor:pointer;border-radius:6px 6px 0 0}
 .tab-header.active{background:#fff;font-weight:600}
 .tab-panel{display:none}
-.tab-panel.active{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+.tab-panel.active{position: relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
                   gap:.75rem;padding:0 10px 2rem}
 figure{margin:0;position:relative;
   -webkit-touch-callout: none;   /* iOS Safari */
@@ -115,6 +115,13 @@ figure.selected img:not(.video-icon),
 figure.selected video {
   width: calc(100% - 8px);
   border: 4px solid black;
+}
+
+.empty-message {
+  text-align: center; left: 50%; top: 0; 
+  transform: translateX(-50%); width: 100%;
+  font-size: 1.2rem;
+  position: absolute;
 }
 
 /* toolbar at bottom */
@@ -495,7 +502,7 @@ async function render() {
   let page = Contents.slice(0, loadedCount);
   if (page.length === 0) {
     console.log("No uploads yet");
-    panelAll.innerHTML = "<p style='text-align: center; left: 50%; transform: translateX(50%);'>No uploads yet</p>";
+    panelAll.innerHTML = "<p class='empty-message'>No uploads yet</p>";
     return;
   }
   // sort by *chosenDate* later, so first build an array with dates
@@ -518,7 +525,7 @@ async function render() {
 
   // if no uploads, show empty message in "My Uploads"
   if(mySet.size === 0) {
-    panelMine.innerHTML = "<p style='text-align: center; left: 50%; transform: translateX(50%);'>No uploads yet</p>";
+    panelMine.innerHTML = "<p class='empty-message'>No uploads yet</p>";
   }
 
   loadMoreBtn.style.display = (loadedCount < Contents.length) ? 'inline-block' : 'none';
@@ -546,6 +553,9 @@ function rewireDelete(origFig, cloneFig) {
 }
 
 async function appendNew(keys) {
+  // if we had a “no uploads” message showing, get rid of it now
+  document.querySelectorAll('p.empty-message').forEach(el => el.remove());
+
   const me = mine();
 
   for (const Key of keys) {
@@ -653,10 +663,11 @@ async function buildFigure(Key, takenDate, mySet) {
 
       // on any exit or up, clear the timer
       fig.addEventListener('pointerup', e => {
+        console.log("pointerup", e);
         clearTimeout(lpTimer);
         if (longPress) {
           longPress = false;
-        } else if (e.target === box || selectedKeys.size > 0) {
+        } else if (e.target.className === "select-box" || selectedKeys.size > 0) {
           toggleSelection(Key);
         } else {
           openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
