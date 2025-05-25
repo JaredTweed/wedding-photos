@@ -215,7 +215,7 @@ button, label,
            color:#fff;font-size:1.1rem;font-weight:600; text-align: center;z-index:10001; text-shadow: 1px 1px 5px black;}
 #downloadBtn{position:fixed;bottom:0.75rem;left:50%;transform:translateX(-50%);
              padding:.6rem 1.2rem;background:#fff;border:1px solid #444;border-radius:6px;
-             cursor:pointer;font-weight:600;z-index:10001}
+             cursor:pointer;font-weight:600;z-index:10001;color:black;}
 </style>
 </head>
 <body>
@@ -380,8 +380,6 @@ picker.onchange = async ev => {
   await appendNew(newKeys);
 };
 
-
-
 // ── overlay & download ────────────────────────────────────────────────────
 let currentSrc = "", currentName = "";
 function openOverlay(src,isVideo,tsReadable,fileName){
@@ -499,13 +497,9 @@ async function render() {
     await Promise.all(Array(limit).fill().map(worker));
     return ret;
   }
-  let page = Contents.slice(0, loadedCount);
-  // if (page.length === 0) {
-  //   console.log("No uploads yet");
-  //   panelAll.innerHTML = "<p class='empty-message'>No uploads yet</p>";
-  //   return;
-  // }
+  
   // sort by *chosenDate* later, so first build an array with dates
+  let page = Contents.slice(0, loadedCount);
   const withDates = await mapWithLimit(page, async ({Key,LastModified})=>{ 
     return { Key, LastModified, takenDate: await getExifDate(Key, LastModified)  };
   });
@@ -513,20 +507,11 @@ async function render() {
   // 3) Now sort by our chosenDate (newest→oldest)
   withDates.sort((a, b) => b.takenDate - a.takenDate);
 
-  // console.log("withDates", withDates);
-
   // Now render in that order
   const mySet = mine();
-  panelAll.innerHTML = panelMine.innerHTML = "";
-
   for (const { Key, takenDate } of withDates) {
     buildFigure(Key, takenDate, mySet);
   }
-
-  // // if no uploads, show empty message in "My Uploads"
-  // if(mySet.size === 0) {
-  //   panelMine.innerHTML = "<p class='empty-message'>No uploads yet</p>";
-  // }
 
   updatePanelMessages();
 
