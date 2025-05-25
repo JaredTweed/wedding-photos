@@ -238,9 +238,9 @@ button, label,
 
 <section id="panelAll"  class="tab-panel active"></section>
 <section id="panelMine" class="tab-panel"></section>
-<footer id="loadMoreContainer" style="text-align:center; padding:1rem;">
+<!-- <footer id="loadMoreContainer" style="text-align:center; padding:1rem;">
   <button id="loadMoreBtn" style="background-color: var(--primary-color);color: white;margin:0;padding:0.5rem 1rem;cursor:pointer;font-size:1rem; border-radius: 8px; border: none;font-weight: 700;">Load more</button>
-</footer>
+</footer> -->
 
 <div id="selectionToolbar">
   <button id="deleteSelected">Delete</button>
@@ -475,11 +475,11 @@ const io = new IntersectionObserver(entries => {
 // ── paging variables ───────────────────────────────────────────────────────
 const batchSize = 20;
 let loadedCount = batchSize;
-const loadMoreBtn = document.getElementById('loadMoreBtn');
-loadMoreBtn.onclick = () => {
-  loadedCount += batchSize;
-  render();
-};
+// const loadMoreBtn = document.getElementById('loadMoreBtn');
+// loadMoreBtn.onclick = () => {
+//   loadedCount += batchSize;
+//   render();
+// };
 
 // ── paged & lazy render ────────────────────────────────────────────────────
 async function render() {
@@ -515,7 +515,7 @@ async function render() {
 
   updatePanelMessages();
 
-  loadMoreBtn.style.display = (loadedCount < Contents.length) ? 'inline-block' : 'none';
+  // loadMoreBtn.style.display = (loadedCount < Contents.length) ? 'inline-block' : 'none';
 }
 
 
@@ -563,9 +563,9 @@ async function appendNew(keys) {
 
   updatePanelMessages();
 
-  /* update "Load more" visibility */
-  const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET }));
-  loadMoreBtn.style.display = loadedCount < Contents.length ? 'inline-block' : 'none';
+  // /* update "Load more" visibility */
+  // const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET }));
+  // loadMoreBtn.style.display = loadedCount < Contents.length ? 'inline-block' : 'none';
 }
 
 async function getExifDate(Key, LastModified) {
