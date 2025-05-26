@@ -87,8 +87,17 @@ border-radius: 8px;
             background:#eee;cursor:pointer;border-radius:6px 6px 0 0}
 .tab-header.active{background:#fff;font-weight:600}
 .tab-panel{display:none}
-.tab-panel.active{position: relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+.tab-panel.active{position: relative;display:grid;
+  /* maximize it at 4 to reduce the amount of photos that 
+  need to be loaded simultaneously */
+  grid-template-columns:repeat(4,minmax(160px,1fr));
                   gap:.75rem;padding:0 10px 2rem}
+/* on small viewports, fall back to fewer columns */
+@media (max-width: 710px) {
+  .tab-panel.active {
+    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  }
+}
 figure{margin:0;position:relative;
   -webkit-touch-callout: none;   /* iOS Safari */
   touch-action: manipulation;    /* general pointer */}
@@ -499,7 +508,7 @@ async function render() {
   }
   
   // sort by *chosenDate* later, so first build an array with dates
-  let page = Contents.slice(0, loadedCount);
+  let page = Contents;
   const withDates = await mapWithLimit(page, async ({Key,LastModified})=>{ 
     return { Key, LastModified, takenDate: await getExifDate(Key, LastModified)  };
   });
