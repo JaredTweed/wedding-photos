@@ -644,47 +644,34 @@ let loadedCount = batchSize;
 
 // ── paged & lazy render ────────────────────────────────────────────────────
 async function render() {
-    // show spinner
   loader.style.display = 'flex';
 
-
-  const { Contents=[] } = await s3.send(new ListObjectsV2Command({ Bucket:BUCKET }));
-
-  async function mapWithLimit(inputs, fn, limit=5) {
-    const ret = [];
-    let i = 0;
-    async function worker() {
-      while (i < inputs.length) {
-        const idx = i++;
-        ret[idx] = await fn(inputs[idx]);
-      }
-    }
-    await Promise.all(Array(limit).fill().map(worker));
-    return ret;
+  const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket:BUCKET }));
+  // Sort everything by date (but don’t block the spinner on exif for all 1,000+)
+  async function mapWithDate(items) {
+    return Promise.all(items.map(async ({ Key, LastModified }) => ({
+      Key,
+      takenDate: await getExifDate(Key, LastModified),
+    })));
   }
+  const allWithDates = await mapWithDate(Contents);
+  allWithDates.sort((a, b) => b.takenDate - a.takenDate);
+
+  // Render the first batch (e.g. 20) synchronously
+  const initialBatch = allWithDates.slice(0, batchSize);
+  initialBatch.forEach(({ Key, takenDate }) => buildFigure(Key, takenDate, mine()));
   
-  // sort by *chosenDate* later, so first build an array with dates
-  let page = Contents;
-  const withDates = await mapWithLimit(page, async ({Key,LastModified})=>{ 
-    return { Key, LastModified, takenDate: await getExifDate(Key, LastModified)  };
-  });
-
-  // 3) Now sort by our chosenDate (newest→oldest)
-  withDates.sort((a, b) => b.takenDate - a.takenDate);
-
-  // Now render in that order
-  const mySet = mine();
-  for (const { Key, takenDate } of withDates) {
-    buildFigure(Key, takenDate, mySet);
-  }
-
-  updatePanelMessages();
-
-  // loadMoreBtn.style.display = (loadedCount < Contents.length) ? 'inline-block' : 'none';
-
-  // when done, hide it
+  // Hide loader as soon as the first thumbnails are painted
   loader.style.display = 'none';
+
+  // Then quietly render the rest in the background
+  setTimeout(() => {
+    const rest = allWithDates.slice(batchSize);
+    rest.forEach(({ Key, takenDate }) => buildFigure(Key, takenDate, mine()));
+    updatePanelMessages();
+  }, 0);
 }
+
 
 
 /* ---------- helpers -------------------------------------------------- */
