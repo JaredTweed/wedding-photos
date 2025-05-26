@@ -31,6 +31,7 @@ position: relative;}
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s;
+  text-align: center;
 }
 
 body * {-webkit-tap-highlight-color: transparent;}
@@ -473,6 +474,8 @@ function switchTab(showAll){
   panelMine.classList.toggle('active', !showAll);
 
   localStorage.setItem('activeTab', showAll ? 'all' : 'mine');
+  dateIndicator.style.opacity = '0';
+  updatePanelMessages();
 }
 
 // ── restore last-active tab on load ──────────────────────────────────────
@@ -705,48 +708,47 @@ async function refineDate(key, origDate) {
 
 /* ---------- RENDER ---------------------------------------------- */
 async function render() {
-   loader.style.display = 'flex';      // show spinner
+  loader.style.display = 'flex';      // show spinner
 
-   // 1. cheap list call
-   const { Contents = [] } = await s3.send(
-     new ListObjectsV2Command({ Bucket: BUCKET })
-   );
+  // 1. cheap list call
+  const { Contents = [] } = await s3.send(
+    new ListObjectsV2Command({ Bucket: BUCKET })
+  );
 
-   // 2. build a “raw” index using LastModified first
-   const index = Contents.map(obj => ({
-     Key: obj.Key,
-     takenDate: quickDate(obj)
-   }))
-   .sort((a, b) => b.takenDate - a.takenDate);
+  // 2. build a “raw” index using LastModified first
+  const index = Contents.map(obj => ({
+    Key: obj.Key,
+    takenDate: quickDate(obj)
+  }))
+  .sort((a, b) => b.takenDate - a.takenDate);
 
-   const mySet = mine();
+  const mySet = mine();
 
-   /* -------- NEW: paint with **refined** dates right away -------- */
-   const firstScreen = 20;
-   for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
-     const { Key, takenDate } = index[i];
-     const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
-     index[i].takenDate = refined;                       // keep book-keeping tidy
-     await buildFigure(Key, refined, mySet);             // ⬅️ insertSorted() inside
-   }
+  /* -------- NEW: paint with **refined** dates right away -------- */
+  const firstScreen = 20;
+  for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
+    const { Key, takenDate } = index[i];
+    const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
+    index[i].takenDate = refined;                       // keep book-keeping tidy
+    await buildFigure(Key, refined, mySet);             // ⬅️ insertSorted() inside
+  }
 
-   loader.style.display = 'none';      // spinner off
+  loader.style.display = 'none';      // spinner off
 
-   /* 4. stream the rest, but refine *before* insertion */
-   (async function streamRest() {
-     const chunk = 50;
-     for (let i = firstScreen; i < index.length; i += chunk) {
-       await Promise.all(
-         index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
-           const refined = await refineDate(Key, takenDate);
-           await buildFigure(Key, refined, mySet);        // already sorted
-         })
-       );
-       await new Promise(r => setTimeout(r, 0));         // yield to UI
-     }
-     updatePanelMessages();
-   })();
- }
+  /* 4. stream the rest, but refine *before* insertion */
+  (async function streamRest() {
+    const chunk = 200; // The smaller chunk saves mobile data, but loads slower
+    for (let i = firstScreen; i < index.length; i += chunk) {
+      await Promise.all(
+        index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
+          const refined = await refineDate(Key, takenDate);
+          await buildFigure(Key, refined, mySet);        // already sorted
+        })
+      );
+      await new Promise(r => setTimeout(r, 0));         // yield to UI
+    }
+  })();
+}
 
 
 /* ---------- helpers -------------------------------------------------- */
@@ -773,6 +775,7 @@ function insertSorted(panel, fig) {
     }
   }
   panel.appendChild(fig);               // all others are newer → append at the end
+  updatePanelMessages();
 }
 
 // quickly wire clone → delete handler
@@ -876,127 +879,127 @@ async function getExifDateFromURL(key, fallbackMs) {
 
 
 async function buildFigure(Key, takenDate, mySet) {
-    const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
-    const isMine     = mySet.has(Key);
-    const isVideo    = /\.(mp4|mov|webm)$/i.test(Key);
-    const timePart = takenDate.toLocaleTimeString("en-US", {
-      hour:   "2-digit",
-      minute: "2-digit",
-      hour12: false
+  const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
+  const isMine     = mySet.has(Key);
+  const isVideo    = /\.(mp4|mov|webm)$/i.test(Key);
+  const timePart = takenDate.toLocaleTimeString("en-US", {
+    hour:   "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+  const datePart = takenDate.toLocaleDateString("en-US", {
+    month: "short",
+    day:   "2-digit",
+    year:  "numeric"
+  });
+  const tsReadable = `${timePart}, ${datePart}`;
+
+  // build the figure
+  const fig = document.createElement('figure');
+  fig.style.touchAction = 'manipulation';             // for better pointer behavior
+  fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
+  fig.dataset.key = Key;
+  tagWithTaken(fig, takenDate);
+  fig.style.cursor = 'pointer';
+  
+  // thumbnail or video placeholder
+  if (isVideo) {
+    const v = document.createElement('video');
+    v.muted = true; v.controls = false; v.preload = 'none';
+    v.dataset.src = url;
+    fig.appendChild(v);
+    io.observe(v);
+
+    // add video icon
+    const icon = document.createElement('img');
+    icon.src   = 'https://img.icons8.com/fluency-systems-regular/48/video.png';
+    icon.alt   = 'video';
+    icon.className = 'video-icon';
+    fig.appendChild(icon);
+  } else {
+    const img = document.createElement('img');
+    img.loading   = 'lazy';
+    img.dataset.src = url;
+    fig.appendChild(img);
+    io.observe(img);
+  }
+
+  // add selection box to every item
+  const box = document.createElement('div');
+  box.className = 'select-box';
+  fig.appendChild(box);
+
+  function wireSelectionHandlers(fig) {
+    // block just the native long-press menu
+    fig.addEventListener('contextmenu', e => e.preventDefault());
+
+    // --- LONG-PRESS SELECTION HANDLERS ---
+    let longPress = false;
+    let lpTimer;
+
+    // on touch/pen/mouse down, start the 500ms timer
+    fig.addEventListener('pointerdown', e => {
+      lpTimer = setTimeout(() => {
+        longPress = true;       
+        toggleSelection(Key);
+      }, 600);
     });
-    const datePart = takenDate.toLocaleDateString("en-US", {
-      month: "short",
-      day:   "2-digit",
-      year:  "numeric"
+
+    // on any exit or up, clear the timer
+    fig.addEventListener('pointerup', e => {
+      // console.log("pointerup", e);
+      clearTimeout(lpTimer);
+      if (longPress) {
+        longPress = false;
+      } else if (e.target.className === "select-box" || selectedKeys.size > 0) {
+        toggleSelection(Key);
+      } else {
+        openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
+      }
     });
-    const tsReadable = `${timePart}, ${datePart}`;
 
-    // build the figure
-    const fig = document.createElement('figure');
-    fig.style.touchAction = 'manipulation';             // for better pointer behavior
-    fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
-    fig.dataset.key = Key;
-    tagWithTaken(fig, takenDate);
-    fig.style.cursor = 'pointer';
-    
-    // thumbnail or video placeholder
-    if (isVideo) {
-      const v = document.createElement('video');
-      v.muted = true; v.controls = false; v.preload = 'none';
-      v.dataset.src = url;
-      fig.appendChild(v);
-      io.observe(v);
 
-      // add video icon
-      const icon = document.createElement('img');
-      icon.src   = 'https://img.icons8.com/fluency-systems-regular/48/video.png';
-      icon.alt   = 'video';
-      icon.className = 'video-icon';
-      fig.appendChild(icon);
-    } else {
-      const img = document.createElement('img');
-      img.loading   = 'lazy';
-      img.dataset.src = url;
-      fig.appendChild(img);
-      io.observe(img);
-    }
-
-    // add selection box to every item
-    const box = document.createElement('div');
-    box.className = 'select-box';
-    fig.appendChild(box);
-
-    function wireSelectionHandlers(fig) {
-      // block just the native long-press menu
-      fig.addEventListener('contextmenu', e => e.preventDefault());
-
-      // --- LONG-PRESS SELECTION HANDLERS ---
-      let longPress = false;
-      let lpTimer;
-
-      // on touch/pen/mouse down, start the 500ms timer
-      fig.addEventListener('pointerdown', e => {
-        lpTimer = setTimeout(() => {
-          longPress = true;       
-          toggleSelection(Key);
-        }, 400);
-      });
-
-      // on any exit or up, clear the timer
-      fig.addEventListener('pointerup', e => {
-        // console.log("pointerup", e);
+    ['pointercancel'].forEach(evt =>
+      fig.addEventListener(evt, () => {
         clearTimeout(lpTimer);
-        if (longPress) {
-          longPress = false;
-        } else if (e.target.className === "select-box" || selectedKeys.size > 0) {
-          toggleSelection(Key);
-        } else {
-          openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
-        }
-      });
+      })
+    );
+  }
 
+  // always add to “All”
+  wireSelectionHandlers(fig);
+  insertSorted(panelAll, fig);
 
-      ['pointercancel'].forEach(evt =>
-        fig.addEventListener(evt, () => {
-          clearTimeout(lpTimer);
-        })
-      );
+  // if it’s mine, clone *and* re-attach handlers for “My Uploads”
+  if (isMine) {
+    // Clone the figure for the “My Uploads” pane
+    const clone = fig.cloneNode(true);
+
+    // 0) get the original box and the clone's box
+    const origBox  = fig.querySelector('.select-box');
+    const cloneBox = clone.querySelector('.select-box');
+    // 1) re-bind the click handler
+    if (origBox && cloneBox) {
+      cloneBox.onclick = origBox.onclick;
     }
 
-    // always add to “All”
-    wireSelectionHandlers(fig);
-    insertSorted(panelAll, fig);
+    // 1) Re-attach lazy-load observer to the cloned thumb
+    const thumb = clone.querySelector('img, video');
+    if (thumb) io.observe(thumb);
 
-    // if it’s mine, clone *and* re-attach handlers for “My Uploads”
-    if (isMine) {
-      // Clone the figure for the “My Uploads” pane
-      const clone = fig.cloneNode(true);
+    // 2) Re-bind the click to openOverlay
+    clone.onclick = fig.onclick;
 
-      // 0) get the original box and the clone's box
-      const origBox  = fig.querySelector('.select-box');
-      const cloneBox = clone.querySelector('.select-box');
-      // 1) re-bind the click handler
-      if (origBox && cloneBox) {
-        cloneBox.onclick = origBox.onclick;
-      }
-
-      // 1) Re-attach lazy-load observer to the cloned thumb
-      const thumb = clone.querySelector('img, video');
-      if (thumb) io.observe(thumb);
-
-      // 2) Re-bind the click to openOverlay
-      clone.onclick = fig.onclick;
-
-      // 3) Swap out the delete button’s handler to just open (no delete)
-      const origDel  = fig .querySelector('.del');   // original delete handler
-      const cloneDel = clone.querySelector('.del');  // delete in My Uploads
-      if (origDel && cloneDel) {
-        cloneDel.onclick = origDel.onclick;          // give it *the same* handler
-      }
-
-      wireSelectionHandlers(clone);
-      insertSorted(panelMine, clone);
+    // 3) Swap out the delete button’s handler to just open (no delete)
+    const origDel  = fig .querySelector('.del');   // original delete handler
+    const cloneDel = clone.querySelector('.del');  // delete in My Uploads
+    if (origDel && cloneDel) {
+      cloneDel.onclick = origDel.onclick;          // give it *the same* handler
     }
+
+    wireSelectionHandlers(clone);
+    insertSorted(panelMine, clone);
+  }
 
   return fig;
 }
@@ -1129,8 +1132,6 @@ window.addEventListener('keydown', e => {
       });
   }
 });
-
-
 
 </script>
 </body>
