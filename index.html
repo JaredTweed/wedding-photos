@@ -11,6 +11,12 @@
 }
 
 body{
+  -webkit-touch-callout: none; /* iOS Safari: no “Save image” / text menu */
+  -webkit-user-select: none;   /* iOS Safari: no text selection */
+  -ms-user-select: none;       /* older IE/Edge */
+  user-select: none;           /* everything else */
+
+
   /* turn off the blue tap highlight on iOS/Android */
   -webkit-tap-highlight-color: transparent;
   font-family:system-ui;margin:0;background:#fafafa;color:#222;
@@ -125,10 +131,22 @@ border-radius: 8px;
 figure{margin:0;position:relative;
   -webkit-touch-callout: none;   /* iOS Safari */
   touch-action: manipulation;    /* general pointer */}
-img,video{box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;cursor:pointer;}
+img,video{
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+
+box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);width:100%;
+aspect-ratio:1/1;object-fit:cover;border-radius:10px;
+cursor:pointer;}
 
 /* the white “checkbox” */
 .select-box {
+  -webkit-touch-callout: none; /* iOS Safari: no “Save image” / text menu */
+  -webkit-user-select: none;   /* iOS Safari: no text selection */
+  -ms-user-select: none;       /* older IE/Edge */
+  user-select: none;           /* everything else */
+
   position: absolute;
   top: 6px; right: 6px;
   width: 20px; height: 20px;
