@@ -334,6 +334,8 @@ import JSZip from 'https://esm.sh/jszip@3.10.1';
 
 
 let uploading = false;
+const isiOS = /iP(hone|od|ad)/.test(navigator.userAgent);
+
 
 
 // NEW: scroll indicator logic
@@ -636,6 +638,13 @@ dlBtn.addEventListener('pointerdown', async () => {
   dlBtn.textContent = "Downloading…";
 
   try {
+    if (isiOS) {
+      /* iOS: just open the public S3 object so Safari shows the
+         built-in ‘Share / Save Video / Save Image’ sheet */
+      window.open(currentSrc, '_blank', 'noopener');
+      return;
+    }
+
     const resp = await fetch(currentSrc);
     const blob = await resp.blob();
     const url  = URL.createObjectURL(blob);
@@ -661,6 +670,8 @@ dlBtn.addEventListener('pointerdown', async () => {
     dlBtn.textContent = "Download";
   }
 });
+
+
 
 
 
@@ -1093,15 +1104,21 @@ btnDownload.onclick = async () => {
   if (keys.length === 1) {
     // single file: just fetch & download
     const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(keys[0])}`;
-    const resp = await fetch(url);
-    const blob = await resp.blob();
-    const a    = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(blob),
-      download: keys[0].split('_').slice(1).join('_')
-    });
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    
+    if (isiOS) {
+      /* open the object directly */
+      window.open(url, '_blank', 'noopener');
+    } else {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const a    = Object.assign(document.createElement('a'), {
+        href: URL.createObjectURL(blob),
+        download: keys[0].split('_').slice(1).join('_')
+      });
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   } else {
     // multiple: zip them
     const zip = new JSZip();
@@ -1116,6 +1133,9 @@ btnDownload.onclick = async () => {
       href: URL.createObjectURL(content),
       download: 'maiya-jared-2025.zip'
     });
+    if(isiOS){
+      shareOrOpen(content, 'maiya-jared-2025.zip');
+    }
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1158,6 +1178,24 @@ btnDelete.onclick = async () => {
   btnDelete.textContent = `Delete (${selectedKeys.size})`;
   btnDelete.disabled = false;
 };
+
+async function shareOrOpen(zipBlob, filename) {
+  const file = new File([zipBlob], filename, { type: 'application/zip' });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      title: 'Wedding photos',
+      files: [file],
+    });                    // opens “Save to Files”, AirDrop, etc.
+  } else {
+    // fallback → open in a new tab as today
+    const url = URL.createObjectURL(zipBlob);
+    window.open(url, '_blank');
+    if (isiOS) {
+      alert('After the file opens, tap Share ▸ “Save to Files” to keep it.');
+    }
+  }
+}
 
 
 function updatePanelMessages() {
