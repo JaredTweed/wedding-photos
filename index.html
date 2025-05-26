@@ -13,7 +13,25 @@
 body{
   /* turn off the blue tap highlight on iOS/Android */
   -webkit-tap-highlight-color: transparent;
-  font-family:system-ui;margin:0;background:#fafafa;color:#222}
+  font-family:system-ui;margin:0;background:#fafafa;color:#222;
+position: relative;}
+
+/* floating date indicator */
+#dateIndicator {
+  position: fixed;
+  top: 7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+  z-index: 10001;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
 
 body * {-webkit-tap-highlight-color: transparent;}
 header{padding:10px;position: relative;display:flex;}
@@ -91,7 +109,10 @@ border-radius: 8px;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
   grid-template-columns:repeat(4,minmax(160px,1fr));
-                  gap:.75rem;padding:0 10px 2rem}
+                  gap:.75rem;padding:0 10px 2rem;
+  overflow-y: auto;
+  height: calc(100vh - 137px);
+}
 /* on small viewports, fall back to fewer columns */
 @media (max-width: 710px) {
   .tab-panel.active {
@@ -256,14 +277,14 @@ button, label,
 <div id="loader">
   <div class="spinner"></div>
 </div>
-
+<div id="dateIndicator"></div>
 
 <header>
   <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+  <!--Add this to input maybe: capture="environment" -->
   <input
     id="filePicker"
     type="file"
-    capture="environment"
     multiple
     accept="image/*,video/*"
     style="width:0; height:0; opacity:0; overflow:hidden;">
@@ -310,6 +331,52 @@ import JSZip from 'https://esm.sh/jszip@3.10.1';
 
 
 let uploading = false;
+
+
+// NEW: scroll indicator logic
+const dateIndicator = document.getElementById('dateIndicator');
+let indicatorTimeout;
+
+function showDateIndicator(text) {
+  dateIndicator.textContent = text;
+  dateIndicator.style.opacity = '1';
+  clearTimeout(indicatorTimeout);
+  indicatorTimeout = setTimeout(() => {
+    dateIndicator.style.opacity = '0';
+  }, 1000);
+}
+
+function onScroll() {
+  const panel   = document.querySelector('.tab-panel.active');
+  const figures = Array.from(panel.querySelectorAll('figure'));
+
+  for (let fig of figures) {
+    const rect = fig.getBoundingClientRect();
+    // first one whose center has scrolled into view…
+    if (rect.top + rect.height/2 >= 100) {
+      const ts = new Date(Number(fig.dataset.taken));
+      const opts = {
+        year:  'numeric',
+        month: 'short',
+        day:   '2-digit',
+        hour:   '2-digit',
+        minute: '2-digit',
+        hour12: false
+      };
+      showDateIndicator(ts.toLocaleString('en-US', opts));
+      break;
+    }
+  }
+}
+
+document.getElementById('panelAll').addEventListener('scroll', onScroll);
+document.getElementById('panelMine').addEventListener('scroll', onScroll);
+
+// ensure overflow scroll on panels
+document.querySelectorAll('.tab-panel').forEach(p => {
+  p.style.overflowY = 'auto';
+});
+
 
 // 0) prevent “exit on back” by having an initial state
 history.replaceState({ view: 'main' }, '');
