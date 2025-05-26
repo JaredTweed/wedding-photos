@@ -661,7 +661,7 @@ async function buildFigure(Key, takenDate, mySet) {
 
       // on any exit or up, clear the timer
       fig.addEventListener('pointerup', e => {
-        console.log("pointerup", e);
+        // console.log("pointerup", e);
         clearTimeout(lpTimer);
         if (longPress) {
           longPress = false;
@@ -824,6 +824,28 @@ function updatePanelMessages() {
   updateEmptyMessage(panelAll);
   updateEmptyMessage(panelMine);
 }
+
+
+// --- add “Select All” via Ctrl+A / ⌘+A, but only inside the active panel ---
+window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+    e.preventDefault();
+
+    // find the active panel
+    const activePanel = document.querySelector('.tab-panel.active');
+    if (!activePanel) return;
+
+    // select every figure in that panel
+    activePanel
+      .querySelectorAll('figure[data-key]')
+      .forEach(fig => {
+        const key = fig.dataset.key;
+        if (!selectedKeys.has(key)) {
+          toggleSelection(key);
+        }
+      });
+  }
+});
 
 
 
