@@ -666,16 +666,78 @@ dlBtn.addEventListener('pointerdown', async () => {
 
 // ── gallery render (newest→oldest) ───────────────────────────────────────
 // ── lazy-load observer ─────────────────────────────────────────────────────
+// 👉 replace your existing observer with this
+
+/* --------------------------------------------------------------
+ * Smarter lazy-loader
+ *   – max 4 concurrent downloads
+ *   – always loads the tile closest to the viewport first
+ * -------------------------------------------------------------- */
+const MAX_CONCURRENT = 4;
+let   inFlight       = 0;
+const queue          = new Set();              // <img>/<video> waiting to load
+
+function distanceToViewportCenter(rect) {
+  const vpCenter = window.innerHeight / 2;
+  return Math.abs((rect.top + rect.bottom) / 2 - vpCenter);
+}
+
+function processQueue() {
+  if (inFlight >= MAX_CONCURRENT || queue.size === 0) return;
+
+  // pick the element whose centre is *closest* to the viewport centre
+  let bestEl = null, bestDist = Infinity;
+  for (const el of queue) {
+    const dist = distanceToViewportCenter(el.getBoundingClientRect());
+    if (dist < bestDist) { bestDist = dist; bestEl = el; }
+  }
+  if (!bestEl) return;
+
+  queue.delete(bestEl);
+  startLoading(bestEl);
+}
+
+function startLoading(el) {
+  inFlight++;
+  if ('fetchPriority' in el) el.fetchPriority = 'high';
+
+  el.src = el.dataset.src;
+  if (el.tagName === 'VIDEO') el.load();       // kick off the video download
+
+  const done = () => {
+    inFlight--;
+    processQueue();                            // start the next one
+  };
+
+  const eventName = el.tagName === 'VIDEO' ? 'loadeddata' : 'load';
+  el.addEventListener(eventName, done,  { once: true });
+  el.addEventListener('error',      done,  { once: true });
+}
+
+/* ------------ IntersectionObserver ---------------------------- */
+const OBS_MARGIN    = '0px 0px 400px 0px';     // only look *below* viewport
+const VIS_THRESHOLD = 0.15;                    // 15 % visible ⇒ queue
+
 const io = new IntersectionObserver(entries => {
-  for (let e of entries) {
-    if (e.isIntersecting) {
-      const el = e.target;
-      el.src = el.dataset.src;
-      if (el.tagName === 'VIDEO') el.load();
-      io.unobserve(el);
+  for (const entry of entries) {
+    const el = entry.target;
+
+    if (entry.isIntersecting && entry.intersectionRatio >= VIS_THRESHOLD) {
+      // in range  →  queue it (unless already queued / loaded)
+      if (!el.dataset.queued && !el.src) {
+        el.dataset.queued = '1';
+        if ('fetchPriority' in el) el.fetchPriority = 'low';     // until it’s up
+        queue.add(el);
+        processQueue();
+      }
+    } else {
+      // out of range again  →  drop from queue if not started yet
+      if (queue.delete(el)) delete el.dataset.queued;
     }
   }
-}, { rootMargin: '200px' });
+}, { rootMargin: OBS_MARGIN, threshold: VIS_THRESHOLD });
+
+
 
 // ── paging variables ───────────────────────────────────────────────────────
 const batchSize = 10;
@@ -725,7 +787,7 @@ async function render() {
   const mySet = mine();
 
   /* -------- NEW: paint with **refined** dates right away -------- */
-  const firstScreen = 20;
+  const firstScreen = 50;
   for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
     const { Key, takenDate } = index[i];
     const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
