@@ -357,18 +357,30 @@ const picker    = document.getElementById('filePicker');
 const addBtn    = document.getElementById('addBtn');
 const panelAll  = document.getElementById('panelAll');
 const panelMine = document.getElementById('panelMine');
+const tabAll    = document.getElementById('tabAll');
+const tabMine   = document.getElementById('tabMine');
 const overlay   = document.getElementById('overlay');
 const tsLabel   = document.getElementById('timestamp');
 const dlBtn     = document.getElementById('downloadBtn');
 
-document.getElementById('tabAll').addEventListener('pointerdown', () => switchTab(true));
-document.getElementById('tabMine').addEventListener('pointerdown', () => switchTab(false));
+tabAll.addEventListener('pointerdown', () => switchTab(true));
+tabMine.addEventListener('pointerdown', () => switchTab(false));
 
 function switchTab(showAll){
-  document.getElementById('tabAll').classList.toggle('active',  showAll);
-  document.getElementById('tabMine').classList.toggle('active', !showAll);
+  tabAll.classList.toggle('active',  showAll);
+  tabMine.classList.toggle('active', !showAll);
   panelAll.classList.toggle('active',  showAll);
   panelMine.classList.toggle('active', !showAll);
+
+  localStorage.setItem('activeTab', showAll ? 'all' : 'mine');
+}
+
+// ── restore last-active tab on load ──────────────────────────────────────
+const last = localStorage.getItem('activeTab');
+if (last === 'mine') {
+  switchTab(false);
+} else {
+  switchTab(true);
 }
 
 // ── upload flow ──────────────────────────────────────────────────────────
