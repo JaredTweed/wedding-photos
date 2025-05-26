@@ -111,7 +111,9 @@ border-radius: 8px;
   grid-template-columns:repeat(4,minmax(160px,1fr));
                   gap:.75rem;padding:0 10px 2rem;
   overflow-y: auto;
+  align-content: start;
   height: calc(100vh - 137px);
+    overflow-y: auto;
 }
 /* on small viewports, fall back to fewer columns */
 @media (max-width: 710px) {
@@ -484,7 +486,7 @@ if (last === 'mine') {
 // ── upload flow ──────────────────────────────────────────────────────────
 // wrap your picker.onchange to show progress
 picker.onchange = async ev => {
-  console.log("picker.onchange", ev);
+  // console.log("picker.onchange", ev);
   const files = Array.from(ev.target.files);
   if (files.length === 0) return;
 
@@ -507,12 +509,21 @@ picker.onchange = async ev => {
     const file = files[i];
     const key = `${Date.now()}_${file.name}`;
 
+    // Prepare metadata
+    const exifDate = await getExifDateFromFile(file);
+    const meta     = {};
+    if (exifDate) {
+      // store as ISO so it sorts and reads nicely
+      meta.taken = exifDate.toISOString();
+    }
+
     // perform upload
     await s3.send(new PutObjectCommand({
       Bucket:      BUCKET,
       Key:         key,
       Body:        file,
-      ContentType: file.type
+      ContentType: file.type,
+      Metadata: meta,
     }));
 
     // remember & track
@@ -634,7 +645,7 @@ const io = new IntersectionObserver(entries => {
 }, { rootMargin: '200px' });
 
 // ── paging variables ───────────────────────────────────────────────────────
-const batchSize = 20;
+const batchSize = 10;
 let loadedCount = batchSize;
 // const loadMoreBtn = document.getElementById('loadMoreBtn');
 // loadMoreBtn.onclick = () => {
@@ -642,37 +653,87 @@ let loadedCount = batchSize;
 //   render();
 // };
 
-// ── paged & lazy render ────────────────────────────────────────────────────
-async function render() {
-  loader.style.display = 'flex';
 
-  const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket:BUCKET }));
-  // Sort everything by date (but don’t block the spinner on exif for all 1,000+)
-  async function mapWithDate(items) {
-    return Promise.all(items.map(async ({ Key, LastModified }) => ({
-      Key,
-      takenDate: await getExifDate(Key, LastModified),
-    })));
-  }
-  const allWithDates = await mapWithDate(Contents);
-  allWithDates.sort((a, b) => b.takenDate - a.takenDate);
-
-  // Render the first batch (e.g. 20) synchronously
-  const initialBatch = allWithDates.slice(0, batchSize);
-  initialBatch.forEach(({ Key, takenDate }) => buildFigure(Key, takenDate, mine()));
-  
-  // Hide loader as soon as the first thumbnails are painted
-  loader.style.display = 'none';
-
-  // Then quietly render the rest in the background
-  setTimeout(() => {
-    const rest = allWithDates.slice(batchSize);
-    rest.forEach(({ Key, takenDate }) => buildFigure(Key, takenDate, mine()));
-    updatePanelMessages();
-  }, 0);
+/* ---------- FAST DATE HELPERS ---------------------------------- */
+// Use LastModified immediately; refine with EXIF later (images only)
+function quickDate(obj) {
+  return new Date(obj.LastModified);         // ✔ already in ListObjects
 }
 
 
+async function refineDate(key, origDate) {
+  // 1) Videos don’t carry EXIF
+  if (/\.(mp4|mov|webm)$/i.test(key)) {
+    return origDate;
+  }
+
+  const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
+  const exifDate = await getExifDateFromFile(url);
+  return exifDate || origDate;
+}
+
+
+/* ---------- RENDER ---------------------------------------------- */
+async function render() {
+  loader.style.display = 'flex';          // show spinner
+
+  // 1. one cheap list call, no extra traffic
+  const { Contents = [] } = await s3.send(
+    new ListObjectsV2Command({ Bucket: BUCKET })
+  );
+
+  // 2. build a light “index” using ONLY LastModified
+  const index = Contents.map(obj => ({
+    Key: obj.Key,
+    takenDate: quickDate(obj)            // 0-cost date
+  }))
+  .sort((a, b) => b.takenDate - a.takenDate);
+
+  const mySet = mine();
+
+  // 3. Paint just enough to fill the viewport (~2 rows ≈ 20 items)
+  const firstScreen = 20;
+  index.slice(0, firstScreen).forEach(({ Key, takenDate }) =>
+    buildFigure(Key, takenDate, mySet)
+  );
+
+  // 4. Spinner off → page feels instant
+  loader.style.display = 'none';
+
+  // 5. Stream the rest *without blocking* the UI
+  //    Do it in small chunks so we never block the main thread
+  (async function streamRest() {
+    const chunk = 50;                        // tune for your device
+    for (let i = firstScreen; i < index.length; i += chunk) {
+      const slice = index.slice(i, i + chunk);
+      slice.forEach(({ Key, takenDate }) =>
+        buildFigure(Key, takenDate, mySet)
+      );
+      await new Promise(r => setTimeout(r, 0)); // yield
+    }
+    updatePanelMessages();
+    sortPanel(panelAll);
+    sortPanel(panelMine);
+  })();
+
+  /* 6. (Optional) refine dates in the background – does NOT block paint */
+  (async function refineDates() {
+    for (const obj of index) {
+      const newDate = await refineDate(obj.Key, obj.takenDate);
+      if (newDate !== obj.takenDate) {
+        // update dataset & re-sort the panel it lives in
+        obj.takenDate = newDate;
+        document
+          .querySelectorAll(`figure[data-key="${obj.Key}"]`)
+          .forEach(fig => {
+            tagWithTaken(fig, newDate);
+          });
+      }
+    }
+    sortPanel(panelAll);
+    sortPanel(panelMine);
+  })();
+}
 
 /* ---------- helpers -------------------------------------------------- */
 // add a data-attribute that we can sort on
@@ -703,8 +764,13 @@ async function appendNew(keys) {
   for (const Key of keys) {
     // head + EXIF → takenDate
     const head      = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key }));
-    const ms        = head.Metadata?.taken ? +head.Metadata.taken : Date.now();
-    const takenDate = await getExifDate(Key, ms);
+
+    let takenDate;
+    if (head.Metadata?.taken) {
+      takenDate = new Date(head.Metadata.taken);
+    } else {
+      takenDate = await getExifDateFromURL(Key, head.LastModified);
+    }
 
     /* build but DON’T append yet */
     const fig = await buildFigure(Key, takenDate, me);
@@ -723,20 +789,64 @@ async function appendNew(keys) {
   // loadMoreBtn.style.display = loadedCount < Contents.length ? 'inline-block' : 'none';
 }
 
-async function getExifDate(Key, LastModified) {
-  const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
-  let exif = {};
+// 1) keep your File-based EXIF extractor as-is (but rename it to a generic "source")
+/**
+ * Try to read all common EXIF date tags from a File or URL,
+ * then return whichever is the oldest.
+ */
+async function getExifDateFromFile(source) {
   try {
-    exif = await parse(url, ["DateTimeOriginal"]) || {};
-  } catch (err) {
-    console.warn("EXIF parse failed for", url, err);
-  }
-  const origDate = exif.DateTimeOriginal;
-  const origMs   = origDate instanceof Date ? origDate.getTime() : NaN;
-  const modMs    = new Date(LastModified).getTime();
+    // ask exifr for all the date fields it knows
+    const exif = await parse(source, [
+      "DateTimeOriginal",
+      "CreateDate",
+      "ModifyDate",
+      "DocumentName",       // sometimes JPEGs store edit dates here
+      "GPSTimeStamp"        // only for geo‐tagged images
+    ]) || {};
 
-  return new Date(origMs || modMs);
+    // collect only actual Date instances
+    const dates = [
+      exif.DateTimeOriginal,
+      exif.CreateDate,
+      exif.ModifyDate,
+      exif.GPSTimeStamp
+    ]
+    .filter(d => d instanceof Date)
+    .map(d => d.getTime());
+
+    if (dates.length === 0) {
+      return null;
+    }
+
+    // find the smallest (oldest) timestamp
+    const oldestMs = Math.min(...dates);
+    return new Date(oldestMs);
+
+  } catch (err) {
+    console.warn("EXIF parse failed for", source, err);
+    return null;
+  }
 }
+
+
+// 2) URL variant simply reuses the above
+async function getExifDateFromURL(key, fallbackMs) {
+  // Skip videos — they won’t have EXIF
+  if (/\.(mp4|mov|webm)$/i.test(key)) {
+    return new Date(fallbackMs);
+  }
+
+  const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
+  const exifDate = await getExifDateFromFile(url);
+  if (exifDate) {
+    return exifDate;
+  }
+
+  // fallback to S3’s LastModified timestamp
+  return new Date(fallbackMs);
+}
+
 
 async function buildFigure(Key, takenDate, mySet) {
     const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
