@@ -44,6 +44,7 @@ position: relative;}
 body * {-webkit-tap-highlight-color: transparent;}
 header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;top: 0;display:flex;
   flex-direction: column; gap: 5px;z-index: 1000; background-color: #fff;}
+#headerControls{display:flex;flex-direction: row;align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
     0 0 1px rgba(0,0,0,0.15),
     0 6px 12px rgba(0,0,0,0.15); display:block;
@@ -52,6 +53,21 @@ header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;t
     border-radius: 8px; border: none;font-weight: 700; text-align: center;}
 #addBtn:active{box-sizing: border-box;
     transform: translateY(2px);}
+
+/* add just below #addBtn */
+#settingsBtn{
+  box-shadow: 0 0 1px rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.15);
+  background:#fff;                 /* white pill */
+  color:#333;
+  margin:0 0 0 6px;                /* little gap from Add */
+  padding:.5rem .9rem;
+  border-radius:8px;
+  border:none;
+  font-size:1.1rem;
+  cursor:pointer;
+}
+#settingsBtn:active{transform:translateY(2px);}
+
 
 /* make the tabs container a pill with a glider */
 #tabs.tabs {
@@ -155,12 +171,13 @@ cursor:pointer;}
   border-radius: 4px;
   box-sizing: border-box;
   z-index: 3;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
 
 /* when selected, fill it */
 figure.selected .select-box {
   background: #fff;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
 }
 figure.selected img:not(.video-icon),
 figure.selected video {
@@ -302,7 +319,10 @@ button, label,
 <div id="dateIndicator"></div>
 
 <header>
-  <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+  <div id="headerControls">
+    <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+    <button id="settingsBtn" title="Photo-credit settings">⚙️</button>
+  </div>
   <input
     id="filePicker"
     type="file"
@@ -316,6 +336,16 @@ button, label,
     <span class="glider"></span>
   </div>
 </header>
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -338,6 +368,7 @@ button, label,
 <button id="overlayBtn" style="display:none">Delete</button>
 
 <script type="module">
+
 // ── AWS config ─────────────────────────────────────────────────────────────
 const REGION  = "us-west-2";
 const ID_POOL = "us-west-2:8e34a4e5-741b-402e-9bfb-eeb90b5643e3";
@@ -874,6 +905,8 @@ async function listAllObjects() {
       })
     );
 
+    console.log("ListObjectsV2Command", resp);
+
     objects.push(...(resp.Contents || []));
     ContinuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
   } while (ContinuationToken);
@@ -928,8 +961,9 @@ async function render() {
 
 /* ---------- helpers -------------------------------------------------- */
 // add a data-attribute that we can sort on
-function tagWithTaken(fig, date) {
+function tagWithTaken(fig, date, cred) {
   fig.dataset.taken = String(date.getTime());   // newest → largest number
+  fig.dataset.key = cred ? cred : '';  // remember who uploaded it
 }
 
 // (re)sort all children in a panel by that attribute (DESC)
@@ -977,8 +1011,15 @@ async function appendNew(keys) {
       takenDate = await getExifDateFromURL(Key, head.LastModified);
     }
 
+    let credit;
+    if (head.Metadata?.credit) {
+      credit = head.Metadata.credit;
+    } else {
+      credit = '';
+    }
+
     /* build but DON’T append yet */
-    const fig = await buildFigure(Key, takenDate, me);
+    const fig = await buildFigure(Key, takenDate, me, credit);
 
     loadedCount++;              // keep paging logic happy
   }
@@ -1053,7 +1094,7 @@ async function getExifDateFromURL(key, fallbackMs) {
 }
 
 
-async function buildFigure(Key, takenDate, mySet) {
+async function buildFigure(Key, takenDate, mySet, cred='') {
   const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
   const isMine     = mySet.has(Key);
   const isVideo    = /\.(mp4|mov|webm)$/i.test(Key);
@@ -1074,7 +1115,7 @@ async function buildFigure(Key, takenDate, mySet) {
   fig.style.touchAction = 'manipulation';             // for better pointer behavior
   fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
   fig.dataset.key = Key;
-  tagWithTaken(fig, takenDate);
+  tagWithTaken(fig, takenDate,cred);
   fig.style.cursor = 'pointer';
   
   // thumbnail or video placeholder
