@@ -7,7 +7,8 @@
 <style>
 :root {
   --primary-color:   hsl(96 23.7% 54%);
-  --secondary-color: #e6eef9;
+  --secondary-color: hsl(96 21% 94%);
+  --font-size: 1.2rem;
 }
 
 body{
@@ -41,22 +42,22 @@ position: relative;}
 }
 
 body * {-webkit-tap-highlight-color: transparent;}
-header{padding:10px;position: relative;display:flex;}
+header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;top: 0;display:flex;
+  flex-direction: column; gap: 5px;z-index: 1000; background-color: #fff;}
 #addBtn{flex: 1;box-shadow:
     0 0 1px rgba(0,0,0,0.15),
     0 6px 12px rgba(0,0,0,0.15); display:block;
     background-color: var(--primary-color);color: white;margin:0;
-    padding:0.5rem 1rem;cursor:pointer;width:auto;height:100%;box-sizing: border-box;font-size:1rem; 
+    padding:0.5rem 1rem;cursor:pointer;width:auto;height:100%;box-sizing: border-box; 
     border-radius: 8px; border: none;font-weight: 700; text-align: center;}
 #addBtn:active{box-sizing: border-box;
     transform: translateY(2px);}
 
 /* make the tabs container a pill with a glider */
 #tabs.tabs {
-  margin: 0 10px 10px;
+  margin: 0;
   position: relative;
   display: flex;
-  gap: .5rem;
   background: #fff;
   border-radius: 8px;
   box-shadow:
@@ -74,7 +75,7 @@ border-radius: 8px;
   z-index: 2;
   flex: 1;
   text-align: center;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 0rem;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -114,10 +115,10 @@ border-radius: 8px;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
   grid-template-columns:repeat(4,minmax(200px,1fr));
-                  gap:.75rem;padding:0 10px 2rem;
+                  gap:0.75rem;padding:0 10px 80px;
   overflow-y: auto;
   align-content: start;
-  height: calc(100vh - 137px);
+  height: calc(100vh - 188px);
     overflow-y: auto;
 }
 /* on small viewports, fall back to fewer columns */
@@ -302,20 +303,21 @@ button, label,
 
 <header>
   <label id="addBtn" for="filePicker">Add Photos / Videos</label>
-  <!--Add this to input maybe: capture="environment" -->
   <input
     id="filePicker"
     type="file"
     multiple
     accept="image/*,video/*"
-    style="width:0; height:0; opacity:0; overflow:hidden;">
+    style="width:0; height:0; opacity:0; overflow:hidden;display: none;">
+  
+   <div id="tabs" class="tabs">
+    <div id="tabMine" class="tab-header active">My&nbsp;Uploads</div>
+    <div id="tabAll"  class="tab-header">All&nbsp;Uploads</div>
+    <span class="glider"></span>
+  </div>
 </header>
 
-<div id="tabs" class="tabs">
-  <div id="tabMine" class="tab-header active">My Uploads</div>
-  <div id="tabAll"  class="tab-header">All Uploads</div>
-  <span class="glider"></span>
-</div>
+
 
 <section id="panelMine" class="tab-panel active"></section>
 <section id="panelAll"  class="tab-panel"></section>
