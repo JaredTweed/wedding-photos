@@ -115,7 +115,7 @@ border-radius: 8px;
 .tab-panel.active{position: relative;display:grid;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
-  grid-template-columns:repeat(4,minmax(160px,1fr));
+  grid-template-columns:repeat(4,minmax(200px,1fr));
                   gap:.75rem;padding:0 10px 2rem;
   overflow-y: auto;
   align-content: start;
@@ -123,9 +123,9 @@ border-radius: 8px;
     overflow-y: auto;
 }
 /* on small viewports, fall back to fewer columns */
-@media (max-width: 710px) {
+@media (max-width: 870px) {
   .tab-panel.active {
-    grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
   }
 }
 figure{margin:0;position:relative;
@@ -712,6 +712,7 @@ function distanceToViewportCenter(rect) {
 }
 
 function processQueue() {
+  console.log("processQueue", inFlight, queue.size);
   if (inFlight >= MAX_CONCURRENT || queue.size === 0) return;
 
   // pick the element whose centre is *closest* to the viewport centre
@@ -730,17 +731,22 @@ function startLoading(el) {
   inFlight++;
   if ('fetchPriority' in el) el.fetchPriority = 'high';
 
-  el.src = el.dataset.src;
-  if (el.tagName === 'VIDEO') el.load();       // kick off the video download
-
   const done = () => {
+    io.unobserve(el);                 // make doubly sure
     inFlight--;
-    processQueue();                            // start the next one
+    processQueue();
   };
 
   const eventName = el.tagName === 'VIDEO' ? 'loadeddata' : 'load';
-  el.addEventListener(eventName, done,  { once: true });
-  el.addEventListener('error',      done,  { once: true });
+  el.addEventListener(eventName, done, { once: true });
+  el.addEventListener('error',     done, { once: true });
+
+  el.src = el.dataset.src;
+  if (el.tagName === 'VIDEO') el.load();
+
+  /* fallback for already-cached resources */
+  if (el.tagName !== 'VIDEO' && el.complete) done();
+  if (el.tagName === 'VIDEO' && el.readyState >= 3) done();
 }
 
 /* ------------ IntersectionObserver ---------------------------- */
