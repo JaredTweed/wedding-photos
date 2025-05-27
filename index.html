@@ -130,6 +130,7 @@ figure{margin:0;position:relative;
   -webkit-touch-callout: none;   /* iOS Safari */
   touch-action: manipulation;    /* general pointer */}
 img,video{
+  -webkit-user-drag: none;       /* Turn off WebKit drag API */ 
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
@@ -816,9 +817,10 @@ function makeObserver(rootEl) {
       }
     },
     {
-      /* top 0, right 0, **bottom +1000 px**, left 0                */
+      // 300% loads the next 3 screens
+      // if we load too early, we waste bandwidth and CPU
       root:       rootEl,
-      rootMargin: '0px 0px 1000px 0px',
+      rootMargin: '0px 0px 300% 0px',
       threshold:  0          // we don’t need any actual overlap
     }
   );
@@ -1086,11 +1088,14 @@ async function buildFigure(Key, takenDate, mySet) {
     icon.src   = 'https://img.icons8.com/fluency-systems-regular/48/video.png';
     icon.alt   = 'video';
     icon.className = 'video-icon';
+    icon.draggable = false;
     fig.appendChild(icon);
   } else {
     const img = document.createElement('img');
     img.loading   = 'lazy';
+    img.draggable = false;
     img.dataset.src = url;
+    // img.addEventListener('dragstart', e => e.preventDefault()); // probably not needed
     fig.appendChild(img);
     io.observe(img);
   }
