@@ -769,7 +769,7 @@ function startLoading(el) {
 
 /* ------------ IntersectionObserver ---------------------------- */
 const OBS_MARGIN    = '0px 0px 400px 0px';     // only look *below* viewport
-const VIS_THRESHOLD = 0.15;                    // 15 % visible ⇒ queue
+const VIS_THRESHOLD = 0.0;                    // 0 % visible ⇒ queue
 
 const io = new IntersectionObserver(entries => {
   for (const entry of entries) {
@@ -788,7 +788,7 @@ const io = new IntersectionObserver(entries => {
       if (queue.delete(el)) delete el.dataset.queued;
     }
   }
-}, { rootMargin: OBS_MARGIN, threshold: VIS_THRESHOLD });
+}, { rootMargin: OBS_MARGIN, threshold: 0 });
 
 
 
