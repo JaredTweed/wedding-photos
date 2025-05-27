@@ -582,6 +582,8 @@ picker.onchange = async ev => {
       meta.taken = exifDate.toISOString();
     }
 
+    meta.credit = prompt("Photo credit (leave empty for none):", "") || "";
+
     // perform upload
     await s3.send(new PutObjectCommand({
       Bucket:      BUCKET,
@@ -889,6 +891,19 @@ async function refineDate(key, origDate) {
   return exifDate || origDate;
 }
 
+async function getMetaDataFromURL(key) {
+  try {
+    const head = await s3.send(new HeadObjectCommand({
+      Bucket: BUCKET,
+      Key:    key
+    }));
+    return head.Metadata || {};
+  } catch (err) {
+    console.warn("HeadObject failed for", key, err);
+    return {};
+  }
+}
+
 
 /* ------------------------------------------------------------- *
  *  List *every* object in the bucket (handles the 1 000-key cap)
@@ -950,6 +965,8 @@ async function render() {
       await Promise.all(
         index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
           const refined = await refineDate(Key, takenDate);
+          const metadata = await getMetaDataFromURL(Key);
+          console.log("Metadata for", Key, metadata);
           await buildFigure(Key, refined, mySet);        // already sorted
         })
       );
@@ -1074,6 +1091,8 @@ async function getExifDateFromFile(source) {
     return null;
   }
 }
+
+
 
 
 // 2) URL variant simply reuses the above
