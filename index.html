@@ -44,6 +44,7 @@ position: relative;}
 body * {-webkit-tap-highlight-color: transparent;}
 header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;top: 0;display:flex;
   flex-direction: column; gap: 5px;z-index: 1000; background-color: #fff;}
+#headerControls{display:flex;flex-direction: row;align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
     0 0 1px rgba(0,0,0,0.15),
     0 6px 12px rgba(0,0,0,0.15); display:block;
@@ -52,6 +53,21 @@ header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;t
     border-radius: 8px; border: none;font-weight: 700; text-align: center;}
 #addBtn:active{box-sizing: border-box;
     transform: translateY(2px);}
+
+/* add just below #addBtn */
+#settingsBtn{
+  box-shadow: 0 0 1px rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.15);
+  background:#fff;                 /* white pill */
+  color:#333;
+  margin:0 0 0 6px;                /* little gap from Add */
+  padding:.5rem .9rem;
+  border-radius:8px;
+  border:none;
+  font-size:1.1rem;
+  cursor:pointer;
+}
+#settingsBtn:active{transform:translateY(2px);}
+
 
 /* make the tabs container a pill with a glider */
 #tabs.tabs {
@@ -155,12 +171,13 @@ cursor:pointer;}
   border-radius: 4px;
   box-sizing: border-box;
   z-index: 3;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
 
 /* when selected, fill it */
 figure.selected .select-box {
   background: #fff;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
 }
 figure.selected img:not(.video-icon),
 figure.selected video {
@@ -302,7 +319,10 @@ button, label,
 <div id="dateIndicator"></div>
 
 <header>
-  <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+  <div id="headerControls">
+    <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+    <button id="settingsBtn" title="Photo-credit settings">⚙️</button>
+  </div>
   <input
     id="filePicker"
     type="file"
@@ -316,6 +336,16 @@ button, label,
     <span class="glider"></span>
   </div>
 </header>
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -346,7 +376,8 @@ const BUCKET  = "weddingphotos-2025";
 import { parse } from
   "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs"; 
 import {
-  S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand
+  S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand, 
+  DeleteObjectCommand, CopyObjectCommand
 } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
 import { fromCognitoIdentityPool }
   from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
@@ -517,6 +548,126 @@ if (last === 'mine') {
   switchTab(true);
 }
 
+
+// photo credit settings
+/* ------------------------------------------------- *
+ *  Credit helpers
+ * ------------------------------------------------- */
+const creditCache = new Map();                     // key ➜ "Alice Smith"
+
+/* turn ".../bucket/20240527_my%20pic.jpg" into "20240527_my pic.jpg" */
+function keyFromURL(src){
+  return decodeURIComponent(src.split('/').pop());
+}
+
+/* util.js – already in the file, just add this helper */
+// ① helper to always get the actual S3 key
+function decodeKey(keyOrUrl) {
+  return decodeURIComponent(
+    keyOrUrl.includes('/')
+      ? keyOrUrl.split('/').pop()  // URL → filename
+      : keyOrUrl                   // already a key
+  );
+}
+
+/* write credit into cache **and** all figures already on the page */
+function rememberCredit(key, credit){
+  creditCache.set(key, credit);
+  document.querySelectorAll(`figure[data-key="${key}"]`)
+          .forEach(fig => fig.dataset.credit = credit);
+}
+
+function getCreditName(){
+  return localStorage.getItem('creditName') || '';
+}
+function setCreditName(name){
+  localStorage.setItem('creditName', name);
+}
+
+const settingsBtn = document.getElementById('settingsBtn');
+settingsBtn.addEventListener('click', async () => {
+  const current = getCreditName();
+  const name = prompt(
+      "Enter the name you'd like shown for photo credit.\n" +
+      '(Leave blank and press OK to remove it.)',
+      current
+  );
+  if (name === null) return;           // user hit “Cancel”
+  setCreditName(name.trim());
+  await rewriteCreditForMine(name.trim()); 
+});
+
+/**
+ * Compare what S3 actually has with what we think we have in localStorage.
+ * Any keys that don’t exist on the server are pruned from localStorage.
+ */
+async function syncLocalUploads() {
+  const serverKeys = new Set(
+    (await listAllObjects()).map(o => o.Key)    // all real keys
+  );
+
+  const local = getUploads();                   // what we remember
+  const fresh = local.filter(k => serverKeys.has(k));
+
+  if (fresh.length !== local.length) {          // something was stale
+    saveUploads(fresh);
+    console.info(
+      `✂️  Removed ${local.length - fresh.length} stale key(s) from localStorage`
+    );
+  }
+
+  return fresh;                                 // handy if you need it
+}
+
+
+async function rewriteCreditForMine(newCredit) {
+   const myKeys = await syncLocalUploads();         // clone so we can mutate it
+
+   for (const Key of myKeys) {
+    /* 1️⃣  HEAD the object -- but ignore "NotFound"      */
+    let head;
+    try {
+      head = await s3.send(
+        new HeadObjectCommand({ Bucket: BUCKET, Key })
+      );
+    } catch (err) {
+      if (err?.$metadata?.httpStatusCode === 404) {
+        // object is gone → drop it from localStorage and continue
+        const idx = myKeys.indexOf(Key);
+        if (idx !== -1) myKeys.splice(idx, 1);
+        console.warn('Skipped missing object:', Key);
+        continue;
+      }
+      throw err;                            // anything else = real error
+    }
+
+     const meta = { ...(head.Metadata || {}) };
+     if (newCredit) meta.credit = newCredit;
+     else           delete meta.credit;
+
+     /* 2️⃣  copy it over itself to update metadata        */
+     await s3.send(
+       new CopyObjectCommand({
+         Bucket:     BUCKET,
+         CopySource: `${BUCKET}/${encodeURIComponent(Key)}`, // encode *only* the key
+         Key,
+         Metadata:   meta,
+         MetadataDirective: 'REPLACE',
+         ContentType: head.ContentType
+       })
+     );
+
+     creditCache.set(Key, newCredit || "");
+   }
+
+  /* 3️⃣  write the cleaned list back to localStorage     */
+  saveUploads(myKeys);
+}
+
+
+
+
+
 // ── upload flow ──────────────────────────────────────────────────────────
 // wrap your picker.onchange to show progress
 picker.onchange = async ev => {
@@ -550,6 +701,9 @@ picker.onchange = async ev => {
       // store as ISO so it sorts and reads nicely
       meta.taken = exifDate.toISOString();
     }
+
+    const credit = getCreditName();
+    if (credit)  meta.credit = credit;      //  ← NEW
 
     // perform upload
     await s3.send(new PutObjectCommand({
@@ -585,7 +739,7 @@ picker.onchange = async ev => {
 
 // ── overlay & download ────────────────────────────────────────────────────
 let currentSrc = "", currentName = "";
-function openOverlay(src, isVideo, _tsReadable, fileName) {
+async function openOverlay(src, isVideo, _tsReadable, fileName) {
   // 1) Find the <figure> whose lazy-loaded img/video src matches
   const selector = isVideo
     ? `video[src="${src}"]`
@@ -611,11 +765,21 @@ function openOverlay(src, isVideo, _tsReadable, fileName) {
     day:   "2-digit",
     year:  "numeric"
   });
-  const formatted = `${timePart}, ${datePart}`;
+  const key    = decodeKey(src); 
+  let credit   = creditCache.get(key);
+ 
+  // /* first time we ever open this object? → one cheap HEAD request */
+  // if (credit === undefined){
+  //   const head   = await s3.send(new HeadObjectCommand({Bucket:BUCKET, Key:key}));
+  //   credit = head.Metadata?.credit || "";
+  //   rememberCredit(key, credit);         // cache & update DOM
+  // }
+  credit = credit ? `\n© ${credit}` : '';
+  const formatted = `${timePart}, ${datePart}${credit}`;
 
   // 3) Build the overlay
   currentSrc  = src;
-  currentName = fileName;
+  currentName = key;
   overlay.innerHTML = "";
   tsLabel.textContent = formatted;
   overlay.appendChild(tsLabel);
@@ -858,6 +1022,21 @@ async function refineDate(key, origDate) {
   return exifDate || origDate;
 }
 
+async function getCredit(Key) {
+  if (creditCache.has(Key)) return creditCache.get(Key); // already cached
+
+  try {
+    const head   = await s3.send(
+      new HeadObjectCommand({ Bucket: BUCKET, Key })
+    );
+    const credit = head.Metadata?.credit || "";
+    rememberCredit(Key, credit);               // fill cache + existing DOM
+    return credit;
+  } catch {
+    return "";                                // network/404 → no credit
+  }
+}
+
 
 /* ------------------------------------------------------------- *
  *  List *every* object in the bucket (handles the 1 000-key cap)
@@ -903,9 +1082,12 @@ async function render() {
   const firstScreen = 50;
   for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
     const { Key, takenDate } = index[i];
-    const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
-    index[i].takenDate = refined;                       // keep book-keeping tidy
-    await buildFigure(Key, refined, mySet);             // ⬅️ insertSorted() inside
+    const [refined, _] = await Promise.all([
+      refineDate(Key, takenDate),   // 🔍 EXIF
+      getCredit(Key)                // 🏷️ credit header
+    ]);
+    index[i].takenDate = refined;
+    await buildFigure(Key, refined, mySet);      // credit is now cached
   }
 
   loader.style.display = 'none';      // spinner off
@@ -916,7 +1098,10 @@ async function render() {
     for (let i = firstScreen; i < index.length; i += chunk) {
       await Promise.all(
         index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
-          const refined = await refineDate(Key, takenDate);
+          const [refined, _] = await Promise.all([
+            refineDate(Key, takenDate),
+            getCredit(Key)
+          ]);
           await buildFigure(Key, refined, mySet);        // already sorted
         })
       );
@@ -969,6 +1154,8 @@ async function appendNew(keys) {
   for (const Key of keys) {
     // head + EXIF → takenDate
     const head      = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key }));
+    const credit = head.Metadata?.credit || "";
+    rememberCredit(Key, credit);
 
     let takenDate;
     if (head.Metadata?.taken) {
@@ -1075,6 +1262,9 @@ async function buildFigure(Key, takenDate, mySet) {
   fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
   fig.dataset.key = Key;
   tagWithTaken(fig, takenDate);
+  if (creditCache.has(Key)) {
+    fig.dataset.credit = creditCache.get(Key);   // ② expose to the DOM
+  }
   fig.style.cursor = 'pointer';
   
   // thumbnail or video placeholder
@@ -1197,6 +1387,7 @@ function toggleSelection(Key) {
 }
 
 // initial render
+await syncLocalUploads();   // keep localStorage truthful before anything else
 render();
 
 
