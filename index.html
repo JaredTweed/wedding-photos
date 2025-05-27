@@ -705,6 +705,8 @@ dlBtn.addEventListener('pointerdown', async () => {
 const MAX_CONCURRENT = 4;
 let   inFlight       = 0;
 const queue          = new Set();              // <img>/<video> waiting to load
+const LOAD_TIMEOUT = 15_000;
+
 
 function distanceToViewportCenter(rect) {
   const vpCenter = window.innerHeight / 2;
@@ -712,8 +714,10 @@ function distanceToViewportCenter(rect) {
 }
 
 function processQueue() {
-  console.log("processQueue", inFlight, queue.size);
+  // console.log("processQueue", inFlight, queue.size);
   if (inFlight >= MAX_CONCURRENT || queue.size === 0) return;
+
+  // console.log("processQueue: starting new load");
 
   // pick the element whose centre is *closest* to the viewport centre
   let bestEl = null, bestDist = Infinity;
@@ -723,6 +727,8 @@ function processQueue() {
   }
   if (!bestEl) return;
 
+  // console.log("processQueue: loading", bestEl);
+
   queue.delete(bestEl);
   startLoading(bestEl);
 }
@@ -731,15 +737,27 @@ function startLoading(el) {
   inFlight++;
   if ('fetchPriority' in el) el.fetchPriority = 'high';
 
+  /* If the element has not fired anything in 15 seconds we call done()
+  ourselves; the thumbnail will simply try again the next time it scrolls
+  into view.*/ 
+  const kill = setTimeout(() => {
+    console.warn('lazy-loader timeout → giving up on', el.dataset.src);
+    done();
+  }, LOAD_TIMEOUT);
+
   const done = () => {
-    io.unobserve(el);                 // make doubly sure
-    inFlight--;
+    delete el.dataset.queued;    // allow it to be queued again later
+    clearTimeout(kill);
+    io.unobserve(el);
+    inFlight = Math.max(0, inFlight - 1);
     processQueue();
   };
 
   const eventName = el.tagName === 'VIDEO' ? 'loadeddata' : 'load';
   el.addEventListener(eventName, done, { once: true });
   el.addEventListener('error',     done, { once: true });
+  el.addEventListener('stalled',   done, { once: true }); 
+  el.addEventListener('abort',     done, { once: true });
 
   el.src = el.dataset.src;
   if (el.tagName === 'VIDEO') el.load();
