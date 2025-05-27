@@ -354,6 +354,9 @@ import JSZip from 'https://esm.sh/jszip@3.10.1';
 let uploading = false;
 const isiOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 
+/* keep a single global observer that is rebuilt when the user
+   switches tabs (because the scroll-container changes)          */
+let io = makeObserver(document.querySelector('.tab-panel.active'));
 
 
 // NEW: scroll indicator logic
@@ -487,7 +490,8 @@ const loader    = document.getElementById('loader');
 tabAll.addEventListener('pointerdown', () => switchTab(true));
 tabMine.addEventListener('pointerdown', () => switchTab(false));
 
-function switchTab(showAll){
+/* hook into your existing tab-switch logic --------------------- */
+function switchTab(showAll) {
   tabAll.classList.toggle('active',  showAll);
   tabMine.classList.toggle('active', !showAll);
   panelAll.classList.toggle('active',  showAll);
@@ -496,6 +500,10 @@ function switchTab(showAll){
   localStorage.setItem('activeTab', showAll ? 'all' : 'mine');
   dateIndicator.style.opacity = '0';
   updatePanelMessages();
+
+  /* NEW: rebuild the observer for the now-active panel */
+  const newRoot = document.querySelector('.tab-panel.active');
+  reassignObserver(newRoot);
 }
 
 // ── restore last-active tab on load ──────────────────────────────────────
@@ -768,27 +776,48 @@ function startLoading(el) {
 }
 
 /* ------------ IntersectionObserver ---------------------------- */
-const OBS_MARGIN    = '0px 0px 400px 0px';     // only look *below* viewport
-const VIS_THRESHOLD = 0.0;                    // 0 % visible ⇒ queue
+function reassignObserver(rootEl) {
+  // stop watching everything with the old observer
+  io.disconnect();
+  io = makeObserver(rootEl);
 
-const io = new IntersectionObserver(entries => {
-  for (const entry of entries) {
-    const el = entry.target;
+  // re-observe every thumb that hasn’t been loaded yet
+  document
+    .querySelectorAll('img[data-src]:not([src]), video[data-src]:not([src])')
+    .forEach(el => io.observe(el));
+}
 
-    if (entry.isIntersecting && entry.intersectionRatio >= VIS_THRESHOLD) {
-      // in range  →  queue it (unless already queued / loaded)
-      if (!el.dataset.queued && !el.src) {
-        el.dataset.queued = '1';
-        if ('fetchPriority' in el) el.fetchPriority = 'low';     // until it’s up
-        queue.add(el);
-        processQueue();
+/*  ① we watch the *scroll-container* itself (the active tab-panel)
+ *  ② we extend the “root” 400 px *below* the viewport so the
+ *     thumbnails are queued well before they appear               */
+function makeObserver(rootEl) {
+  return new IntersectionObserver(
+    entries => {
+      for (const entry of entries) {
+        const el = entry.target;
+
+        if (entry.isIntersecting) {
+          //  in range  →  queue it (unless already queued / loaded)
+          if (!el.dataset.queued && !el.src) {
+            el.dataset.queued = '1';
+            if ('fetchPriority' in el) el.fetchPriority = 'low';
+            queue.add(el);
+            processQueue();
+          }
+        } else {
+          //  out of range again  →  drop from queue if not started yet
+          if (queue.delete(el)) delete el.dataset.queued;
+        }
       }
-    } else {
-      // out of range again  →  drop from queue if not started yet
-      if (queue.delete(el)) delete el.dataset.queued;
+    },
+    {
+      /* top 0, right 0, **bottom +1000 px**, left 0                */
+      root:       rootEl,
+      rootMargin: '0px 0px 1000px 0px',
+      threshold:  0          // we don’t need any actual overlap
     }
-  }
-}, { rootMargin: OBS_MARGIN, threshold: 0 });
+  );
+}
 
 
 
