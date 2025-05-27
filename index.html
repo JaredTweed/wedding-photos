@@ -821,14 +821,36 @@ async function refineDate(key, origDate) {
 }
 
 
+/* ------------------------------------------------------------- *
+ *  List *every* object in the bucket (handles the 1 000-key cap)
+ * ------------------------------------------------------------- */
+async function listAllObjects() {
+  let   objects           = [];
+  let   ContinuationToken = undefined;
+
+  do {
+    const resp = await s3.send(
+      new ListObjectsV2Command({
+        Bucket: BUCKET,
+        ContinuationToken        // undefined on first call
+      })
+    );
+
+    objects.push(...(resp.Contents || []));
+    ContinuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+  } while (ContinuationToken);
+
+  return objects;
+}
+
+
+
 /* ---------- RENDER ---------------------------------------------- */
 async function render() {
   loader.style.display = 'flex';      // show spinner
 
   // 1. cheap list call
-  const { Contents = [] } = await s3.send(
-    new ListObjectsV2Command({ Bucket: BUCKET })
-  );
+  const Contents = await listAllObjects();
 
   // 2. build a “raw” index using LastModified first
   const index = Contents.map(obj => ({
