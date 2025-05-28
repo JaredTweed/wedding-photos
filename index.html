@@ -4,7 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Maiya & Jared 2025</title>
-<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="icon" href="image.ico" type="image/x-icon">
+<!-- <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"> -->
 <style>
 :root {
   --primary-color:   hsl(96 23.7% 54%);
@@ -295,10 +296,24 @@ button, label,
   object-fit: contain;border-radius:8px}
 #timestamp{position:absolute;top:1rem;left:50%;transform:translateX(-50%);
            color:#fff;font-size:1.1rem;font-weight:600; text-align: center;z-index:10001; text-shadow: 1px 1px 5px black;}
-#overlayBtn{position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);
-             padding:.6rem 1.2rem;background:#fff;border:1px solid #444;border-radius:6px;
-             cursor:pointer;font-weight:600;z-index:10001;color:black;}
-
+#overlayBottom{display: flex; flex-direction: column;  position:absolute; bottom:0.6rem; left:50%;
+  margin: 0;
+  transform:translateX(-50%); width: 100%; z-index: 12010;
+  pointer-events: none;}
+#overlayBtn{position: relative;left:50%;transform:translateX(-50%);
+             padding:.6rem 1.2rem;background:#fff;border:1px solid #444;
+             border-radius:6px;
+             cursor:pointer;font-weight:600;color:black; }
+.credit{
+  position:relative; left:50%;
+  margin: 0;
+  padding: 0 0.85rem;
+  transform:translateX(-50%);
+  color:#fff; font-size:1rem; text-shadow:1px 1px 5px #000;
+  text-align: center;
+  pointer-events: none;
+}
+            
 /* full-screen loader */
 #loader {
   position: fixed;
@@ -380,7 +395,10 @@ button, label,
 <div id="overlay">
   <div id="timestamp"></div>
 </div>
-<button id="overlayBtn" style="display:none">Delete</button>
+<div id="overlayBottom" style="display:none">
+  <button id="overlayBtn">Delete</button>
+  <div class="credit"></div>
+</div>
 
 <script type="module">
 // ── AWS config ─────────────────────────────────────────────────────────────
@@ -576,18 +594,20 @@ async function getCredit(key) {
 
 
 // ── DOM refs & tabs ───────────────────────────────────────────────────────
-const picker      = document.getElementById('filePicker');
-const addBtn      = document.getElementById('addBtn');
-const panelAll    = document.getElementById('panelAll');
-const panelMine   = document.getElementById('panelMine');
-const tabAll      = document.getElementById('tabAll');
-const tabMine     = document.getElementById('tabMine');
-const overlay     = document.getElementById('overlay');
-const tsLabel     = document.getElementById('timestamp');
-const overlayBtn  = document.getElementById('overlayBtn');
-const loader      = document.getElementById('loader');
-const settingsBtn = document.getElementById('settingsBtn');
-const icon        = document.getElementById('settingsIcon');
+const picker        = document.getElementById('filePicker');
+const addBtn        = document.getElementById('addBtn');
+const panelAll      = document.getElementById('panelAll');
+const panelMine     = document.getElementById('panelMine');
+const tabAll        = document.getElementById('tabAll');
+const tabMine       = document.getElementById('tabMine');
+const overlay       = document.getElementById('overlay');
+const tsLabel       = document.getElementById('timestamp');
+const overlayBtn    = document.getElementById('overlayBtn');
+const loader        = document.getElementById('loader');
+const settingsBtn   = document.getElementById('settingsBtn');
+const icon          = document.getElementById('settingsIcon');
+const overlayBottom = document.getElementById('overlayBottom');
+const creditEl      = document.querySelector('.credit');
 
 settingsBtn.onclick = async () => {
   if (creditName == null) {creditName = "";}
@@ -759,19 +779,14 @@ function openOverlay(src, isVideo, _tsReadable, fileName) {
   overlay.classList.add('visible');
 
   /* ── fetch + show credit, if any ─────────────────────────────── */
+  creditEl.textContent = '';
   getCredit(fileName)
     .then(c => {
       // if (!c) return;
-      const creditEl = document.createElement("div");
-      creditEl.style.cssText = `
-        position:absolute; bottom:1rem; left:50%;
-        transform:translateX(-50%);
-        color:#fff; font-size:1rem; text-shadow:1px 1px 5px #000;
-      `;
       creditEl.textContent = !c || c == '' ? '':`Credit: ${c}`;
-      overlay.appendChild(creditEl);
     });
 
+  overlayBottom.style.display = 'block';
   if (document.querySelector('.tab-panel.active').id === 'panelMine') {
     overlayBtn.style.display = 'block';
   } else {
@@ -796,7 +811,7 @@ function closeOverlay(){
   }
 
   overlay.classList.remove('visible');
-  overlayBtn.style.display = 'none';
+  overlayBottom.style.display = 'none';
 }
 // listen for pointerdown on the overlay background:
 overlay.onclick = null;
@@ -811,48 +826,6 @@ window.addEventListener('keydown', e => {
   if (uploading && e.key === 'Escape') return;
   if (e.key === 'Escape') closeOverlay();
 });
-
-// // Add a pointerdown listener instead
-// overlayBtn.addEventListener('pointerdown', async () => {
-//   dlBtn.disabled    = true;
-//   dlBtn.textContent = "Downloading…";
-
-//   try {
-//     if (isiOS) {
-//       /* iOS: just open the public S3 object so Safari shows the
-//          built-in ‘Share / Save Video / Save Image’ sheet */
-//       window.open(currentSrc, '_blank', 'noopener');
-//       return;
-//     }
-
-//     const resp = await fetch(currentSrc);
-//     const blob = await resp.blob();
-//     const url  = URL.createObjectURL(blob);
-//     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-//     if (isMobile) {
-//       // On mobile, open blob URL in a new tab so user can save it manually
-//       window.open(url, '_blank');
-//     } else {
-//       // On desktop, use download attribute
-//       const a = document.createElement('a');
-//       a.href        = url;
-//       a.download    = currentName;
-//       document.body.appendChild(a);
-//       a.click();
-//       a.remove();
-//     }
-
-//     // give the browser a moment to spin up the download
-//     setTimeout(() => URL.revokeObjectURL(url), 500);
-//   } finally {
-//     dlBtn.disabled    = false;
-//     dlBtn.textContent = "Download";
-//   }
-// });
-
-
-
 
 
 // ── gallery render (newest→oldest) ───────────────────────────────────────
@@ -968,7 +941,7 @@ function makeObserver(rootEl) {
       // 300% loads the next 3 screens
       // if we load too early, we waste bandwidth and CPU
       root:       rootEl,
-      rootMargin: '0px 0px 300% 0px',
+      rootMargin: '0px 0px 450% 0px',
       threshold:  0          // we don’t need any actual overlap
     }
   );
@@ -1348,57 +1321,6 @@ function toggleSelection(Key) {
 
 // initial render
 render();
-
-
-// // 1) Download Selected
-// btnDownload.onclick = async () => {
-//   btnDownload.textContent = "Downloading...";
-//   btnDownload.disabled = true;
-
-//   if (selectedKeys.size === 0) return;
-//   const keys = Array.from(selectedKeys);
-//   if (keys.length === 1) {
-//     // single file: just fetch & download
-//     const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(keys[0])}`;
-    
-//     if (isiOS) {
-//       /* open the object directly */
-//       window.open(url, '_blank', 'noopener');
-//     } else {
-//       const resp = await fetch(url);
-//       const blob = await resp.blob();
-//       const a    = Object.assign(document.createElement('a'), {
-//         href: URL.createObjectURL(blob),
-//         download: keys[0].split('_').slice(1).join('_')
-//       });
-//       document.body.appendChild(a);
-//       a.click();
-//       a.remove();
-//     }
-//   } else {
-//     // multiple: zip them
-//     const zip = new JSZip();
-//     await Promise.all(keys.map(async key => {
-//       const url  = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
-//       const resp = await fetch(url);
-//       const blob = await resp.blob();
-//       zip.file(key.split('_').slice(1).join('_'), blob);
-//     }));
-//     const content = await zip.generateAsync({ type: 'blob' });
-//     const a = Object.assign(document.createElement('a'), {
-//       href: URL.createObjectURL(content),
-//       download: 'maiya-jared-2025.zip'
-//     });
-//     if(isiOS){
-//       shareOrOpen(content, 'maiya-jared-2025.zip');
-//     }
-//     document.body.appendChild(a);
-//     a.click();
-//     a.remove();
-//   }
-//   btnDownload.textContent = `Download (${selectedKeys.size})`;
-//   btnDownload.disabled = false;
-// };
 
 // 2) Delete Selected
 btnDelete.onclick = async () => {
