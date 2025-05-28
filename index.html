@@ -4,11 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Maiya & Jared 2025</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
 <style>
 :root {
   --primary-color:   hsl(96 23.7% 54%);
   --secondary-color: hsl(96 21% 94%);
   --font-size: 1.2rem;
+  --image-width: 160px; 
 }
 
 body{
@@ -139,17 +141,19 @@ border-radius: 8px;
 .tab-panel.active{position: relative;display:grid;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
-  grid-template-columns:repeat(4,minmax(200px,1fr));
+  grid-template-columns:repeat(4,minmax(var(--image-width),1fr));
                   gap:0.75rem;padding:0 10px 80px;
   overflow-y: auto;
   align-content: start;
   height: calc(100vh - 188px);
     overflow-y: auto;
 }
+
+
 /* on small viewports, fall back to fewer columns */
-@media (max-width: 870px) {
+@media (max-width: 710px) { /*var(--image-width) * 4 + 70px*/
   .tab-panel.active {
-    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--image-width), 1fr));
   }
 }
 figure{margin:0;position:relative;
@@ -863,7 +867,7 @@ window.addEventListener('keydown', e => {
 const MAX_CONCURRENT = 4;
 let   inFlight       = 0;
 const queue          = new Set();              // <img>/<video> waiting to load
-const LOAD_TIMEOUT = 11_000;
+const LOAD_TIMEOUT = 4_000;
 
 
 function distanceToViewportCenter(rect) {
