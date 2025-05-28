@@ -373,6 +373,9 @@ const REGION  = "us-west-2";
 const ID_POOL = "us-west-2:8e34a4e5-741b-402e-9bfb-eeb90b5643e3";
 const BUCKET  = "weddingphotos-2025";
 
+const META_BUCKET   = "weddingphotos-metadata";         // ← second bucket
+const META_KEY      = "credits.json";                  // single table object
+
 import { parse } from
   "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs"; 
 import {
@@ -553,6 +556,39 @@ if (last === 'mine') {
 /* ------------------------------------------------- *
  *  Credit helpers
  * ------------------------------------------------- */
+
+/* ------------------------------------------------- *
+ *  CREDIT TABLE helpers
+ * ------------------------------------------------- */
+let creditTable = {};          // filled once at start, then kept in-memory
+
+async function loadCreditTable() {
+  try {
+    const obj = await s3.send(
+      new GetObjectCommand({ Bucket: META_BUCKET, Key: META_KEY })
+    );
+    const text = await obj.Body.text();
+    creditTable = JSON.parse(text);
+  } catch (err) {
+    /* 404 on the very first run → start with an empty table */
+    if (err?.$metadata?.httpStatusCode !== 404) console.warn(err);
+    creditTable = {};
+  }
+}
+
+async function saveCreditTable() {
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: META_BUCKET,
+      Key:    META_KEY,
+      Body:   JSON.stringify(creditTable),
+      ContentType: "application/json"
+    })
+  );
+}
+
+
+
 const creditCache = new Map();                     // key ➜ "Alice Smith"
 
 /* turn ".../bucket/20240527_my%20pic.jpg" into "20240527_my pic.jpg" */
@@ -766,7 +802,7 @@ async function openOverlay(src, isVideo, _tsReadable, fileName) {
     year:  "numeric"
   });
   const key    = decodeKey(src); 
-  let credit   = creditCache.get(key);
+  // let credit   = creditCache.get(key);
  
   // /* first time we ever open this object? → one cheap HEAD request */
   // if (credit === undefined){
@@ -774,7 +810,7 @@ async function openOverlay(src, isVideo, _tsReadable, fileName) {
   //   credit = head.Metadata?.credit || "";
   //   rememberCredit(key, credit);         // cache & update DOM
   // }
-  credit = credit ? `\n© ${credit}` : '';
+  const credit = creditTable[fileName] ? `\n© ${creditTable[fileName]}` : "";
   const formatted = `${timePart}, ${datePart}${credit}`;
 
   // 3) Build the overlay
@@ -1154,7 +1190,7 @@ async function appendNew(keys) {
   for (const Key of keys) {
     // head + EXIF → takenDate
     const head      = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key }));
-    const credit = head.Metadata?.credit || "";
+    const credit   = creditTable[Key] || "";
     rememberCredit(Key, credit);
 
     let takenDate;
@@ -1387,7 +1423,8 @@ function toggleSelection(Key) {
 }
 
 // initial render
-await syncLocalUploads();   // keep localStorage truthful before anything else
+// await syncLocalUploads();   // keep localStorage truthful before anything else
+await loadCreditTable();
 render();
 
 
