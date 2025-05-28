@@ -44,6 +44,7 @@ position: relative;}
 body * {-webkit-tap-highlight-color: transparent;}
 header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;top: 0;display:flex;
   flex-direction: column; gap: 5px;z-index: 1000; background-color: #fff;}
+#headerControls{display:flex;flex-direction: row;align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
     0 0 1px rgba(0,0,0,0.15),
     0 6px 12px rgba(0,0,0,0.15); display:block;
@@ -52,6 +53,21 @@ header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;t
     border-radius: 8px; border: none;font-weight: 700; text-align: center;}
 #addBtn:active{box-sizing: border-box;
     transform: translateY(2px);}
+
+/* add just below #addBtn */
+#settingsBtn{
+  box-shadow: 0 0 1px rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.15);
+  background:#fff;                 /* white pill */
+  color:#333;
+  margin:0 0 0 6px;                /* little gap from Add */
+  padding:.5rem .9rem;
+  border-radius:8px;
+  border:none;
+  font-size:1.1rem;
+  cursor:pointer;
+}
+#settingsBtn:active{transform:translateY(2px);}
+
 
 /* make the tabs container a pill with a glider */
 #tabs.tabs {
@@ -155,12 +171,13 @@ cursor:pointer;}
   border-radius: 4px;
   box-sizing: border-box;
   z-index: 3;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
 
 /* when selected, fill it */
 figure.selected .select-box {
   background: #fff;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
 }
 figure.selected img:not(.video-icon),
 figure.selected video {
@@ -302,7 +319,10 @@ button, label,
 <div id="dateIndicator"></div>
 
 <header>
-  <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+  <div id="headerControls">
+    <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+    <button id="settingsBtn" title="Photo-credit settings">⚙️</button>
+  </div>
   <input
     id="filePicker"
     type="file"
@@ -316,6 +336,16 @@ button, label,
     <span class="glider"></span>
   </div>
 </header>
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -342,6 +372,13 @@ button, label,
 const REGION  = "us-west-2";
 const ID_POOL = "us-west-2:8e34a4e5-741b-402e-9bfb-eeb90b5643e3";
 const BUCKET  = "weddingphotos-2025";
+
+const META_BUCKET   = BUCKET;// "weddingphotos-metadata";         // ← second bucket
+
+// credit that *this* browser has chosen (string | "")
+let creditName = localStorage.getItem("creditName") ?? "";
+// one-shot cache so we don’t refetch the same JSON again
+const creditCache = new Map();   // Key → credit string | null
 
 import { parse } from
   "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs"; 
@@ -478,6 +515,35 @@ function mine(){
   return new Set(getUploads());
 }
 
+// credit helpers
+async function putCredit(key, credit) {
+  if (!credit) return;           // nothing to write
+  await s3.send(new PutObjectCommand({
+    Bucket      : META_BUCKET,
+    Key         : `${key}.json`, // *exactly* the same key, plus “.json”
+    Body        : JSON.stringify({ credit }),
+    ContentType : "application/json"
+  }));
+}
+
+async function getCredit(key) {
+  if (creditCache.has(key)) return creditCache.get(key);
+  try {
+    const url = `https://${META_BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}.json`;
+    const resp = await fetch(url, { cache: "force-cache" });
+    if (!resp.ok) throw new Error("no meta");
+    const { credit } = await resp.json();
+    creditCache.set(key, credit || null);
+    // console.log("getCredit", key, "→", credit || null);
+    return credit || null;
+  } catch {
+    creditCache.set(key, null);
+    return null;
+  }
+}
+
+
+
 // ── DOM refs & tabs ───────────────────────────────────────────────────────
 const picker     = document.getElementById('filePicker');
 const addBtn     = document.getElementById('addBtn');
@@ -489,6 +555,28 @@ const overlay    = document.getElementById('overlay');
 const tsLabel    = document.getElementById('timestamp');
 const overlayBtn = document.getElementById('overlayBtn');
 const loader     = document.getElementById('loader');
+const settingsBtn= document.getElementById('settingsBtn');
+
+settingsBtn.onclick = async () => {
+  const newName = prompt("Name for photo credit (blank = none):", creditName);
+  if (newName === null) return;        // user pressed “Cancel”
+
+  // trim whitespace & normalise to blank if empty
+  const clean = (newName ?? "").trim();
+  creditName = clean;
+  localStorage.setItem("creditName", clean);
+
+  /* ———————————————————————————————
+     Update *all* of *my* past uploads
+     so every browser sees the new name
+  ——————————————————————————————— */
+  if (clean) {
+    await Promise.all(
+      getUploads().map(k => putCredit(k, clean))
+    );
+    alert("Photo credit updated on all your uploads!");
+  }
+};
 
 tabAll.addEventListener('pointerdown', () => switchTab(true));
 tabMine.addEventListener('pointerdown', () => switchTab(false));
@@ -560,6 +648,8 @@ picker.onchange = async ev => {
       Metadata: meta,
     }));
 
+    await putCredit(key, creditName);
+
     // remember & track
     remember(key);
     newKeys.push(key);
@@ -625,6 +715,20 @@ function openOverlay(src, isVideo, _tsReadable, fileName) {
       : Object.assign(document.createElement('img'),   { src      })
   );
   overlay.classList.add('visible');
+
+  /* ── fetch + show credit, if any ─────────────────────────────── */
+  getCredit(fileName)
+    .then(c => {
+      // if (!c) return;
+      const creditEl = document.createElement("div");
+      creditEl.style.cssText = `
+        position:absolute; bottom:1rem; left:50%;
+        transform:translateX(-50%);
+        color:#fff; font-size:1rem; text-shadow:1px 1px 5px #000;
+      `;
+      creditEl.textContent = !c ? 'no credit':`Credit: ${c}`;
+      overlay.appendChild(creditEl);
+    });
 
   if (document.querySelector('.tab-panel.active').id === 'panelMine') {
     overlayBtn.style.display = 'block';
@@ -887,8 +991,12 @@ async function listAllObjects() {
 async function render() {
   loader.style.display = 'flex';      // show spinner
 
-  // 1. cheap list call
-  const Contents = await listAllObjects();
+  // 1. cheap list call, but ignore any metadata JSON files
+  const allObjects = await listAllObjects();
+  const Contents   = allObjects.filter(obj =>
+    // skip anything whose key ends with “.json” (case-insensitive)
+    !obj.Key.toLowerCase().endsWith('.json')
+  );
 
   // 2. build a “raw” index using LastModified first
   const index = Contents.map(obj => ({
@@ -961,8 +1069,7 @@ function rewireDelete(origFig, cloneFig) {
 }
 
 async function appendNew(keys) {
-  // // if we had a “no uploads” message showing, get rid of it now
-  // document.querySelectorAll('p.empty-message').forEach(el => el.remove());
+  keys = keys.filter(k => !k.toLowerCase().endsWith('.json'));
 
   const me = mine();
 
@@ -1054,6 +1161,7 @@ async function getExifDateFromURL(key, fallbackMs) {
 
 
 async function buildFigure(Key, takenDate, mySet) {
+  if (Key.toLowerCase().endsWith('.json')) return null;
   const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
   const isMine     = mySet.has(Key);
   const isVideo    = /\.(mp4|mov|webm)$/i.test(Key);
