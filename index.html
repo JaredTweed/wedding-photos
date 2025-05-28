@@ -60,13 +60,22 @@ header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;t
   background:#fff;                 /* white pill */
   color:#333;
   margin:0 0 0 6px;                /* little gap from Add */
-  padding:.5rem .9rem;
+  /* padding:.5rem .9rem; */
+  height: 40px; /* 1.2rem total height */
   border-radius:8px;
   border:none;
   font-size:1.1rem;
   cursor:pointer;
 }
 #settingsBtn:active{transform:translateY(2px);}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spinning {
+  animation: spin 1.3s linear infinite;
+}
+
 
 
 /* make the tabs container a pill with a glider */
@@ -282,7 +291,7 @@ button, label,
   object-fit: contain;border-radius:8px}
 #timestamp{position:absolute;top:1rem;left:50%;transform:translateX(-50%);
            color:#fff;font-size:1.1rem;font-weight:600; text-align: center;z-index:10001; text-shadow: 1px 1px 5px black;}
-#overlayBtn{position:fixed;bottom:0.75rem;left:50%;transform:translateX(-50%);
+#overlayBtn{position:fixed;bottom:2.5rem;left:50%;transform:translateX(-50%);
              padding:.6rem 1.2rem;background:#fff;border:1px solid #444;border-radius:6px;
              cursor:pointer;font-weight:600;z-index:10001;color:black;}
 
@@ -321,7 +330,9 @@ button, label,
 <header>
   <div id="headerControls">
     <label id="addBtn" for="filePicker">Add Photos / Videos</label>
-    <button id="settingsBtn" title="Photo-credit settings">⚙️</button>
+    <button id="settingsBtn" title="Photo-credit settings">
+      <img id="settingsIcon" src="./icons/settings.svg" alt="" style="width: 2rem; height: 2rem; box-shadow:none; vertical-align: middle;">
+    </button>
   </div>
   <input
     id="filePicker"
@@ -404,6 +415,8 @@ const dateIndicator = document.getElementById('dateIndicator');
 let indicatorTimeout;
 
 function showDateIndicator(text) {
+  if (overlay.classList.contains('visible')) return;
+
   dateIndicator.textContent = text;
   dateIndicator.style.opacity = '1';
   clearTimeout(indicatorTimeout);
@@ -517,7 +530,6 @@ function mine(){
 
 // credit helpers
 async function putCredit(key, credit) {
-  if (!credit) return;           // nothing to write
   await s3.send(new PutObjectCommand({
     Bucket      : META_BUCKET,
     Key         : `${key}.json`, // *exactly* the same key, plus “.json”
@@ -526,17 +538,31 @@ async function putCredit(key, credit) {
   }));
 }
 
+/* ── use local storage if available, otherwise get from s3 ────────── */
 async function getCredit(key) {
+  /* 1. If the file is one of **your** uploads, just show the name
+        that’s stored locally (no network request). */
+  if (mine().has(key)) {
+    const local = creditName || null;
+    creditCache.set(key, local);   // memoise so we never re-check
+    return local;                  // done ✨
+  }
+
+  /* 2. Otherwise fall back to the normal (cached) S3 lookup. */
   if (creditCache.has(key)) return creditCache.get(key);
+
   try {
     const url = `https://${META_BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}.json`;
-    const resp = await fetch(url, { cache: "force-cache" });
-    if (!resp.ok) throw new Error("no meta");
-    const { credit } = await resp.json();
-    creditCache.set(key, credit || null);
-    // console.log("getCredit", key, "→", credit || null);
-    return credit || null;
-  } catch {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      creditCache.set(key, null);
+      return null;                 // no credit stored for this photo
+    }
+    const { credit = null } = await resp.json();
+    creditCache.set(key, credit);
+    return credit;
+  } catch (err) {
+    console.error("getCredit error:", err);
     creditCache.set(key, null);
     return null;
   }
@@ -544,38 +570,48 @@ async function getCredit(key) {
 
 
 
+
 // ── DOM refs & tabs ───────────────────────────────────────────────────────
-const picker     = document.getElementById('filePicker');
-const addBtn     = document.getElementById('addBtn');
-const panelAll   = document.getElementById('panelAll');
-const panelMine  = document.getElementById('panelMine');
-const tabAll     = document.getElementById('tabAll');
-const tabMine    = document.getElementById('tabMine');
-const overlay    = document.getElementById('overlay');
-const tsLabel    = document.getElementById('timestamp');
-const overlayBtn = document.getElementById('overlayBtn');
-const loader     = document.getElementById('loader');
-const settingsBtn= document.getElementById('settingsBtn');
+const picker      = document.getElementById('filePicker');
+const addBtn      = document.getElementById('addBtn');
+const panelAll    = document.getElementById('panelAll');
+const panelMine   = document.getElementById('panelMine');
+const tabAll      = document.getElementById('tabAll');
+const tabMine     = document.getElementById('tabMine');
+const overlay     = document.getElementById('overlay');
+const tsLabel     = document.getElementById('timestamp');
+const overlayBtn  = document.getElementById('overlayBtn');
+const loader      = document.getElementById('loader');
+const settingsBtn = document.getElementById('settingsBtn');
+const icon        = document.getElementById('settingsIcon');
 
 settingsBtn.onclick = async () => {
-  const newName = prompt("Name for photo credit (blank = none):", creditName);
-  if (newName === null) return;        // user pressed “Cancel”
-
-  // trim whitespace & normalise to blank if empty
-  const clean = (newName ?? "").trim();
-  creditName = clean;
-  localStorage.setItem("creditName", clean);
-
-  /* ———————————————————————————————
-     Update *all* of *my* past uploads
-     so every browser sees the new name
-  ——————————————————————————————— */
-  if (clean) {
-    await Promise.all(
-      getUploads().map(k => putCredit(k, clean))
-    );
-    alert("Photo credit updated on all your uploads!");
+  if (creditName == null) {creditName = "";}
+  const response = prompt(
+    "Please enter the name to display for photo credits.\nLeave blank if you do not wish to add a credit:",
+    creditName || ""
+  );
+  
+  // If the user cancels the prompt, response is null – do nothing.
+  if (response === null) {
+    console.log("User cancelled the prompt.");
+    return;
   }
+  
+  icon.classList.add("spinning");
+
+  // Trim the response. If the user entered an empty string, treat it as clearing the credit.
+  const clean = response.trim();
+  // Store null rather than empty string if no credit is to be set.
+  creditName = clean;
+  localStorage.setItem("creditName", creditName || "");
+
+  console.log("New credit name set:", `'${creditName}'`);
+  // Update the credit for all existing uploads
+  await Promise.all(
+    getUploads().map(k => putCredit(k, creditName))
+  );
+  icon.classList.remove("spinning");
 };
 
 tabAll.addEventListener('pointerdown', () => switchTab(true));
@@ -676,6 +712,8 @@ picker.onchange = async ev => {
 // ── overlay & download ────────────────────────────────────────────────────
 let currentSrc = "", currentName = "";
 function openOverlay(src, isVideo, _tsReadable, fileName) {
+  dateIndicator.style.opacity = '0';
+  
   // 1) Find the <figure> whose lazy-loaded img/video src matches
   const selector = isVideo
     ? `video[src="${src}"]`
@@ -726,7 +764,7 @@ function openOverlay(src, isVideo, _tsReadable, fileName) {
         transform:translateX(-50%);
         color:#fff; font-size:1rem; text-shadow:1px 1px 5px #000;
       `;
-      creditEl.textContent = !c ? 'no credit':`Credit: ${c}`;
+      creditEl.textContent = !c || c == '' ? '':`Credit: ${c}`;
       overlay.appendChild(creditEl);
     });
 
@@ -825,7 +863,7 @@ window.addEventListener('keydown', e => {
 const MAX_CONCURRENT = 4;
 let   inFlight       = 0;
 const queue          = new Set();              // <img>/<video> waiting to load
-const LOAD_TIMEOUT = 15_000;
+const LOAD_TIMEOUT = 11_000;
 
 
 function distanceToViewportCenter(rect) {
@@ -1393,7 +1431,7 @@ btnDelete.onclick = async () => {
   btnDelete.disabled = false;
 };
 
-overlayBtn.addEventListener('click', async () => {
+overlayBtn.addEventListener('pointerdown', async () => {
   // The overlay button is only visible in the “My Uploads” tab and it deletes the file
   if (!currentSrc || !currentName) return;
   if (!confirm(`Are you sure you want to delete this file?`)) return;
