@@ -394,11 +394,17 @@ button, label,
 
 <div id="overlay">
   <div id="timestamp"></div>
+
+  <!-- everything we wipe/repopulate lives in here -->
+  <div id="overlayContent"></div>
+
+  <div id="overlayBottom" style="display:none">
+    <button id="overlayBtn">Delete</button>
+    <div class="credit"></div>
+  </div>
 </div>
-<div id="overlayBottom" style="display:none">
-  <button id="overlayBtn">Delete</button>
-  <div class="credit"></div>
-</div>
+
+
 
 <script type="module">
 // ── AWS config ─────────────────────────────────────────────────────────────
@@ -674,17 +680,11 @@ picker.onchange = async ev => {
 
   // start the overlay
   uploading = true;
-  overlay.innerHTML = `
-    <div style="
-      color: white;
-      font-size: 1.2rem;
-      text-align: center;
-      padding: 1rem;
-    ">
-      Uploading 0 / ${files.length}…
-    </div>
+  overlayContent.innerHTML = `
+    <div style="color:white; …">Uploading 0 / ${files.length}…</div>
   `;
   overlay.classList.add('visible');
+
 
   const newKeys = [];
   for (let i = 0; i < files.length; i++) {
@@ -737,6 +737,7 @@ picker.onchange = async ev => {
 let currentSrc = "", currentName = "";
 function openOverlay(src, isVideo, _tsReadable, fileName) {
   dateIndicator.style.opacity = '0';
+  overlayContent.innerHTML = "";
   
   // 1) Find the <figure> whose lazy-loaded img/video src matches
   const selector = isVideo
@@ -768,13 +769,18 @@ function openOverlay(src, isVideo, _tsReadable, fileName) {
   // 3) Build the overlay
   currentSrc  = src;
   currentName = fileName;
-  overlay.innerHTML = "";
-  tsLabel.textContent = formatted;
-  overlay.appendChild(tsLabel);
-  overlay.appendChild(
+  // clear out any previous <img> or <video> children
+  overlay.querySelectorAll('img, video').forEach(el => el.remove());
+
+  // update timestamp in place
+  const tsEl = document.getElementById('timestamp');
+  tsEl.textContent = formatted;
+
+  // append our new media node
+  overlayContent.appendChild(
     isVideo
-      ? Object.assign(document.createElement('video'), { src, controls: true })
-      : Object.assign(document.createElement('img'),   { src      })
+      ? Object.assign(document.createElement('video'), {src, controls:true})
+      : Object.assign(document.createElement('img'),   {src})
   );
   overlay.classList.add('visible');
 
@@ -786,7 +792,7 @@ function openOverlay(src, isVideo, _tsReadable, fileName) {
       creditEl.textContent = !c || c == '' ? '':`Credit: ${c}`;
     });
 
-  overlayBottom.style.display = 'block';
+  overlayBottom.style.display = 'flex';
   if (document.querySelector('.tab-panel.active').id === 'panelMine') {
     overlayBtn.style.display = 'block';
   } else {
@@ -812,6 +818,7 @@ function closeOverlay(){
 
   overlay.classList.remove('visible');
   overlayBottom.style.display = 'none';
+  overlayContent.innerHTML = ""; 
 }
 // listen for pointerdown on the overlay background:
 overlay.onclick = null;
