@@ -154,7 +154,7 @@ border-radius: 8px;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
   grid-template-columns:repeat(4,minmax(var(--image-width),1fr));
-                  gap:0.75rem;padding:10px 8px 0 8px;
+                  gap:0.75rem;padding: 10px 0 0 0;width: calc(100% - 16px);
   overflow-y: hidden;
   align-content: start;
   /* height: calc(100vh - 188px); */
@@ -336,6 +336,7 @@ button, label,
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: all;
   background: rgba(255,255,255,0.8);
   z-index: 100000;
 }
