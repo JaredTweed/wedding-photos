@@ -733,71 +733,77 @@ picker.onchange = async ev => {
 // ── overlay & download ────────────────────────────────────────────────────
 let currentSrc = "", currentName = "";
 function openOverlay(src, isVideo, _tsReadable, fileName) {
-  dateIndicator.style.opacity = '0';
-  overlayContent.innerHTML = "";
   
-  // 1) Find the <figure> whose lazy-loaded img/video src matches
-  const selector = isVideo
-    ? `video[src="${src}"]`
-    : `img[src="${src}"]`;
-  const mediaEl = document.querySelector(selector);
-  let dateMs = Date.now();
-  if (mediaEl) {
-    const fig = mediaEl.closest('figure');
-    if (fig && fig.dataset.taken) {
-      dateMs = Number(fig.dataset.taken);
+  swallowNextClick = true; 
+  setTimeout(() => {
+    dateIndicator.style.opacity = '0';
+    overlayContent.innerHTML = "";
+    
+    // 1) Find the <figure> whose lazy-loaded img/video src matches
+    const selector = isVideo
+      ? `video[src="${src}"]`
+      : `img[src="${src}"]`;
+    const mediaEl = document.querySelector(selector);
+    let dateMs = Date.now();
+    if (mediaEl) {
+      const fig = mediaEl.closest('figure');
+      if (fig && fig.dataset.taken) {
+        dateMs = Number(fig.dataset.taken);
+      }
     }
-  }
 
-  // 2) Format the timestamp freshly
-  const ts = new Date(dateMs);
-  const timePart = ts.toLocaleTimeString("en-US", {
-    hour:   "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-  const datePart = ts.toLocaleDateString("en-US", {
-    month: "short",
-    day:   "2-digit",
-    year:  "numeric"
-  });
-  const formatted = `${timePart}, ${datePart}`;
-
-  // 3) Build the overlay
-  currentSrc  = src;
-  currentName = fileName;
-  // clear out any previous <img> or <video> children
-  overlay.querySelectorAll('img, video').forEach(el => el.remove());
-
-  // update timestamp in place
-  const tsEl = document.getElementById('timestamp');
-  tsEl.textContent = formatted;
-
-  // append our new media node
-  overlayContent.appendChild(
-    isVideo
-      ? Object.assign(document.createElement('video'), {src, controls:true})
-      : Object.assign(document.createElement('img'),   {src})
-  );
-  overlay.classList.add('visible');
-
-  /* ── fetch + show credit, if any ─────────────────────────────── */
-  creditEl.textContent = '';
-  getCredit(fileName)
-    .then(c => {
-      // if (!c) return;
-      creditEl.textContent = !c || c == '' ? '':`Credit: ${c}`;
+    // 2) Format the timestamp freshly
+    const ts = new Date(dateMs);
+    const timePart = ts.toLocaleTimeString("en-US", {
+      hour:   "2-digit",
+      minute: "2-digit",
+      hour12: false
     });
+    const datePart = ts.toLocaleDateString("en-US", {
+      month: "short",
+      day:   "2-digit",
+      year:  "numeric"
+    });
+    const formatted = `${timePart}, ${datePart}`;
 
-  overlayBottom.style.display = 'flex';
-  if (document.querySelector('.tab-panel.active').id === 'panelMine') {
-    overlayBtn.style.display = 'block';
-  } else {
-    overlayBtn.style.display = 'none';
-  }
+    // 3) Build the overlay
+    currentSrc  = src;
+    currentName = fileName;
+    // clear out any previous <img> or <video> children
+    overlay.querySelectorAll('img, video').forEach(el => el.remove());
 
-  // 4) Push history so ESC/back closes it
-  history.pushState({ view: 'overlay' }, '');
+    // update timestamp in place
+    const tsEl = document.getElementById('timestamp');
+    tsEl.textContent = formatted;
+
+    // append our new media node
+    overlayContent.appendChild(
+      isVideo
+        ? Object.assign(document.createElement('video'), {src, controls:true})
+        : Object.assign(document.createElement('img'),   {src})
+    );
+    overlay.classList.add('visible');
+
+    /* ── fetch + show credit, if any ─────────────────────────────── */
+    creditEl.textContent = '';
+    getCredit(fileName)
+      .then(c => {
+        // if (!c) return;
+        creditEl.textContent = !c || c == '' ? '':`Credit: ${c}`;
+      });
+
+    overlayBottom.style.display = 'flex';
+    if (document.querySelector('.tab-panel.active').id === 'panelMine') {
+      overlayBtn.style.display = 'block';
+    } else {
+      overlayBtn.style.display = 'none';
+    }
+
+    // 4) Push history so ESC/back closes it
+    history.pushState({ view: 'overlay' }, '');
+
+  }, 0);
+
 }
 
 function closeOverlay(){
@@ -1411,7 +1417,11 @@ btnDelete.onclick = async () => {
   btnDelete.disabled = false;
 };
 
-overlayBtn.addEventListener('pointerdown', async () => {
+overlayBtn.addEventListener('click', async (e) => {
+  e.preventDefault(); 
+  e.stopPropagation(); 
+  e.stopImmediatePropagation();
+
   // The overlay button is only visible in the “My Uploads” tab and it deletes the file
   if (!currentSrc || !currentName) return;
   if (!confirm(`Are you sure you want to delete this file?`)) return;
