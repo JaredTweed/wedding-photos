@@ -340,6 +340,12 @@ button, label,
   overflow: hidden;
   background: rgba(255,255,255,0.8);
   z-index: 100000;
+
+  touch-action: none;           /* block any pan/scroll gesture */
+  overscroll-behavior: none;    /* don’t let any scroll “escape” */
+  -webkit-touch-action: none;
+  touch-action: none;
+  overscroll-behavior: none;
 }
 /* circular throbber */
 .spinner {
