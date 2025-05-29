@@ -14,6 +14,14 @@
   --image-width: 160px; 
 }
 
+/* 1. Disable *any* scroll/overscroll on the root document */
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body{
   -webkit-touch-callout: none; /* iOS Safari: no “Save image” / text menu */
   -webkit-user-select: none;   /* iOS Safari: no text selection */
@@ -50,7 +58,9 @@ body * {-webkit-tap-highlight-color: transparent;}
   /* align-items: center; justify-content: center; */
   width: 100vw; height: 100vh; overflow: hidden;
   padding: 0; box-sizing: border-box;
-  position: absolute; top:0; left: 0;}
+  position: absolute; top:0; left: 0;
+  overscroll-behavior: contain;
+}
 
 header{flex:0;font-size:var(--font-size);
   width:calc(100% - 16px);padding: 10px 8px 7px 8px;
@@ -58,7 +68,6 @@ header{flex:0;font-size:var(--font-size);
   flex-direction: column; gap: 5px;z-index: 1000;
   border-radius: 0 0 8px 8px;
   background-color: #fff;
-  /* box-shadow: 0 0px 5px 5px #fff; */
 }
 #headerControls{display:flex;flex-direction: row;gap:6px;
   align-items: center;justify-content: center;}
@@ -159,7 +168,9 @@ header{flex:0;font-size:var(--font-size);
   overflow-y: hidden;
   align-content: start;
   flex: 1;
+  height: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 @media (max-width: 710px) { /*var(--image-width) * 4 + 70px*/
   .tab-panel.active {
@@ -167,10 +178,11 @@ header{flex:0;font-size:var(--font-size);
   }
 }
 .empty-message {
-  text-align: center; left: 50%; top: 0; 
+  text-align: center; left: 50%; top: 110px; 
   transform: translateX(-50%); width: 100%;
   font-size: 1.2rem;
   position: absolute;
+  color: black;
 }
 
 
