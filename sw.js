@@ -1,8 +1,12 @@
 const CACHE_NAME = 'wedding-gallery-v1';
 const ASSETS = [
-  '/', '/index.html', '/manifest.json',
-  '/icons/image.png',
+  '/wedding-photos/',
+  '/wedding-photos/index.html',
+  '/wedding-photos/manifest.json',
+  '/wedding-photos/icons/icon-192.png',
+  '/wedding-photos/icons/icon-512.png'
 ];
+
 
 self.addEventListener('install', evt => {
   evt.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));

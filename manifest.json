@@ -2,16 +2,24 @@
   "name": "Maiya & Jared 2025",
   "short_name": "WeddingGallery",
   "description": "Browse and upload our wedding photos & videos",
-  "start_url": "/?utm_source=homescreen",
-  "scope": "/",
+  "start_url": "/wedding-photos/?utm_source=homescreen",
+  "scope": "/wedding-photos/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#60a060",
   "icons": [
-    {
-      "src": "/icons/image.png",
-      "sizes": "256x256",
-      "type": "image/png"
-    }
-  ]
+  {
+    "src": "/icons/icon-192.png",
+    "sizes": "192x192",
+    "type": "image/png",
+    "purpose": "any maskable"
+  },
+  {
+    "src": "/icons/icon-512.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "any maskable"
+  }
+]
+
 }
