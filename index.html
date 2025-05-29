@@ -619,6 +619,9 @@ const creditEl      = document.querySelector('.credit');
 
 settingsBtn.addEventListener('pointerdown', async (e) => {
   e.preventDefault(); 
+  e.stopPropagation(); 
+  e.stopImmediatePropagation();
+  
   if (creditName == null) {creditName = "";}
   const response = prompt(
     "Please enter the name to display for photo credits.\nLeave blank if you do not wish to add a credit:",
