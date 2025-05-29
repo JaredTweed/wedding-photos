@@ -5,7 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Maiya & Jared 2025</title>
 <link rel="icon" href="./icons/image.ico" type="image/x-icon">
-<!-- <link rel="shortcut icon" href="favicon.ico" type="image/x-icon"> -->
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#60a060">
+<link rel="apple-touch-icon" href="/icons/image.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
 <style>
 :root {
   --primary-color:   hsl(96 23.7% 54%);
@@ -1520,4 +1526,11 @@ window.addEventListener('keydown', e => {
 
 </script>
 </body>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(console.error);
+  }
+</script>
 </html>
