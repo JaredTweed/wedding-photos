@@ -19,7 +19,7 @@ html, body {
   height: 100%;
   margin: 0;
   overflow: hidden;
-  overscroll-behavior: none;
+  overscroll-behavior: contain; /* prevent scroll “escaping” */
 }
 
 body{
@@ -27,7 +27,6 @@ body{
   -webkit-user-select: none;   /* iOS Safari: no text selection */
   -ms-user-select: none;       /* older IE/Edge */
   user-select: none;           /* everything else */
-
 
   /* turn off the blue tap highlight on iOS/Android */
   -webkit-tap-highlight-color: transparent;
@@ -153,7 +152,7 @@ header{flex:0;font-size:var(--font-size);
 
 /* tab panels */
 #panelContainer{
-  position: absolute; overflow-y: scroll; width: 100%; height: 100%;
+  position: relative; overflow-y: auto; width: 100%; height: 100%;
   padding:0;margin:0; box-sizing: border-box;
 }
 .tab-panel{display:none}
@@ -164,11 +163,11 @@ header{flex:0;font-size:var(--font-size);
   display:grid;
   grid-template-columns:repeat(4,minmax(var(--image-width),1fr));
                   gap:0.75rem;
-  padding: 110px 8px 0 8px;width: calc(100% - 16px);
+  padding: 5px 8px 0 8px;width: calc(100% - 16px);
   overflow-y: hidden;
   align-content: start;
   flex: 1;
-  height: 100%;
+  height: calc(100% - 5px); /* 5px from the padding */
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -178,7 +177,7 @@ header{flex:0;font-size:var(--font-size);
   }
 }
 .empty-message {
-  text-align: center; left: 50%; top: 110px; 
+  text-align: center; left: 50%; top: 0px; 
   transform: translateX(-50%); width: 100%;
   font-size: 1.2rem;
   position: absolute;
