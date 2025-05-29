@@ -617,7 +617,8 @@ const icon          = document.getElementById('settingsIcon');
 const overlayBottom = document.getElementById('overlayBottom');
 const creditEl      = document.querySelector('.credit');
 
-settingsBtn.onclick = async () => {
+settingsBtn.addEventListener('pointerdown', async (e) => {
+  e.preventDefault(); 
   if (creditName == null) {creditName = "";}
   const response = prompt(
     "Please enter the name to display for photo credits.\nLeave blank if you do not wish to add a credit:",
@@ -625,10 +626,7 @@ settingsBtn.onclick = async () => {
   );
   
   // If the user cancels the prompt, response is null – do nothing.
-  if (response === null) {
-    console.log("User cancelled the prompt.");
-    return;
-  }
+  if (response === null) {return;}
   
   icon.classList.add("spinning");
 
@@ -638,13 +636,12 @@ settingsBtn.onclick = async () => {
   creditName = clean;
   localStorage.setItem("creditName", creditName || "");
 
-  console.log("New credit name set:", `'${creditName}'`);
   // Update the credit for all existing uploads
   await Promise.all(
     getUploads().map(k => putCredit(k, creditName))
   );
   icon.classList.remove("spinning");
-};
+});
 
 tabAll.addEventListener('pointerdown', () => switchTab(true));
 tabMine.addEventListener('pointerdown', () => switchTab(false));
