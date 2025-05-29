@@ -47,16 +47,19 @@ body * {-webkit-tap-highlight-color: transparent;}
 
 
 #container{display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  /* align-items: center; justify-content: center; */
   width: 100vw; height: 100vh; overflow: hidden;
-  padding: 10px 0 0 0; box-sizing: border-box;
-  position: absolute; top:0; }
+  padding: 0; box-sizing: border-box;
+  position: absolute; top:0; left: 0;}
 
-header{flex:0;font-size:var(--font-size);width:calc(100% - 16px);
-  padding: 0 0 7px 0;
+header{flex:0;font-size:var(--font-size);
+  width:calc(100% - 16px);padding: 10px 8px 7px 8px;
   position: sticky;top: 0;display:flex;
   flex-direction: column; gap: 5px;z-index: 1000;
-  border-radius: 8px;}
+  border-radius: 8px;
+  background-color: #fff;
+  /* box-shadow: 0 0px 5px 5px #fff; */
+}
 #headerControls{display:flex;flex-direction: row;gap:6px;
   align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
@@ -140,17 +143,23 @@ header{flex:0;font-size:var(--font-size);width:calc(100% - 16px);
 
 
 /* tab panels */
+#panelContainer{
+  position: absolute; overflow-y: scroll; width: 100%; height: 100%;
+  padding:0;margin:0; box-sizing: border-box;
+}
 .tab-panel{display:none}
-.tab-panel.active{position: relative;display:grid;
+.tab-panel.active{
+  /* position: relative; */ position: absolute; top: 0; left: 0;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
+  display:grid;
   grid-template-columns:repeat(4,minmax(var(--image-width),1fr));
                   gap:0.75rem;
-  padding: 5px 8px 0 8px;width: calc(100% - 16px);
+  padding: 110px 8px 0 8px;width: calc(100% - 16px);
   overflow-y: hidden;
   align-content: start;
   flex: 1;
-    overflow-y: auto;
+  overflow-y: auto;
 }
 @media (max-width: 710px) { /*var(--image-width) * 4 + 70px*/
   .tab-panel.active {
@@ -387,8 +396,10 @@ button, label,
     </div>
   </header>
 
-  <section id="panelMine" class="tab-panel active"></section>
-  <section id="panelAll"  class="tab-panel"></section>
+  <div id="panelContainer">
+    <section id="panelMine" class="tab-panel active"></section>
+    <section id="panelAll"  class="tab-panel"></section>
+  </div>
 </div>
 
 <div id="selectionToolbar">
