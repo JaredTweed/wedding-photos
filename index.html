@@ -848,6 +848,40 @@ window.addEventListener('keydown', e => {
 });
 
 
+/* ------------------------------------------------------------------
+ *  Stop header buttons from receiving the stray click
+ * ------------------------------------------------------------------ */
+let swallowNextClick = false;
+
+overlay.addEventListener('pointerup', e => {
+  if (uploading) return;
+
+  if (e.target === overlay) {
+    /* ① kill the click that this pointerup will generate */
+    e.preventDefault();          // no default click
+    e.stopPropagation();         // no bubbling pointerup
+    swallowNextClick = true;     // flag the upcoming click
+
+    /* ② hide the overlay AFTER the click cycle finishes */
+    setTimeout(closeOverlay, 0); // same-tick, but after click
+  }
+});
+
+/* ③ capture-phase listener that eats a single click */
+window.addEventListener(
+  'click',
+  e => {
+    if (swallowNextClick) {
+      e.stopPropagation();
+      e.preventDefault();
+      swallowNextClick = false;
+    }
+  },
+  true   // capture!
+);
+
+
+
 // ── gallery render (newest→oldest) ───────────────────────────────────────
 // ── lazy-load observer ─────────────────────────────────────────────────────
 // 👉 replace your existing observer with this
