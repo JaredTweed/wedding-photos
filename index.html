@@ -1257,21 +1257,37 @@ async function buildFigure(Key, takenDate, mySet) {
 
     // --- LONG-PRESS SELECTION HANDLERS ---
     let longPress = false;
+    let moved     = false;   // ← new
+    let startX, startY;
     let lpTimer;
 
     // on touch/pen/mouse down, start the 500ms timer
     fig.addEventListener('pointerdown', e => {
+      startX = e.clientX;         // remember where the gesture began
+      startY = e.clientY;
+      moved  = false;
       lpTimer = setTimeout(() => {
         longPress = true;       
         if (enableSelection) {toggleSelection(Key);}
       }, 450);
     });
 
+    // any significant move cancels “tap”
+    fig.addEventListener('pointermove', e => {
+      if (moved) return;
+      const dx = Math.abs(e.clientX - startX);
+      const dy = Math.abs(e.clientY - startY);
+      if (dx > 8 || dy > 8) {       // 8 px ≈ one finger wiggle
+        moved = true;
+        clearTimeout(lpTimer);      // stop long-press
+      }
+    });
+
     // on any exit or up, clear the timer
     fig.addEventListener('pointerup', e => {
       // console.log("pointerup", e);
       clearTimeout(lpTimer);
-      if (longPress) {
+      if (longPress || moved) {
         longPress = false;
       } else if (e.target.className === "select-box" || selectedKeys.size > 0) {
         if (enableSelection) {toggleSelection(Key);}
