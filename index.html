@@ -50,12 +50,13 @@ body * {-webkit-tap-highlight-color: transparent;}
   align-items: center; justify-content: center;
   width: 100vw; height: 100vh; overflow: hidden;
   padding: 10px 0 0 0; box-sizing: border-box;
-  position: absolute;}
+  position: absolute; }
 
 header{flex:0;font-size:var(--font-size);width:calc(100% - 16px);
+  padding: 0 0 7px 0;
   position: sticky;top: 0;display:flex;
-  flex-direction: column; gap: 5px;z-index: 1000; 
-  background-color: #fff;border-radius: 8px;}
+  flex-direction: column; gap: 5px;z-index: 1000;
+  border-radius: 8px;}
 #headerControls{display:flex;flex-direction: row;gap:6px;
   align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
@@ -101,12 +102,7 @@ header{flex:0;font-size:var(--font-size);width:calc(100% - 16px);
     0 0 1px rgba(0,0,0,0.15),
     0 6px 12px rgba(0,0,0,0.15);
 }
-
-#tabs.tabs > * {
-border-radius: 8px;
-}
-
-/* hide your old borders & backgrounds */
+#tabs.tabs > * {border-radius: 8px;}
 #tabs.tabs .tab-header {
   position: relative;
   z-index: 2;
@@ -118,14 +114,10 @@ border-radius: 8px;
   cursor: pointer;
   transition: color .15s ease-in;
 }
-
-/* active tab label color */
 #tabs.tabs .tab-header.active {
   color: var(--primary-color);
   font-weight: 600;
 }
-
-/* the moving “glider” */
 #tabs.tabs .glider {
   position: absolute;
   top: 0; bottom: 0;
@@ -135,11 +127,8 @@ border-radius: 8px;
   z-index: 1;
   transition: transform .5s ease-out;
 }
-
-/* glider position when each tab is active */
 #tabAll.active  ~ .glider { transform: translateX(100%); }
 #tabMine.active ~ .glider { transform: translateX(0%); }
-
 .tab-header{
     /* turn off the blue tap highlight on iOS/Android */
   -webkit-tap-highlight-color: transparent;
@@ -148,16 +137,18 @@ border-radius: 8px;
             background:#eee;cursor:pointer;border-radius:6px 6px 0 0}
 .tab-header.active{background:#fff;font-weight:600}
 
+
+
 /* tab panels */
 .tab-panel{display:none}
 .tab-panel.active{position: relative;display:grid;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
   grid-template-columns:repeat(4,minmax(var(--image-width),1fr));
-                  gap:0.75rem;padding: 10px 0 0 0;width: calc(100% - 16px);
+                  gap:0.75rem;
+  padding: 5px 8px 0 8px;width: calc(100% - 16px);
   overflow-y: hidden;
   align-content: start;
-  /* height: calc(100vh - 188px); */
   flex: 1;
     overflow-y: auto;
 }
@@ -617,11 +608,11 @@ const icon          = document.getElementById('settingsIcon');
 const overlayBottom = document.getElementById('overlayBottom');
 const creditEl      = document.querySelector('.credit');
 
-settingsBtn.addEventListener('pointerdown', async (e) => {
+settingsBtn.addEventListener('click', async (e) => {
   e.preventDefault(); 
   e.stopPropagation(); 
   e.stopImmediatePropagation();
-  
+
   if (creditName == null) {creditName = "";}
   const response = prompt(
     "Please enter the name to display for photo credits.\nLeave blank if you do not wish to add a credit:",
@@ -1448,25 +1439,6 @@ overlayBtn.addEventListener('pointerdown', async () => {
     closeOverlay();
   }
 });
-
-async function shareOrOpen(zipBlob, filename) {
-  const file = new File([zipBlob], filename, { type: 'application/zip' });
-
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({
-      title: 'Wedding photos',
-      files: [file],
-    });                    // opens “Save to Files”, AirDrop, etc.
-  } else {
-    // fallback → open in a new tab as today
-    const url = URL.createObjectURL(zipBlob);
-    window.open(url, '_blank');
-    if (isiOS) {
-      alert('After the file opens, tap Share ▸ “Save to Files” to keep it.');
-    }
-  }
-}
-
 
 function updatePanelMessages() {
   function updateEmptyMessage(panel) {
