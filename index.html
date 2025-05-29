@@ -308,7 +308,10 @@ button, label,
 #overlayContent{display: flex; width:100%; height:100%;align-items:center;
           justify-content:center;pointer-events: none;}
 #timestamp{position:absolute;top:1rem;left:50%;transform:translateX(-50%);
-           color:#fff;font-size:1.1rem;font-weight:600; text-align: center;z-index:10001; text-shadow: 1px 1px 5px black;}
+           color:#fff;font-size:1.1rem;font-weight:600; 
+           text-align: center;z-index:10001; text-shadow: 1px 1px 5px black;
+            pointer-events: none;
+}
 #overlayBottom{display: flex; flex-direction: column;  position:absolute; bottom:0.6rem; left:50%;
   margin: 0;
   transform:translateX(-50%); width: 100%; z-index: 12010; gap: 3px;
@@ -835,13 +838,13 @@ function closeOverlay(){
 }
 // listen for pointerdown on the overlay background:
 overlay.onclick = null;
-overlay.addEventListener('pointerup', e => {
-  if (uploading) return;
-  if (e.target === overlay) {
-    e.stopPropagation();
-    closeOverlay();
-  }
-});
+// overlay.addEventListener('pointerup', e => {
+//   if (uploading) return;
+//   if (e.target === overlay) {
+//     e.stopPropagation();
+//     closeOverlay();
+//   }
+// });
 window.addEventListener('keydown', e => {
   if (uploading && e.key === 'Escape') return;
   if (e.key === 'Escape') closeOverlay();
