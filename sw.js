@@ -1,14 +1,24 @@
 const CACHE_NAME = 'wedding-gallery-v1';
+// sw.js (same folder as index.html)
 const ASSETS = [
-  '/wedding-photos/',
-  '/wedding-photos/index.html',
-  '/wedding-photos/manifest.json',
-  '/wedding-photos/icons/icon-192.png',
-  '/wedding-photos/icons/icon-512.png'
+  './',                 // → /wedding-photos/
+  './index.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', evt => {
-  evt.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
+  evt.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache =>
+        cache.addAll(ASSETS.map(u => new Request(u, {cache: 'reload'})))
+      )
+      .catch(err => {
+        console.error('SW caching failed:', err);
+        // Skip caching but still install
+      })
+  );
   self.skipWaiting();
 });
 
