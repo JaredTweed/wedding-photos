@@ -14,14 +14,6 @@
   --image-width: 160px; 
 }
 
-/* 1. Disable *any* scroll/overscroll on the root document */
-html, body {
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  overscroll-behavior: contain; /* prevent scroll “escaping” */
-}
-
 body{
   -webkit-touch-callout: none; /* iOS Safari: no “Save image” / text menu */
   -webkit-user-select: none;   /* iOS Safari: no text selection */
@@ -67,6 +59,8 @@ header{flex:0;font-size:var(--font-size);
   flex-direction: column; gap: 5px;z-index: 1000;
   border-radius: 0 0 8px 8px;
   background-color: #fff;
+
+  touch-action: pan-x; /* or `none` to disable all native gestures */
 }
 #headerControls{display:flex;flex-direction: row;gap:6px;
   align-items: center;justify-content: center;}
@@ -1418,7 +1412,10 @@ btnDelete.onclick = async () => {
   // perform deletes in parallel
   await Promise.all(
     Array.from(selectedKeys).map(key =>
-      s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
+      // delete the main file
+      s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })),
+      // delete the metadata if it exists
+      s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${key}.json` }))
     )
   );
 
@@ -1451,10 +1448,12 @@ overlayBtn.addEventListener('click', async (e) => {
   overlayBtn.textContent = "Deleting…";
   try {
     // delete from S3
-    await s3.send(new DeleteObjectCommand({
-      Bucket: BUCKET,
-      Key: currentSrc.split('/').pop()  // Key is just the filename
-    }));
+    const key = currentName; // your filename
+    console.log("Deleting", key);
+    await Promise.all([
+      s3.send(new DeleteObjectCommand({ Bucket: BUCKET,        Key: key })),
+      s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET,   Key: `${key}.json` }))
+    ]);
 
     // remove from localStorage
     const uploads = getUploads();
