@@ -7,7 +7,6 @@ const ASSETS = [
   '/wedding-photos/icons/icon-512.png'
 ];
 
-
 self.addEventListener('install', evt => {
   evt.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
