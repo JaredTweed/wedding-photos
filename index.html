@@ -25,6 +25,7 @@ body{
   -webkit-tap-highlight-color: transparent;
   font-family:system-ui;margin:0;background:#fafafa;color:#222;
 position: relative;}
+body * {-webkit-tap-highlight-color: transparent;}
 
 /* floating date indicator */
 #dateIndicator {
@@ -44,10 +45,19 @@ position: relative;}
   text-align: center;
 }
 
-body * {-webkit-tap-highlight-color: transparent;}
-header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;top: 0;display:flex;
-  flex-direction: column; gap: 5px;z-index: 1000; background-color: #fff;}
-#headerControls{display:flex;flex-direction: row;align-items: center;justify-content: center;}
+
+#container{display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  width: 100vw; height: 100vh; overflow: hidden;
+  padding: 10px 0 0 0; box-sizing: border-box;
+  position: absolute;}
+
+header{flex:0;font-size:var(--font-size);width:calc(100% - 16px);
+  position: sticky;top: 0;display:flex;
+  flex-direction: column; gap: 5px;z-index: 1000; 
+  background-color: #fff;border-radius: 8px;}
+#headerControls{display:flex;flex-direction: row;gap:6px;
+  align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
     0 0 1px rgba(0,0,0,0.15),
     0 6px 12px rgba(0,0,0,0.15); display:block;
@@ -56,15 +66,14 @@ header{font-size:var(--font-size);padding:10px 10px 10px 10px;position: sticky;t
     border-radius: 8px; border: none;font-weight: 700; text-align: center;}
 #addBtn:active{box-sizing: border-box;
     transform: translateY(2px);}
-
-/* add just below #addBtn */
 #settingsBtn{
+  flex: 0;
   box-shadow: 0 0 1px rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.15);
   background:#fff;                 /* white pill */
   color:#333;
-  margin:0 0 0 6px;                /* little gap from Add */
+  margin:0;                /* little gap from Add */
   /* padding:.5rem .9rem; */
-  height: 40px; /* 1.2rem total height */
+  height: 100%; /* 1.2rem total height */
   border-radius:8px;
   border:none;
   font-size:1.1rem;
@@ -138,25 +147,34 @@ border-radius: 8px;
   padding:.4rem 1rem;border:1px solid #ccc;border-bottom:none;
             background:#eee;cursor:pointer;border-radius:6px 6px 0 0}
 .tab-header.active{background:#fff;font-weight:600}
+
+/* tab panels */
 .tab-panel{display:none}
 .tab-panel.active{position: relative;display:grid;
   /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
   grid-template-columns:repeat(4,minmax(var(--image-width),1fr));
-                  gap:0.75rem;padding:0 10px 80px;
-  overflow-y: auto;
+                  gap:0.75rem;padding:10px 8px 0 8px;
+  overflow-y: hidden;
   align-content: start;
-  height: calc(100vh - 188px);
+  /* height: calc(100vh - 188px); */
+  flex: 1;
     overflow-y: auto;
 }
-
-
-/* on small viewports, fall back to fewer columns */
 @media (max-width: 710px) { /*var(--image-width) * 4 + 70px*/
   .tab-panel.active {
     grid-template-columns: repeat(auto-fill, minmax(var(--image-width), 1fr));
   }
 }
+.empty-message {
+  text-align: center; left: 50%; top: 0; 
+  transform: translateX(-50%); width: 100%;
+  font-size: 1.2rem;
+  position: absolute;
+}
+
+
+/* figures in the gallery */
 figure{margin:0;position:relative;
   -webkit-touch-callout: none;   /* iOS Safari */
   touch-action: manipulation;    /* general pointer */}
@@ -169,8 +187,15 @@ img,video{
 box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);width:100%;
 aspect-ratio:1/1;object-fit:cover;border-radius:10px;
 cursor:pointer;}
-
-/* the white “checkbox” */
+figure.selected .select-box {
+  background: #fff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+}
+figure.selected img:not(.video-icon),
+figure.selected video {
+  width: calc(100% - 8px);
+  border: 4px solid black;
+}
 .select-box {
   -webkit-touch-callout: none; /* iOS Safari: no “Save image” / text menu */
   -webkit-user-select: none;   /* iOS Safari: no text selection */
@@ -187,24 +212,20 @@ cursor:pointer;}
   z-index: 3;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
-
-/* when selected, fill it */
-figure.selected .select-box {
-  background: #fff;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
-}
-figure.selected img:not(.video-icon),
-figure.selected video {
-  width: calc(100% - 8px);
-  border: 4px solid black;
-}
-
-.empty-message {
-  text-align: center; left: 50%; top: 0; 
-  transform: translateX(-50%); width: 100%;
-  font-size: 1.2rem;
+.video-icon {
   position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 28px;      /* scale down the 48×48 PNG */
+  height: 28px;
+  pointer-events: none;
+  z-index: 2;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
 }
+
+
+
 
 /* toolbar at bottom */
 #selectionToolbar {
@@ -222,7 +243,18 @@ figure.selected video {
   box-sizing: border-box;
   gap: 0.5rem;
 }
-
+#selectionToolbar button {
+  padding: 0.6rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+#deleteSelected {
+  flex: 1;                   /* only as big as its content */
+  background: #f44336;
+  color: #fff;
+}
 #deselectAll {
   font-size: 1.2rem;
   display: flex;
@@ -235,31 +267,10 @@ figure.selected video {
   /* border: 1px solid black; */
 }
 
-#selectionToolbar button {
-  padding: 0.6rem 0.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-}
-#downloadSelected {
-  flex: 1;                      /* take up all available space */
-  /* margin-right: 2.5rem; */
-  background: var(--primary-color);
-  color: #fff;
-}
-
-#deleteSelected {
-  flex: 1;                   /* only as big as its content */
-  background: #f44336;
-  color: #fff;
-}
-
 /* disable text selection on all your tappable controls */
 button, label,
 .tab-header,
 #loadMoreBtn,
-#downloadSelected,
 #deleteSelected,
 #addBtn {
   /* standard */
@@ -271,19 +282,9 @@ button, label,
 }
 
 
-.del{position:absolute;top:4px;right:4px;border-radius:4px;font-size:.75rem;cursor:pointer}
-.video-icon {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 28px;      /* scale down the 48×48 PNG */
-  height: 28px;
-  pointer-events: none;
-  z-index: 2;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-}
 
+
+/* Overlay */
 #overlay{position:fixed;inset:0;display:none;align-items:center;
           justify-content:center;
          background:rgba(0,0,0,.8);z-index:10000}
@@ -295,16 +296,13 @@ button, label,
   top: 49.5%;
   transform: translateY(-50%);
   aspect-ratio: auto;
-/*  object-fit: contain;*/
   width: fit-content;
   height: fit-content;
   border-radius: 8px;
   cursor: default;
   background-color: rgba(0, 0, 0, 0.2);
-  pointer-events: auto; 
-  /* z-index: 10000000; */
+  pointer-events: auto;
 }
-
 #overlayContent{display: flex; width:100%; height:100%;align-items:center;
           justify-content:center;pointer-events: none;}
 #timestamp{position:absolute;top:1rem;left:50%;transform:translateX(-50%);
@@ -329,7 +327,8 @@ button, label,
   text-align: center;
   pointer-events: none;
 }
-            
+
+
 /* full-screen loader */
 #loader {
   position: fixed;
@@ -357,70 +356,51 @@ button, label,
 </style>
 </head>
 <body>
+
 <div id="loader">
   <div class="spinner"></div>
 </div>
 <div id="dateIndicator"></div>
 
-<header>
-  <div id="headerControls">
-    <label id="addBtn" for="filePicker">Add Photos / Videos</label>
-    <button id="settingsBtn" title="Photo-credit settings">
-      <img id="settingsIcon" src="./icons/settings.svg" alt="" style="width: 2rem; height: 2rem; box-shadow:none; vertical-align: middle;">
-    </button>
-  </div>
-  <input
-    id="filePicker"
-    type="file"
-    multiple
-    accept="image/*,video/*"
-    style="width:0; height:0; opacity:0; overflow:hidden;display: none;">
-  
-   <div id="tabs" class="tabs">
-    <div id="tabMine" class="tab-header active">My&nbsp;Uploads</div>
-    <div id="tabAll"  class="tab-header">All&nbsp;Uploads</div>
-    <span class="glider"></span>
-  </div>
-</header>
+<div id="container">
+  <header>
+    <div id="headerControls">
+      <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+      <button id="settingsBtn" title="Photo-credit settings">
+        <img id="settingsIcon" src="./icons/settings.svg" alt="" style="width: 2rem; height: 2rem; box-shadow:none; vertical-align: middle;">
+      </button>
+    </div>
+    <input
+      id="filePicker"
+      type="file"
+      multiple
+      accept="image/*,video/*"
+      style="width:0; height:0; opacity:0; overflow:hidden;display: none;">
+    
+    <div id="tabs" class="tabs">
+      <div id="tabMine" class="tab-header active">My&nbsp;Uploads</div>
+      <div id="tabAll"  class="tab-header">All&nbsp;Uploads</div>
+      <span class="glider"></span>
+    </div>
+  </header>
 
-
-
-
-
-
-
-
-
-
-
-
-
-<section id="panelMine" class="tab-panel active"></section>
-<section id="panelAll"  class="tab-panel"></section>
-
-<!-- <footer id="loadMoreContainer" style="text-align:center; padding:1rem;">
-  <button id="loadMoreBtn" style="background-color: var(--primary-color);color: white;margin:0;padding:0.5rem 1rem;cursor:pointer;font-size:1rem; border-radius: 8px; border: none;font-weight: 700;">Load more</button>
-</footer> -->
+  <section id="panelMine" class="tab-panel active"></section>
+  <section id="panelAll"  class="tab-panel"></section>
+</div>
 
 <div id="selectionToolbar">
   <button id="deleteSelected">Delete</button>
-  <!-- <button id="downloadSelected">Download</button> -->
   <span id="deselectAll">&times;</span>
 </div>
 
 <div id="overlay">
   <div id="timestamp"></div>
-
-  <!-- everything we wipe/repopulate lives in here -->
-  <div id="overlayContent"></div>
-
+  <div id="overlayContent"></div><!-- everything we wipe/repopulate lives in here -->
   <div id="overlayBottom" style="display:none">
     <button id="overlayBtn">Delete</button>
     <div class="credit"></div>
   </div>
 </div>
-
-
 
 <script type="module">
 // ── AWS config ─────────────────────────────────────────────────────────────
@@ -515,7 +495,6 @@ window.addEventListener('popstate', (e) => {
 // set up the selection toolbar
 const selectedKeys = new Set();
 const toolbar       = document.getElementById('selectionToolbar');
-const btnDownload   = document.getElementById('downloadSelected');
 const btnDelete     = document.getElementById('deleteSelected');
 
 const btnDeselect = document.getElementById('deselectAll');
@@ -533,7 +512,6 @@ function updateToolbar() {
     return;
   }
   toolbar.style.display = 'flex';
-  // btnDownload.textContent = `Download (${count})`;
 
   // only show Delete if *all* selectedKeys are in your own set
   const mineSet = mine();
