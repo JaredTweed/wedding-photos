@@ -1371,6 +1371,22 @@ async function buildFigure(Key, takenDate, mySet) {
         clearTimeout(lpTimer);
       })
     );
+
+    /* ----------------------------------------------------------------
+     *  Fallback for browsers that never fire pointer events (iOS ≤ 12,
+     *  some in-app WKWebViews).  Runs only when PointerEvent is absent.
+     * ---------------------------------------------------------------- */
+    if (!window.PointerEvent) {
+      fig.addEventListener('click', e => {
+        if (enableSelection && (e.target.classList.contains('select-box')
+                                || selectedKeys.size)) {
+          toggleSelection(Key);                // normal selection toggle
+          return;
+        }
+        // otherwise open the overlay (same as the pointerup branch)
+        openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
+      }, { passive: true });
+    }
   }
 
   // always add to “All”
