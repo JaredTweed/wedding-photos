@@ -722,6 +722,7 @@ picker.onchange = async ev => {
 
   // start the overlay
   uploading = true;
+  ensureOverlayContent(); 
   overlayContent.innerHTML = `
     <div style="color:white; …">Uploading 0 / ${files.length}…</div>
   `;
@@ -761,6 +762,7 @@ picker.onchange = async ev => {
     prog.textContent = `Uploading ${i+1} / ${files.length}…`;
   }
 
+  ensureOverlayContent(); 
   overlayContent.innerHTML = `<div style="color: white; font-size: 1.2rem;
                                 text-align: center; padding: 1rem;">
                                  Uploaded ${files.length} / ${files.length}<br>
@@ -784,6 +786,7 @@ function openOverlay(src, isVideo, _tsReadable, fileName) {
   swallowNextClick = true; 
   setTimeout(() => {
     dateIndicator.style.opacity = '0';
+    ensureOverlayContent(); 
     overlayContent.innerHTML = "";
     
     // 1) Find the <figure> whose lazy-loaded img/video src matches
@@ -868,6 +871,7 @@ function closeOverlay(){
 
   overlay.classList.remove('visible');
   overlayBottom.style.display = 'none';
+  ensureOverlayContent();
   overlayContent.innerHTML = ""; 
 }
 // listen for pointerdown on the overlay background:
@@ -883,6 +887,22 @@ window.addEventListener('keydown', e => {
   if (uploading && e.key === 'Escape') return;
   if (e.key === 'Escape') closeOverlay();
 });
+
+function ensureOverlayContent() {
+  if (overlayContent && overlay.contains(overlayContent)) return;
+
+  // either first run or someone wiped it out — recreate it
+  overlayContent = document.createElement('div');
+  overlayContent.id = 'overlayContent';
+  overlayContent.style.display = 'flex';          // keep old flex styles
+  overlayContent.style.width  = '100%';
+  overlayContent.style.height = '100%';
+  overlayContent.style.alignItems = 'center';
+  overlayContent.style.justifyContent = 'center';
+  overlayContent.style.pointerEvents = 'none';
+  overlay.insertBefore(overlayContent, overlayBottom); // before the bottom bar
+}
+
 
 
 /* ------------------------------------------------------------------
