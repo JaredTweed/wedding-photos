@@ -75,20 +75,6 @@ header{flex:0;font-size:var(--font-size);
   /* touch-action: none; */
 }
 
-/* --- iOS safe-area / notch fix ----------------------------------- */
-header{
-  /* Push the sticky header down so it clears the status bar         */
-  top: constant(safe-area-inset-top, 0px);
-  top: env(safe-area-inset-top, 0px);
-
-  /* Keep the old visual padding: add the inset on top of it         */
-  padding-top: calc(10px + constant(safe-area-inset-top, 0px));
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-
-  /* Optional: if you want the header   pill   to stay full-width    */
-  width: calc(100% - 16px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));
-}
-
 #headerControls{display:flex;flex-direction: row;gap:6px;
   align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
