@@ -74,6 +74,21 @@ header{flex:0;font-size:var(--font-size);
 
   /* touch-action: none; */
 }
+
+/* --- iOS safe-area / notch fix ----------------------------------- */
+header{
+  /* Push the sticky header down so it clears the status bar         */
+  top: constant(safe-area-inset-top, 0px);
+  top: env(safe-area-inset-top, 0px);
+
+  /* Keep the old visual padding: add the inset on top of it         */
+  padding-top: calc(10px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+
+  /* Optional: if you want the header   pill   to stay full-width    */
+  width: calc(100% - 16px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));
+}
+
 #headerControls{display:flex;flex-direction: row;gap:6px;
   align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
@@ -1413,41 +1428,47 @@ render();
 
 // 2) Delete Selected
 btnDelete.onclick = async () => {
-  btnDelete.textContent = "Deleting...";
-  btnDelete.disabled = true;
+  btnDelete.textContent = "Deleting…";
+  btnDelete.disabled    = true;
 
-  const count = selectedKeys.size;
-  if (!confirm(`Are you sure you want to delete ${count} file${count>1?'s':''}?`)) {
-    btnDelete.disabled = false;
-    btnDelete.textContent = `Delete (${selectedKeys.size})`;
-    return;
-  }
-  // perform deletes in parallel
-  await Promise.all(
-    Array.from(selectedKeys).map(key =>
-      // delete the main file
-      s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })),
-      // delete the metadata if it exists
-      s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${key}.json` }))
-    )
-  );
+  const keys  = Array.from(selectedKeys);          // ← all the keys up front
+  const count = keys.length;
+  if (!count) return reset();
 
-  // remove the nodes
-  for (const key of Array.from(selectedKeys)) {
-    document
-      .querySelectorAll(`figure[data-key="${key}"]`)
-      .forEach(fig => fig.remove());
+  if (!confirm(`Are you sure you want to delete ${count} file${count > 1 ? "s" : ""}?`)) {
+    return reset();
   }
-  selectedKeys.clear();
+
+  /* -----------------------------------------------------------------
+   * Build one flat array of promises.
+   * Each arrow callback receives its own `k`, so the template literal
+   * `${k}.json` is always defined.
+   * ----------------------------------------------------------------- */
+  const tasks = keys.flatMap(k => [
+    s3.send(new DeleteObjectCommand({ Bucket: BUCKET,     Key: k          })), // main file
+    s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${k}.json` })) // credit JSON
+  ]);
+
+  await Promise.allSettled(tasks);      // continue even if one key is missing
+
+  /* ------- UI clean-up ------------------------------------------- */
+  for (const k of keys) {
+    document.querySelectorAll(`figure[data-key="${k}"]`).forEach(fig => fig.remove());
+    selectedKeys.delete(k);
+  }
   updateToolbar();
-
-  // ── NEW: re-check for empty panels ─────────────────────────────────
   updatePanelMessages();
-  // ────────────────────────────────────────────────────────────────────
 
-  btnDelete.textContent = `Delete (${selectedKeys.size})`;
-  btnDelete.disabled = false;
+  reset();
+
+  function reset() {
+    btnDelete.disabled  = false;
+    btnDelete.textContent = selectedKeys.size
+      ? `Delete (${selectedKeys.size})`
+      : "Delete";
+  }
 };
+
 
 overlayBtn.addEventListener('click', async (e) => {
   e.preventDefault(); 
