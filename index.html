@@ -10,8 +10,6 @@
 <meta name="theme-color" content="#60a060">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">      <!-- for Chrome/Android -->
-<meta name="apple-mobile-web-app-capable" content="yes"> <!-- for Safari/iOS   -->
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
 :root {
@@ -25,7 +23,7 @@ html, body {
   height: 100%;
   margin: 0;
   top: 0;
-  /* overflow: hidden; */ 
+  /* overflow: hidden; */
 }
 
 body{
@@ -76,20 +74,6 @@ header{flex:0;font-size:var(--font-size);
 
   /* touch-action: none; */
 }
-/* --- iOS safe-area / notch fix ----------------------------------- */
-header{
-  /* Push the sticky header down so it clears the status bar         */
-  top: constant(safe-area-inset-top, 0px);
-  top: env(safe-area-inset-top, 0px);
-
-  /* Keep the old visual padding: add the inset on top of it         */
-  padding-top: calc(10px + constant(safe-area-inset-top, 0px));
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
-
-  /* Optional: if you want the header   pill   to stay full-width    */
-  width: calc(100% - 16px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));
-}
-
 #headerControls{display:flex;flex-direction: row;gap:6px;
   align-items: center;justify-content: center;}
 #addBtn{flex: 1;box-shadow:
@@ -192,7 +176,7 @@ header{
   flex: 1;
   height: calc(100% - 5px); /* 5px from the padding */
   overflow-y: auto;
-  overscroll-behavior: contain;
+  /* overscroll-behavior: contain; */
 }
 @media (max-width: 710px) { /*var(--image-width) * 4 + 70px*/
   .tab-panel.active {
@@ -1371,22 +1355,6 @@ async function buildFigure(Key, takenDate, mySet) {
         clearTimeout(lpTimer);
       })
     );
-
-    /* ----------------------------------------------------------------
-     *  Fallback for browsers that never fire pointer events (iOS ≤ 12,
-     *  some in-app WKWebViews).  Runs only when PointerEvent is absent.
-     * ---------------------------------------------------------------- */
-    if (!window.PointerEvent) {
-      fig.addEventListener('click', e => {
-        if (enableSelection && (e.target.classList.contains('select-box')
-                                || selectedKeys.size)) {
-          toggleSelection(Key);                // normal selection toggle
-          return;
-        }
-        // otherwise open the overlay (same as the pointerup branch)
-        openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
-      }, { passive: true });
-    }
   }
 
   // always add to “All”
