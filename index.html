@@ -384,6 +384,66 @@ button, label,
 }
 
 
+
+
+
+
+
+
+
+
+
+/* -----------------------------------------------------------------
+   UNIVERSAL SAFE-AREA + DYNAMIC VIEWPORT FIXES
+   ----------------------------------------------------------------- */
+
+/* 1. Make the OS safe-area available as CSS custom properties */
+:root{
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+}
+
+/* 2. Always let the page breathe inside the notch / gesture bar    */
+body{
+  /* On very old iOS (11–12) only `constant()` exists – we include it
+     in the calc() so whichever one *works* is used.                 */
+  padding-top:    calc(var(--safe-top) + constant(safe-area-inset-top, 0px));
+  padding-right:  calc(var(--safe-right) + constant(safe-area-inset-right,0px));
+  padding-bottom: calc(var(--safe-bottom)+ constant(safe-area-inset-bottom,0px));
+  padding-left:   calc(var(--safe-left)+ constant(safe-area-inset-left, 0px));
+
+  /* Viewport that follows URL-bar show/hide (-dvh is 2023+ but
+     silently falls back to normal vh elsewhere).                    */
+  min-height: 100dvh;
+}
+
+/* 3. Header: keep the pill *inside* the safe-area, full-width    */
+header{
+  top: var(--safe-top);                                /* below notch */
+  padding-top: calc(10px + var(--safe-top));
+  width: calc(100% - 16px - var(--safe-left) - var(--safe-right));
+}
+
+/* 4. Main app container: fill everything *minus* the safe-areas   */
+#container{
+  height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  width:  calc(100vw  - var(--safe-left) - var(--safe-right));
+}
+
+/* 5. Scrollable panel inside: same trick so bottom row is visible */
+#panelContainer,
+.tab-panel.active{
+  height: calc(100% - 5px - var(--safe-bottom));   /* keep your 5-px pad */
+}
+
+/* 6. Bottom selection toolbar: float above gesture area           */
+#selectionToolbar{
+  padding-bottom: calc(0.5rem + var(--safe-bottom));
+}
+
+
 </style>
 </head>
 <body>
