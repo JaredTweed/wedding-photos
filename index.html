@@ -519,6 +519,9 @@ import { fromCognitoIdentityPool }
 import JSZip from 'https://esm.sh/jszip@3.10.1';
 
 
+let dateIndicatorValue = "9999999999999999999";
+let pendingFigures = [];
+
 let uploading = false;
 const isiOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 
@@ -559,6 +562,7 @@ function onScroll() {
         minute: '2-digit',
         hour12: false
       };
+      dateIndicatorValue = Number(fig.dataset.taken);
       showDateIndicator(ts.toLocaleString('en-US', opts));
       break;
     }
@@ -1257,7 +1261,7 @@ async function appendNew(keys) {
     }
 
     /* build but DON’T append yet */
-    const fig = await buildFigure(Key, takenDate, me);
+    await buildFigure(Key, takenDate, me);
 
     loadedCount++;              // keep paging logic happy
   }
@@ -1334,6 +1338,29 @@ async function getExifDateFromURL(key, fallbackMs) {
 
 async function buildFigure(Key, takenDate, mySet) {
   if (Key.toLowerCase().endsWith('.json')) return null;
+
+  // This makes the images above the screen to be loaded in chunks
+  // If the image is inserted above the screen
+  if(dateIndicatorValue < Number(takenDate.getTime())){
+    pendingFigures.push({Key, takenDate, mySet});
+    
+    // if there is no timeout yet, let the pending figures accumulate for 5 seconds then render them simultaneously
+    if (!pendingFigures.timeout) {
+      pendingFigures.timeout = setTimeout(async () => {
+        // console.log("Inserting pending figures", pendingFigures);
+        for (const {Key, takenDate, mySet} of pendingFigures) {
+          await insertFigure(Key, takenDate, mySet);
+        }
+        pendingFigures = [];
+        pendingFigures.timeout = null; // reset timeout
+      }, 5000); // 5 seconds
+    }
+  } else {
+    // If the image is already on the screen, insert it immediately
+    await insertFigure(Key, takenDate, mySet);
+  }
+
+  async function insertFigure() {
   const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
   const isMine     = mySet.has(Key);
   const isVideo    = /\.(mp4|mov|webm)$/i.test(Key);
@@ -1477,6 +1504,9 @@ async function buildFigure(Key, takenDate, mySet) {
   }
 
   return fig;
+}
+
+
 }
 
 // pull out your selection logic so it’s easy to call from both tap and long-press
