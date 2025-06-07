@@ -7,12 +7,22 @@
   <style>
     body {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
       font-family: system-ui, sans-serif;
       background: #fafafa;
+    }
+    #entryImage {
+      max-width: 90vw;
+      max-height: 80vh;
+      width: auto;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      margin-bottom: 1rem;
     }
     #enterBtn {
       padding: 1rem 2rem;
@@ -29,7 +39,12 @@
   </style>
 </head>
 <body>
-  <button id="enterBtn">Enter Website</button>
+  <!-- Your photo -->
+  <img id="entryImage" src="./icons/original-photo.webp" alt="Maiya & Jared">
+
+  <!-- Enter button -->
+  <button id="enterBtn">View Gallery</button>
+
   <script>
     document.getElementById('enterBtn')
             .addEventListener('click', () => {
