@@ -948,10 +948,10 @@
 
     // ── restore last-active tab on load ──────────────────────────────────────
     const last = localStorage.getItem('activeTab');
-    if (last === 'mine') {
-      switchTab(false);
-    } else {
+    if (last === 'all') {
       switchTab(true);
+    } else {
+      switchTab(false);
     }
 
     // ── upload flow ──────────────────────────────────────────────────────────
@@ -960,6 +960,9 @@
       // console.log("picker.onchange", ev);
       const files = Array.from(ev.target.files);
       if (files.length === 0) return;
+
+      // clear the previous photo’s timestamp
+      tsLabel.textContent = '';
 
       // start the overlay
       uploading = true;
