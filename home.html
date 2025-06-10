@@ -357,7 +357,7 @@ button, label,
 #loader {
   position: fixed;
   inset: 0;
-  display: flex;
+  display: none; 
   align-items: center;
   justify-content: center;
   pointer-events: all;
@@ -1171,46 +1171,54 @@ async function listAllObjects() {
 async function render() {
   loader.style.display = 'flex';      // show spinner
 
-  // 1. cheap list call, but ignore any metadata JSON files
-  const allObjects = await listAllObjects();
-  const Contents   = allObjects.filter(obj =>
-    // skip anything whose key ends with “.json” (case-insensitive)
-    !obj.Key.toLowerCase().endsWith('.json')
-  );
+  try {
 
-  // 2. build a “raw” index using LastModified first
-  const index = Contents.map(obj => ({
-    Key: obj.Key,
-    takenDate: quickDate(obj)
-  }))
-  .sort((a, b) => b.takenDate - a.takenDate);
+    // 1. cheap list call, but ignore any metadata JSON files
+    const allObjects = await listAllObjects();
+    const Contents   = allObjects.filter(obj =>
+      // skip anything whose key ends with “.json” (case-insensitive)
+      !obj.Key.toLowerCase().endsWith('.json')
+    );
 
-  const mySet = mine();
+    // 2. build a “raw” index using LastModified first
+    const index = Contents.map(obj => ({
+      Key: obj.Key,
+      takenDate: quickDate(obj)
+    }))
+    .sort((a, b) => b.takenDate - a.takenDate);
 
-  /* -------- NEW: paint with **refined** dates right away -------- */
-  const firstScreen = 50;
-  for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
-    const { Key, takenDate } = index[i];
-    const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
-    index[i].takenDate = refined;                       // keep book-keeping tidy
-    await buildFigure(Key, refined, mySet);             // ⬅️ insertSorted() inside
-  }
+    const mySet = mine();
 
-  loader.style.display = 'none';      // spinner off
-
-  /* 4. stream the rest, but refine *before* insertion */
-  (async function streamRest() {
-    const chunk = 200; // The smaller chunk saves mobile data, but loads slower
-    for (let i = firstScreen; i < index.length; i += chunk) {
-      await Promise.all(
-        index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
-          const refined = await refineDate(Key, takenDate);
-          await buildFigure(Key, refined, mySet);        // already sorted
-        })
-      );
-      await new Promise(r => setTimeout(r, 0));         // yield to UI
+    /* -------- NEW: paint with **refined** dates right away -------- */
+    const firstScreen = 50;
+    for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
+      const { Key, takenDate } = index[i];
+      const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
+      index[i].takenDate = refined;                       // keep book-keeping tidy
+      await buildFigure(Key, refined, mySet);             // ⬅️ insertSorted() inside
     }
-  })();
+
+    loader.style.display = 'none';      // spinner off
+
+    /* 4. stream the rest, but refine *before* insertion */
+    (async function streamRest() {
+      const chunk = 200; // The smaller chunk saves mobile data, but loads slower
+      for (let i = firstScreen; i < index.length; i += chunk) {
+        await Promise.all(
+          index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
+            const refined = await refineDate(Key, takenDate);
+            await buildFigure(Key, refined, mySet);        // already sorted
+          })
+        );
+        await new Promise(r => setTimeout(r, 0));         // yield to UI
+      }
+    })();
+
+  } catch (err) {
+    console.error(err);            // log the real problem
+  } finally {
+    loader.style.display = 'none'; // hide spinner no matter what
+  }
 }
 
 
