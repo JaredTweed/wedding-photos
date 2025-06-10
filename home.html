@@ -1,392 +1,580 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Maiya & Jared 2025</title>
-<link rel="icon" href="./icons/image.ico" type="image/x-icon">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maiya & Jared 2025</title>
+  <link rel="icon" href="./icons/image.ico" type="image/x-icon">
 
-<!-- <link rel="manifest" href="./manifest.json"> -->
-<!-- <meta name="theme-color" content="#60a060"> -->
-<!-- <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <!-- <link rel="manifest" href="./manifest.json"> -->
+  <!-- <meta name="theme-color" content="#60a060"> -->
+  <!-- <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">       -->
-<!-- for Chrome/Android -->
+  <!-- for Chrome/Android -->
 
-<style>
-:root {
-  --primary-color:   hsl(96 23.7% 54%);
-  --secondary-color: hsl(96 21% 94%);
-  --font-size: 1.2rem;
-  --image-width: 160px; 
-}
+  <style>
+    :root {
+      --primary-color: hsl(96 23.7% 54%);
+      --secondary-color: hsl(96 21% 94%);
+      --font-size: 1.2rem;
+      --image-width: 160px;
+    }
 
-html, body {
-  height: 100%;
-  margin: 0;
-  top: 0;
-  /* overflow: hidden; */
-}
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      top: 0;
+      /* overflow: hidden; */
+    }
 
-body{
-  -webkit-touch-callout: none; /* iOS Safari: no “Save image” / text menu */
-  -webkit-user-select: none;   /* iOS Safari: no text selection */
-  -ms-user-select: none;       /* older IE/Edge */
-  user-select: none;           /* everything else */
+    body {
+      -webkit-touch-callout: none;
+      /* iOS Safari: no “Save image” / text menu */
+      -webkit-user-select: none;
+      /* iOS Safari: no text selection */
+      -ms-user-select: none;
+      /* older IE/Edge */
+      user-select: none;
+      /* everything else */
 
-  /* turn off the blue tap highlight on iOS/Android */
-  -webkit-tap-highlight-color: transparent;
-  font-family:system-ui;margin:0;background:#ffffff;color:#222;
-position: relative;}
-body * {-webkit-tap-highlight-color: transparent;}
+      /* turn off the blue tap highlight on iOS/Android */
+      -webkit-tap-highlight-color: transparent;
+      font-family: system-ui;
+      margin: 0;
+      background: #ffffff;
+      color: #222;
+      position: relative;
+    }
 
-/* floating date indicator */
-#dateIndicator {
-  position: fixed;
-  top: 7rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  font-size: 1rem;
-  z-index: 10001;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.3s;
-  text-align: center;
-}
+    body * {
+      -webkit-tap-highlight-color: transparent;
+    }
 
-
-#container{display: flex; flex-direction: column;
-  /* align-items: center; justify-content: center; */
-  width: 100vw; height: 100vh; overflow: hidden;
-  padding: 0; box-sizing: border-box;
-  position: absolute; top:0; left: 0;
-  overscroll-behavior: contain;
-}
-
-header{flex:0;font-size:var(--font-size);
-  width:calc(100% - 16px);padding: 10px 8px 7px 8px;
-  position: sticky;top: 0;display:flex;
-  flex-direction: column; gap: 5px;z-index: 1000;
-  border-radius: 0 0 8px 8px;
-  background-color: #fff;
-
-  /* touch-action: none; */
-}
-
-#headerControls{display:flex;flex-direction: row;gap:6px;
-  align-items: center;justify-content: center;}
-#addBtn{flex: 1;box-shadow:
-    0 0 1px rgba(0,0,0,0.15),
-    0 6px 12px rgba(0,0,0,0.15); display:block;
-    background-color: var(--primary-color);color: white;margin:0;
-    padding:0.5rem 1rem;cursor:pointer;width:auto;height:100%;box-sizing: border-box; 
-    border-radius: 8px; border: none;font-weight: 700; text-align: center;}
-#addBtn:active{box-sizing: border-box;
-    transform: translateY(2px);}
-#settingsBtn{
-  flex: 0;
-  box-shadow: 0 0 1px rgba(0,0,0,.15),0 6px 12px rgba(0,0,0,.15);
-  background:#fff;                 /* white pill */
-  color:#333;
-  margin:0;                /* little gap from Add */
-  /* padding:.5rem .9rem; */
-  height: 100%; /* 1.2rem total height */
-  border-radius:8px;
-  border:none;
-  font-size:1.1rem;
-  cursor:pointer;
-}
-#settingsBtn:active{transform:translateY(2px);}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-.spinning {
-  animation: spin 1.3s linear infinite;
-}
+    /* floating date indicator */
+    #dateIndicator {
+      position: fixed;
+      top: 7rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      font-size: 1rem;
+      z-index: 10001;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      text-align: center;
+    }
 
 
+    #container {
+      display: flex;
+      flex-direction: column;
+      /* align-items: center; justify-content: center; */
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      padding: 0;
+      box-sizing: border-box;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overscroll-behavior: contain;
+    }
 
-/* make the tabs container a pill with a glider */
-#tabs.tabs {
-  margin: 0;
-  position: relative;
-  display: flex;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow:
-    0 0 1px rgba(0,0,0,0.15),
-    0 6px 12px rgba(0,0,0,0.15);
-}
-#tabs.tabs > * {border-radius: 8px;}
-#tabs.tabs .tab-header {
-  position: relative;
-  z-index: 2;
-  flex: 1;
-  text-align: center;
-  padding: 0.6rem 0rem;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  transition: color .15s ease-in;
-}
-#tabs.tabs .tab-header.active {
-  color: var(--primary-color);
-  font-weight: 600;
-}
-#tabs.tabs .glider {
-  position: absolute;
-  top: 0; bottom: 0;
-  width: calc(50% - 5px); /* half width minus half margin */
-  background: var(--secondary-color);
-  margin: 5px;
-  z-index: 1;
-  transition: transform .5s ease-out;
-}
-#tabAll.active  ~ .glider { transform: translateX(100%); }
-#tabMine.active ~ .glider { transform: translateX(0%); }
-.tab-header{
-    /* turn off the blue tap highlight on iOS/Android */
-  -webkit-tap-highlight-color: transparent;
-  
-  padding:.4rem 1rem;border:1px solid #ccc;border-bottom:none;
-            background:#ffffff;cursor:pointer;border-radius:6px 6px 0 0}
-.tab-header.active{background:#fff;font-weight:600}
+    header {
+      flex: 0;
+      font-size: var(--font-size);
+      width: calc(100% - 16px);
+      padding: 10px 8px 7px 8px;
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 1000;
+      border-radius: 0 0 8px 8px;
+      background-color: #fff;
+
+      /* touch-action: none; */
+    }
+
+    #headerControls {
+      display: flex;
+      flex-direction: row;
+      gap: 6px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #addBtn {
+      flex: 1;
+      box-shadow:
+        0 0 1px rgba(0, 0, 0, 0.15),
+        0 6px 12px rgba(0, 0, 0, 0.15);
+      display: block;
+      background-color: var(--primary-color);
+      color: white;
+      margin: 0;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      width: auto;
+      height: 100%;
+      box-sizing: border-box;
+      border-radius: 8px;
+      border: none;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    #addBtn:active {
+      box-sizing: border-box;
+      transform: translateY(2px);
+    }
+
+    #settingsBtn {
+      flex: 0;
+      box-shadow: 0 0 1px rgba(0, 0, 0, .15), 0 6px 12px rgba(0, 0, 0, .15);
+      background: #fff;
+      /* white pill */
+      color: #333;
+      margin: 0;
+      /* little gap from Add */
+      /* padding:.5rem .9rem; */
+      height: 100%;
+      /* 1.2rem total height */
+      border-radius: 8px;
+      border: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    #settingsBtn:active {
+      transform: translateY(2px);
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spinning {
+      animation: spin 1.3s linear infinite;
+    }
 
 
 
-/* tab panels */
-#panelContainer{
-  position: relative; overflow-y: auto; width: 100%; height: 100%;
-  padding:0;margin:0; box-sizing: border-box;
-  /* overscroll-behavior-y: contain; */
-}
-.tab-panel{display:none}
-.tab-panel.active{
-  /* position: relative; */ position: absolute; top: 0; left: 0;
-  /* maximize it at 4 to reduce the amount of photos that 
+    /* make the tabs container a pill with a glider */
+    #tabs.tabs {
+      margin: 0;
+      position: relative;
+      display: flex;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow:
+        0 0 1px rgba(0, 0, 0, 0.15),
+        0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #tabs.tabs>* {
+      border-radius: 8px;
+    }
+
+    #tabs.tabs .tab-header {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      text-align: center;
+      padding: 0.6rem 0rem;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      transition: color .15s ease-in;
+    }
+
+    #tabs.tabs .tab-header.active {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    #tabs.tabs .glider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: calc(50% - 5px);
+      /* half width minus half margin */
+      background: var(--secondary-color);
+      margin: 5px;
+      z-index: 1;
+      transition: transform .5s ease-out;
+    }
+
+    #tabAll.active~.glider {
+      transform: translateX(100%);
+    }
+
+    #tabMine.active~.glider {
+      transform: translateX(0%);
+    }
+
+    .tab-header {
+      /* turn off the blue tap highlight on iOS/Android */
+      -webkit-tap-highlight-color: transparent;
+
+      padding: .4rem 1rem;
+      border: 1px solid #ccc;
+      border-bottom: none;
+      background: #ffffff;
+      cursor: pointer;
+      border-radius: 6px 6px 0 0
+    }
+
+    .tab-header.active {
+      background: #fff;
+      font-weight: 600
+    }
+
+
+
+    /* tab panels */
+    #panelContainer {
+      position: relative;
+      overflow-y: auto;
+      width: 100%;
+      height: 100%;
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
+      /* overscroll-behavior-y: contain; */
+    }
+
+    .tab-panel {
+      display: none
+    }
+
+    .tab-panel.active {
+      /* position: relative; */
+      position: absolute;
+      top: 0;
+      left: 0;
+      /* maximize it at 4 to reduce the amount of photos that 
   need to be loaded simultaneously */
-  display:grid;
-  grid-template-columns:repeat(4,minmax(var(--image-width),1fr));
-                  gap:0.75rem;
-  padding: 5px 8px 100px 8px;
-  width: calc(100% - 16px);
-  height: calc(100% - 105px); /* top + bottom padding (WARNING: This is not actually defined here, it is defined with --safe-bottom)*/
-  align-content: start;
-  flex: 1;
-  overflow-y: auto;
-  /* overscroll-behavior: contain; */
-}
-@media (max-width: 710px) { /*var(--image-width) * 4 + 70px*/
-  .tab-panel.active {
-    grid-template-columns: repeat(auto-fill, minmax(var(--image-width), 1fr));
-  }
-}
-.empty-message {
-  text-align: center; left: 50%; top: 0px; 
-  transform: translateX(-50%); width: 100%;
-  font-size: 1.2rem;
-  position: absolute;
-  color: black;
-}
+      display: grid;
+      grid-template-columns: repeat(4, minmax(var(--image-width), 1fr));
+      gap: 0.75rem;
+      padding: 5px 8px 100px 8px;
+      width: calc(100% - 16px);
+      height: calc(100% - 105px);
+      /* top + bottom padding (WARNING: This is not actually defined here, it is defined with --safe-bottom)*/
+      align-content: start;
+      flex: 1;
+      overflow-y: auto;
+      /* overscroll-behavior: contain; */
+    }
+
+    @media (max-width: 710px) {
+
+      /*var(--image-width) * 4 + 70px*/
+      .tab-panel.active {
+        grid-template-columns: repeat(auto-fill, minmax(var(--image-width), 1fr));
+      }
+    }
+
+    .empty-message {
+      text-align: center;
+      left: 50%;
+      top: 0px;
+      transform: translateX(-50%);
+      width: 100%;
+      font-size: 1.2rem;
+      position: absolute;
+      color: black;
+    }
 
 
-/* figures in the gallery */
-figure{margin:0;position:relative;
-  -webkit-touch-callout: none;   /* iOS Safari */
-  touch-action: manipulation;    /* general pointer */}
-img,video{
-  -webkit-user-drag: none;       /* Turn off WebKit drag API */ 
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+    /* figures in the gallery */
+    figure {
+      margin: 0;
+      position: relative;
+      -webkit-touch-callout: none;
+      /* iOS Safari */
+      touch-action: manipulation;
+      /* general pointer */
+    }
 
-box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);width:100%;
-aspect-ratio:1/1;object-fit:cover;border-radius:10px;
-cursor:pointer;}
-figure.selected .select-box {
-  background: #fff;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
-}
-figure.selected img:not(.video-icon),
-figure.selected video {
-  width: calc(100% - 8px);
-  border: 4px solid black;
-}
-.select-box {
-  -webkit-touch-callout: none; /* iOS Safari: no “Save image” / text menu */
-  -webkit-user-select: none;   /* iOS Safari: no text selection */
-  -ms-user-select: none;       /* older IE/Edge */
-  user-select: none;           /* everything else */
+    img,
+    video {
+      -webkit-user-drag: none;
+      /* Turn off WebKit drag API */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
 
-  position: absolute;
-  top: 6px; right: 6px;
-  width: 24px; height: 24px;
-  border: 2px solid rgba(255,255,255,0.8);
-  background: rgba(255,255,255,0.6);
-  border-radius: 4px;
-  box-sizing: border-box;
-  z-index: 3;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
-}
-.video-icon {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  width: 28px;      /* scale down the 48×48 PNG */
-  height: 28px;
-  pointer-events: none;
-  z-index: 2;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-}
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      border-radius: 10px;
+      cursor: pointer;
+    }
 
+    figure.selected .select-box {
+      background: #fff;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+    }
 
+    figure.selected img:not(.video-icon),
+    figure.selected video {
+      width: calc(100% - 8px);
+      border: 4px solid black;
+    }
 
+    .select-box {
+      -webkit-touch-callout: none;
+      /* iOS Safari: no “Save image” / text menu */
+      -webkit-user-select: none;
+      /* iOS Safari: no text selection */
+      -ms-user-select: none;
+      /* older IE/Edge */
+      user-select: none;
+      /* everything else */
 
-/* toolbar at bottom */
-#selectionToolbar {
-  position: fixed;
-  bottom: 0; left: 0;
-  width: 100%;
-  padding: 0.5rem;
-  background: #fff;
-  box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
-  display: none;
-  align-items: center;          /* vertical center */
-  justify-content: space-between;
-  text-align: center;
-  z-index: 20000;
-  box-sizing: border-box;
-  gap: 0.5rem;
-}
-#selectionToolbar button {
-  padding: 0.6rem 0.5rem;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-}
-#deleteSelected {
-  flex: 1;                   /* only as big as its content */
-  background: #f44336;
-  color: #fff;
-}
-#deselectAll {
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin: -0.5rem;
-  width: 3.2rem; height: 2rem;
-  padding-right: 3px;
-  /* border: 1px solid black; */
-}
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 24px;
+      height: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 4px;
+      box-sizing: border-box;
+      z-index: 3;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    }
 
-/* disable text selection on all your tappable controls */
-button, label,
-.tab-header,
-#loadMoreBtn,
-#deleteSelected,
-#addBtn {
-  /* standard */
-  user-select: none;
-  /* WebKit */
-  -webkit-user-select: none;
-  /* older IE/Edge */
-  -ms-user-select: none;
-}
+    .video-icon {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 28px;
+      /* scale down the 48×48 PNG */
+      height: 28px;
+      pointer-events: none;
+      z-index: 2;
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 4px;
+    }
 
 
 
 
-/* Overlay */
-#overlay{position:fixed;inset:0;display:none;align-items:center;
-          justify-content:center;
-         background:rgba(0,0,0,.8);z-index:10000}
-#overlay.visible{display:flex}
-#overlayContent img, #overlayContent video {
-  max-width: 90vw;
-  max-height: min(87vh, calc(100% - 3rem));
-  position: absolute;
-  top: 49.5%;
-  transform: translateY(-50%);
-  aspect-ratio: auto;
-  width: fit-content;
-  height: fit-content;
-  border-radius: 8px;
-  cursor: default;
-  background-color: rgba(0, 0, 0, 0.0);
-  pointer-events: auto;
-}
-#overlayContent{display: flex; width:100%; height:100%;align-items:center;
-          justify-content:center;pointer-events: none;}
-#timestamp{position:absolute;top:1rem;left:50%;transform:translateX(-50%);
-           color:#fff;font-size:1.1rem;font-weight:600; 
-           text-align: center;z-index:10001; text-shadow: 1px 1px 5px black;
-            pointer-events: none;
-}
-#overlayBottom{display: flex; flex-direction: column;  position:absolute; bottom:0.6rem; left:50%;
-  margin: 0;
-  transform:translateX(-50%); width: 100%; z-index: 12010; gap: 3px;
-  pointer-events: none;}
-#overlayBtn{position: relative;left:50%;
-  transform:translateX(-50%);
-             padding:.6rem 1.2rem;background:#fff;
-             border:1px solid #444;
-             border-radius:6px;
-             pointer-events: all;
-             cursor:pointer;font-weight:600;color:black; 
-             width: fit-content; }
-.credit{
-  position:relative; left:50%;
-  margin: 0;
-  padding: 0 0.85rem;
-  transform:translateX(-50%);
-  color:#fff; font-size:1rem; text-shadow:1px 1px 5px #000;
-  text-align: center;
-  pointer-events: none;
-}
+    /* toolbar at bottom */
+    #selectionToolbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 0.5rem;
+      background: #fff;
+      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.15);
+      display: none;
+      align-items: center;
+      /* vertical center */
+      justify-content: space-between;
+      text-align: center;
+      z-index: 20000;
+      box-sizing: border-box;
+      gap: 0.5rem;
+    }
 
+    #selectionToolbar button {
+      padding: 0.6rem 0.5rem;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
-/* full-screen loader */
-#loader {
-  position: fixed;
-  inset: 0;
-  display: none; 
-  align-items: center;
-  justify-content: center;
-  pointer-events: all;
-  overflow: hidden;
-  background: rgba(255,255,255,0.8);
-  z-index: 100000;
+    #deleteSelected {
+      flex: 1;
+      /* only as big as its content */
+      background: #f44336;
+      color: #fff;
+    }
 
-  touch-action: none;           /* block any pan/scroll gesture */
-  overscroll-behavior: none;    /* don’t let any scroll “escape” */
-  -webkit-touch-action: none;
-  touch-action: none;
-  overscroll-behavior: none;
-}
-/* circular throbber */
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #ccc;
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+    #deselectAll {
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin: -0.5rem;
+      width: 3.2rem;
+      height: 2rem;
+      padding-right: 3px;
+      /* border: 1px solid black; */
+    }
+
+    /* disable text selection on all your tappable controls */
+    button,
+    label,
+    .tab-header,
+    #loadMoreBtn,
+    #deleteSelected,
+    #addBtn {
+      /* standard */
+      user-select: none;
+      /* WebKit */
+      -webkit-user-select: none;
+      /* older IE/Edge */
+      -ms-user-select: none;
+    }
 
 
 
 
+    /* Overlay */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, .8);
+      z-index: 10000
+    }
+
+    #overlay.visible {
+      display: flex
+    }
+
+    #overlayContent img,
+    #overlayContent video {
+      max-width: 90vw;
+      max-height: min(87vh, calc(100% - 3rem));
+      position: absolute;
+      top: 49.5%;
+      transform: translateY(-50%);
+      aspect-ratio: auto;
+      width: fit-content;
+      height: fit-content;
+      border-radius: 8px;
+      cursor: default;
+      background-color: rgba(0, 0, 0, 0.0);
+      pointer-events: auto;
+    }
+
+    #overlayContent {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #timestamp {
+      position: absolute;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      z-index: 10001;
+      text-shadow: 1px 1px 5px black;
+      pointer-events: none;
+    }
+
+    #overlayBottom {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      bottom: 0.6rem;
+      left: 50%;
+      margin: 0;
+      transform: translateX(-50%);
+      width: 100%;
+      z-index: 12010;
+      gap: 3px;
+      pointer-events: none;
+    }
+
+    #overlayBtn {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: .6rem 1.2rem;
+      background: #fff;
+      border: 1px solid #444;
+      border-radius: 6px;
+      pointer-events: all;
+      cursor: pointer;
+      font-weight: 600;
+      color: black;
+      width: fit-content;
+    }
+
+    .credit {
+      position: relative;
+      left: 50%;
+      margin: 0;
+      padding: 0 0.85rem;
+      transform: translateX(-50%);
+      color: #fff;
+      font-size: 1rem;
+      text-shadow: 1px 1px 5px #000;
+      text-align: center;
+      pointer-events: none;
+    }
+
+
+    /* full-screen loader */
+    #loader {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      pointer-events: all;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 100000;
+
+      touch-action: none;
+      /* block any pan/scroll gesture */
+      overscroll-behavior: none;
+      /* don’t let any scroll “escape” */
+      -webkit-touch-action: none;
+      touch-action: none;
+      overscroll-behavior: none;
+    }
+
+    /* circular throbber */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #ccc;
+      border-top-color: var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
 
 
@@ -394,1269 +582,1272 @@ button, label,
 
 
 
-/* -----------------------------------------------------------------
+
+
+
+
+    /* -----------------------------------------------------------------
    UNIVERSAL SAFE-AREA + DYNAMIC VIEWPORT FIXES
    ----------------------------------------------------------------- */
 
-/* 1. Make the OS safe-area available as CSS custom properties */
-:root{
-  --safe-top:    env(safe-area-inset-top, 0px);
-  --safe-right:  env(safe-area-inset-right, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left:   env(safe-area-inset-left, 0px);
-}
+    /* 1. Make the OS safe-area available as CSS custom properties */
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+    }
 
-/* 2. Always let the page breathe inside the notch / gesture bar    */
-body{
-  /* On very old iOS (11–12) only `constant()` exists – we include it
+    /* 2. Always let the page breathe inside the notch / gesture bar    */
+    body {
+      /* On very old iOS (11–12) only `constant()` exists – we include it
      in the calc() so whichever one *works* is used.                 */
-  padding-top:    calc(var(--safe-top) + constant(safe-area-inset-top, 0px));
-  padding-right:  calc(var(--safe-right) + constant(safe-area-inset-right,0px));
-  padding-bottom: calc(var(--safe-bottom)+ constant(safe-area-inset-bottom,0px));
-  padding-left:   calc(var(--safe-left)+ constant(safe-area-inset-left, 0px));
+      padding-top: calc(var(--safe-top) + constant(safe-area-inset-top, 0px));
+      padding-right: calc(var(--safe-right) + constant(safe-area-inset-right, 0px));
+      padding-bottom: calc(var(--safe-bottom)+ constant(safe-area-inset-bottom, 0px));
+      padding-left: calc(var(--safe-left)+ constant(safe-area-inset-left, 0px));
 
-  /* Viewport that follows URL-bar show/hide (-dvh is 2023+ but
+      /* Viewport that follows URL-bar show/hide (-dvh is 2023+ but
      silently falls back to normal vh elsewhere).                    */
-  min-height: 100dvh;
-}
+      min-height: 100dvh;
+    }
 
-/* 3. Header: keep the pill *inside* the safe-area, full-width    */
-header{
-  top: var(--safe-top);                                /* below notch */
-  padding-top: calc(10px + var(--safe-top));
-  width: calc(100% - 16px - var(--safe-left) - var(--safe-right));
-}
+    /* 3. Header: keep the pill *inside* the safe-area, full-width    */
+    header {
+      top: var(--safe-top);
+      /* below notch */
+      padding-top: calc(10px + var(--safe-top));
+      width: calc(100% - 16px - var(--safe-left) - var(--safe-right));
+    }
 
-/* 4. Main app container: fill everything *minus* the safe-areas   */
-#container{
-  height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
-  width:  calc(100vw  - var(--safe-left) - var(--safe-right));
-}
+    /* 4. Main app container: fill everything *minus* the safe-areas   */
+    #container {
+      height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+      width: calc(100vw - var(--safe-left) - var(--safe-right));
+    }
 
-/* 5. Scrollable panel inside: same trick so bottom row is visible */
-#panelContainer,
-.tab-panel.active{
-  height: calc(100% - 105px - var(--safe-bottom));   /* keep your 5-px pad */
-}
+    /* 5. Scrollable panel inside: same trick so bottom row is visible */
+    #panelContainer,
+    .tab-panel.active {
+      height: calc(100% - 105px - var(--safe-bottom));
+      /* keep your 5-px pad */
+    }
 
-/* 6. Bottom selection toolbar: float above gesture area           */
-#selectionToolbar{
-  padding-bottom: calc(0.5rem + var(--safe-bottom));
-}
-
-
-</style>
+    /* 6. Bottom selection toolbar: float above gesture area           */
+    #selectionToolbar {
+      padding-bottom: calc(0.5rem + var(--safe-bottom));
+    }
+  </style>
 </head>
+
 <body>
 
-<div id="loader">
-  <div class="spinner"></div>
-</div>
-<div id="dateIndicator"></div>
-
-<div id="container">
-  <header>
-    <div id="headerControls">
-      <label id="addBtn" for="filePicker">Add Photos / Videos</label>
-      <button id="settingsBtn" title="Photo-credit settings">
-        <img id="settingsIcon" src="./icons/settings.svg" alt="" style="width: 2rem; height: 2rem; box-shadow:none; vertical-align: middle;">
-      </button>
-    </div>
-    <input
-      id="filePicker"
-      type="file"
-      multiple
-      accept="image/*,video/*"
-      style="width:0; height:0; opacity:0; overflow:hidden;display: none;">
-    
-    <div id="tabs" class="tabs">
-      <div id="tabMine" class="tab-header active">My&nbsp;Uploads</div>
-      <div id="tabAll"  class="tab-header">All&nbsp;Uploads</div>
-      <span class="glider"></span>
-    </div>
-  </header>
-
-  <div id="panelContainer">
-    <section id="panelMine" class="tab-panel active"></section>
-    <section id="panelAll"  class="tab-panel"></section>
+  <div id="loader">
+    <div class="spinner"></div>
   </div>
-</div>
+  <div id="dateIndicator"></div>
 
-<div id="selectionToolbar">
-  <button id="deleteSelected">Delete</button>
-  <span id="deselectAll">&times;</span>
-</div>
+  <div id="container">
+    <header>
+      <div id="headerControls">
+        <label id="addBtn" for="filePicker">Add Photos / Videos</label>
+        <button id="settingsBtn" title="Photo-credit settings">
+          <img id="settingsIcon" src="./icons/settings.svg" alt=""
+            style="width: 2rem; height: 2rem; box-shadow:none; vertical-align: middle;">
+        </button>
+      </div>
+      <input id="filePicker" type="file" multiple accept="image/*,video/*"
+        style="width:0; height:0; opacity:0; overflow:hidden;display: none;">
 
-<div id="overlay">
-  <div id="timestamp"></div>
-  <div id="overlayContent"></div><!-- everything we wipe/repopulate lives in here -->
-  <div id="overlayBottom" style="display:none">
-    <button id="overlayBtn">Delete</button>
-    <div class="credit"></div>
+      <div id="tabs" class="tabs">
+        <div id="tabMine" class="tab-header active">My&nbsp;Uploads</div>
+        <div id="tabAll" class="tab-header">All&nbsp;Uploads</div>
+        <span class="glider"></span>
+      </div>
+    </header>
+
+    <div id="panelContainer">
+      <section id="panelMine" class="tab-panel active"></section>
+      <section id="panelAll" class="tab-panel"></section>
+    </div>
   </div>
-</div>
 
-<script type="module">
-// ── AWS config ─────────────────────────────────────────────────────────────
-const REGION  = "us-west-2";
-const ID_POOL = "us-west-2:8e34a4e5-741b-402e-9bfb-eeb90b5643e3";
-const BUCKET  = "weddingphotos-2025";
+  <div id="selectionToolbar">
+    <button id="deleteSelected">Delete</button>
+    <span id="deselectAll">&times;</span>
+  </div>
 
-const META_BUCKET   = BUCKET;// "weddingphotos-metadata";         // ← second bucket
+  <div id="overlay">
+    <div id="timestamp"></div>
+    <div id="overlayContent"></div><!-- everything we wipe/repopulate lives in here -->
+    <div id="overlayBottom" style="display:none">
+      <button id="overlayBtn">Delete</button>
+      <div class="credit"></div>
+    </div>
+  </div>
 
-// credit that *this* browser has chosen (string | "")
-let creditName = localStorage.getItem("creditName") ?? "";
-// one-shot cache so we don’t refetch the same JSON again
-const creditCache = new Map();   // Key → credit string | null
+  <script type="module">
+    // ── AWS config ─────────────────────────────────────────────────────────────
+    const REGION = "us-west-2";
+    const ID_POOL = "us-west-2:8e34a4e5-741b-402e-9bfb-eeb90b5643e3";
+    const BUCKET = "weddingphotos-2025";
 
-import { parse } from
-  "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs"; 
-import {
-  S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand
-} from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
-import { fromCognitoIdentityPool }
-  from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
+    const META_BUCKET = BUCKET;// "weddingphotos-metadata";         // ← second bucket
 
-import JSZip from 'https://esm.sh/jszip@3.10.1';
+    // credit that *this* browser has chosen (string | "")
+    let creditName = localStorage.getItem("creditName") ?? "";
+    // one-shot cache so we don’t refetch the same JSON again
+    const creditCache = new Map();   // Key → credit string | null
 
+    import { parse } from
+      "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs";
+    import {
+      S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand
+    } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
+    import { fromCognitoIdentityPool }
+      from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
 
-let dateIndicatorValue = "9999999999999999999";
-let pendingFigures = [];
-
-let uploading = false;
-const isiOS = /iP(hone|od|ad)/.test(navigator.userAgent);
-
-/* keep a single global observer that is rebuilt when the user
-   switches tabs (because the scroll-container changes)          */
-let io = makeObserver(document.querySelector('.tab-panel.active'));
+    import JSZip from 'https://esm.sh/jszip@3.10.1';
 
 
-// NEW: scroll indicator logic
-const dateIndicator = document.getElementById('dateIndicator');
-let indicatorTimeout;
+    let dateIndicatorValue = "9999999999999999999";
+    let pendingFigures = [];
 
-function showDateIndicator(text) {
-  if (overlay.classList.contains('visible')) return;
+    let uploading = false;
+    const isiOS = /iP(hone|od|ad)/.test(navigator.userAgent);
 
-  dateIndicator.textContent = text;
-  dateIndicator.style.opacity = '1';
-  clearTimeout(indicatorTimeout);
-  indicatorTimeout = setTimeout(() => {
-    dateIndicator.style.opacity = '0';
-  }, 1000);
-}
+    /* keep a single global observer that is rebuilt when the user
+       switches tabs (because the scroll-container changes)          */
+    let io = makeObserver(document.querySelector('.tab-panel.active'));
 
-function onScroll() {
-  const panel   = document.querySelector('.tab-panel.active');
-  const figures = Array.from(panel.querySelectorAll('figure'));
 
-  for (let fig of figures) {
-    const rect = fig.getBoundingClientRect();
-    // first one whose center has scrolled into view…
-    if (rect.top + rect.height/2 >= 100) {
-      const ts = new Date(Number(fig.dataset.taken));
-      const opts = {
-        year:  'numeric',
-        month: 'short',
-        day:   '2-digit',
-        hour:   '2-digit',
-        minute: '2-digit',
-        hour12: false
-      };
-      dateIndicatorValue = Number(fig.dataset.taken);
-      showDateIndicator(ts.toLocaleString('en-US', opts));
-      break;
+    // NEW: scroll indicator logic
+    const dateIndicator = document.getElementById('dateIndicator');
+    let indicatorTimeout;
+
+    function showDateIndicator(text) {
+      if (overlay.classList.contains('visible')) return;
+
+      dateIndicator.textContent = text;
+      dateIndicator.style.opacity = '1';
+      clearTimeout(indicatorTimeout);
+      indicatorTimeout = setTimeout(() => {
+        dateIndicator.style.opacity = '0';
+      }, 1000);
     }
-  }
-}
 
-document.getElementById('panelAll').addEventListener('scroll', onScroll);
-document.getElementById('panelMine').addEventListener('scroll', onScroll);
+    function onScroll() {
+      const panel = document.querySelector('.tab-panel.active');
+      const figures = Array.from(panel.querySelectorAll('figure'));
 
-// ensure overflow scroll on panels
-document.querySelectorAll('.tab-panel').forEach(p => {
-  p.style.overflowY = 'auto';
-});
-
-
-// 0) prevent “exit on back” by having an initial state
-history.replaceState({ view: 'main' }, '');
-window.addEventListener('popstate', (e) => {
-  if (overlay.classList.contains('visible')) {
-    closeOverlay();
-  }
-});
-
-
-
-
-// set up the selection toolbar
-const selectedKeys = new Set();
-const toolbar       = document.getElementById('selectionToolbar');
-const btnDelete     = document.getElementById('deleteSelected');
-
-const btnDeselect = document.getElementById('deselectAll');
-btnDeselect.onclick = () => {
-  // clear all selections
-  document.querySelectorAll('figure.selected').forEach(f => f.classList.remove('selected'));
-  selectedKeys.clear();
-  updateToolbar();
-};
-
-function updateToolbar() {
-  const count = selectedKeys.size;
-  if (count === 0) {
-    toolbar.style.display = 'none';
-    return;
-  }
-  toolbar.style.display = 'flex';
-
-  // only show Delete if *all* selectedKeys are in your own set
-  const mineSet = mine();
-  const allOwned = Array.from(selectedKeys).every(key => mineSet.has(key));
-  btnDelete.style.display = allOwned ? 'inline-block' : 'none';
-  btnDelete.textContent = allOwned
-    ? `Delete (${count})`
-    : '';
-}
-
-
-
-
-
-const s3 = new S3Client({
-  region: REGION,
-  credentials: fromCognitoIdentityPool({ identityPoolId: ID_POOL, clientConfig:{region:REGION}})
-});
-
-// ── use localStorage instead of cookies ────────────────────────────────────
-function getUploads(){
-  try { return JSON.parse(localStorage.getItem("myUploads") || "[]"); }
-  catch { return []; }
-}
-function saveUploads(arr){
-  localStorage.setItem("myUploads", JSON.stringify(arr));
-}
-function remember(key){
-  const arr = getUploads();
-  if (!arr.includes(key)) {
-    arr.push(key);
-    saveUploads(arr);
-  }
-}
-function mine(){
-  return new Set(getUploads());
-}
-
-// credit helpers
-async function putCredit(key, credit) {
-  await s3.send(new PutObjectCommand({
-    Bucket      : META_BUCKET,
-    Key         : `${key}.json`, // *exactly* the same key, plus “.json”
-    Body        : JSON.stringify({ credit }),
-    ContentType : "application/json"
-  }));
-}
-
-/* ── use local storage if available, otherwise get from s3 ────────── */
-async function getCredit(key) {
-  /* 1. If the file is one of **your** uploads, just show the name
-        that’s stored locally (no network request). */
-  if (mine().has(key)) {
-    const local = creditName || null;
-    creditCache.set(key, local);   // memoise so we never re-check
-    return local;                  // done ✨
-  }
-
-  /* 2. Otherwise fall back to the normal (cached) S3 lookup. */
-  if (creditCache.has(key)) return creditCache.get(key);
-
-  try {
-    const url = `https://${META_BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}.json`;
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      creditCache.set(key, null);
-      return null;                 // no credit stored for this photo
+      for (let fig of figures) {
+        const rect = fig.getBoundingClientRect();
+        // first one whose center has scrolled into view…
+        if (rect.top + rect.height / 2 >= 100) {
+          const ts = new Date(Number(fig.dataset.taken));
+          const opts = {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          };
+          dateIndicatorValue = Number(fig.dataset.taken);
+          showDateIndicator(ts.toLocaleString('en-US', opts));
+          break;
+        }
+      }
     }
-    const { credit = null } = await resp.json();
-    creditCache.set(key, credit);
-    return credit;
-  } catch (err) {
-    console.error("getCredit error:", err);
-    creditCache.set(key, null);
-    return null;
-  }
-}
+
+    document.getElementById('panelAll').addEventListener('scroll', onScroll);
+    document.getElementById('panelMine').addEventListener('scroll', onScroll);
+
+    // ensure overflow scroll on panels
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.style.overflowY = 'auto';
+    });
+
+
+    // 0) prevent “exit on back” by having an initial state
+    history.replaceState({ view: 'main' }, '');
+    window.addEventListener('popstate', (e) => {
+      if (overlay.classList.contains('visible')) {
+        closeOverlay();
+      }
+    });
 
 
 
 
-// ── DOM refs & tabs ───────────────────────────────────────────────────────
-const picker         = document.getElementById('filePicker');
-const addBtn         = document.getElementById('addBtn');
-const panelAll       = document.getElementById('panelAll');
-const panelMine      = document.getElementById('panelMine');
-const tabAll         = document.getElementById('tabAll');
-const tabMine        = document.getElementById('tabMine');
-const overlay        = document.getElementById('overlay');
-const tsLabel        = document.getElementById('timestamp');
-const overlayBtn     = document.getElementById('overlayBtn');
-const loader         = document.getElementById('loader');
-const settingsBtn    = document.getElementById('settingsBtn');
-const icon           = document.getElementById('settingsIcon');
-const overlayBottom  = document.getElementById('overlayBottom');
-const creditEl       = document.querySelector('.credit');
-const overlayContent = document.getElementById('overlayContent');
+    // set up the selection toolbar
+    const selectedKeys = new Set();
+    const toolbar = document.getElementById('selectionToolbar');
+    const btnDelete = document.getElementById('deleteSelected');
 
-settingsBtn.addEventListener('click', async (e) => {
-  e.preventDefault(); 
-  e.stopPropagation(); 
-  e.stopImmediatePropagation();
+    const btnDeselect = document.getElementById('deselectAll');
+    btnDeselect.onclick = () => {
+      // clear all selections
+      document.querySelectorAll('figure.selected').forEach(f => f.classList.remove('selected'));
+      selectedKeys.clear();
+      updateToolbar();
+    };
 
-  if (creditName == null) {creditName = "";}
-  const response = prompt(
-    "Enter your name if you want others to know these uploads are yours. Leave blank if you wish to remain anonymous.",
-    creditName || ""
-  );
-  
-  // If the user cancels the prompt, response is null – do nothing.
-  if (response === null) {return;}
-  
-  icon.classList.add("spinning");
+    function updateToolbar() {
+      const count = selectedKeys.size;
+      if (count === 0) {
+        toolbar.style.display = 'none';
+        return;
+      }
+      toolbar.style.display = 'flex';
 
-  // Trim the response. If the user entered an empty string, treat it as clearing the credit.
-  const clean = response.trim();
-  // Store null rather than empty string if no credit is to be set.
-  creditName = clean;
-  localStorage.setItem("creditName", creditName || "");
+      // only show Delete if *all* selectedKeys are in your own set
+      const mineSet = mine();
+      const allOwned = Array.from(selectedKeys).every(key => mineSet.has(key));
+      btnDelete.style.display = allOwned ? 'inline-block' : 'none';
+      btnDelete.textContent = allOwned
+        ? `Delete (${count})`
+        : '';
+    }
 
-  // Update the credit for all existing uploads
-  await Promise.all(
-    getUploads().map(k => putCredit(k, creditName))
-  );
-  icon.classList.remove("spinning");
-});
 
-tabAll.addEventListener('pointerdown', () => switchTab(true));
-tabMine.addEventListener('pointerdown', () => switchTab(false));
 
-/* hook into your existing tab-switch logic --------------------- */
-function switchTab(showAll) {
-  tabAll.classList.toggle('active',  showAll);
-  tabMine.classList.toggle('active', !showAll);
-  panelAll.classList.toggle('active',  showAll);
-  panelMine.classList.toggle('active', !showAll);
 
-  localStorage.setItem('activeTab', showAll ? 'all' : 'mine');
-  dateIndicator.style.opacity = '0';
-  updatePanelMessages();
 
-  /* NEW: rebuild the observer for the now-active panel */
-  const newRoot = document.querySelector('.tab-panel.active');
-  reassignObserver(newRoot);
-}
+    const s3 = new S3Client({
+      region: REGION,
+      credentials: fromCognitoIdentityPool({ identityPoolId: ID_POOL, clientConfig: { region: REGION } })
+    });
 
-// ── restore last-active tab on load ──────────────────────────────────────
-const last = localStorage.getItem('activeTab');
-if (last === 'mine') {
-  switchTab(false);
-} else {
-  switchTab(true);
-}
+    // ── use localStorage instead of cookies ────────────────────────────────────
+    function getUploads() {
+      try { return JSON.parse(localStorage.getItem("myUploads") || "[]"); }
+      catch { return []; }
+    }
+    function saveUploads(arr) {
+      localStorage.setItem("myUploads", JSON.stringify(arr));
+    }
+    function remember(key) {
+      const arr = getUploads();
+      if (!arr.includes(key)) {
+        arr.push(key);
+        saveUploads(arr);
+      }
+    }
+    function mine() {
+      return new Set(getUploads());
+    }
 
-// ── upload flow ──────────────────────────────────────────────────────────
-// wrap your picker.onchange to show progress
-picker.onchange = async ev => {
-  // console.log("picker.onchange", ev);
-  const files = Array.from(ev.target.files);
-  if (files.length === 0) return;
+    // credit helpers
+    async function putCredit(key, credit) {
+      await s3.send(new PutObjectCommand({
+        Bucket: META_BUCKET,
+        Key: `${key}.json`, // *exactly* the same key, plus “.json”
+        Body: JSON.stringify({ credit }),
+        ContentType: "application/json"
+      }));
+    }
 
-  // start the overlay
-  uploading = true;
-  ensureOverlayContent(); 
-  overlayContent.innerHTML = `
+    /* ── use local storage if available, otherwise get from s3 ────────── */
+    async function getCredit(key) {
+      /* 1. If the file is one of **your** uploads, just show the name
+            that’s stored locally (no network request). */
+      if (mine().has(key)) {
+        const local = creditName || null;
+        creditCache.set(key, local);   // memoise so we never re-check
+        return local;                  // done ✨
+      }
+
+      /* 2. Otherwise fall back to the normal (cached) S3 lookup. */
+      if (creditCache.has(key)) return creditCache.get(key);
+
+      try {
+        const url = `https://${META_BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}.json`;
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          creditCache.set(key, null);
+          return null;                 // no credit stored for this photo
+        }
+        const { credit = null } = await resp.json();
+        creditCache.set(key, credit);
+        return credit;
+      } catch (err) {
+        console.error("getCredit error:", err);
+        creditCache.set(key, null);
+        return null;
+      }
+    }
+
+
+
+
+    // ── DOM refs & tabs ───────────────────────────────────────────────────────
+    const picker = document.getElementById('filePicker');
+    const addBtn = document.getElementById('addBtn');
+    const panelAll = document.getElementById('panelAll');
+    const panelMine = document.getElementById('panelMine');
+    const tabAll = document.getElementById('tabAll');
+    const tabMine = document.getElementById('tabMine');
+    const overlay = document.getElementById('overlay');
+    const tsLabel = document.getElementById('timestamp');
+    const overlayBtn = document.getElementById('overlayBtn');
+    const loader = document.getElementById('loader');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const icon = document.getElementById('settingsIcon');
+    const overlayBottom = document.getElementById('overlayBottom');
+    const creditEl = document.querySelector('.credit');
+    const overlayContent = document.getElementById('overlayContent');
+
+    settingsBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      if (creditName == null) { creditName = ""; }
+      const response = prompt(
+        "Enter your name if you want others to know these uploads are yours. Leave blank if you wish to remain anonymous.",
+        creditName || ""
+      );
+
+      // If the user cancels the prompt, response is null – do nothing.
+      if (response === null) { return; }
+
+      icon.classList.add("spinning");
+
+      // Trim the response. If the user entered an empty string, treat it as clearing the credit.
+      const clean = response.trim();
+      // Store null rather than empty string if no credit is to be set.
+      creditName = clean;
+      localStorage.setItem("creditName", creditName || "");
+
+      // Update the credit for all existing uploads
+      await Promise.all(
+        getUploads().map(k => putCredit(k, creditName))
+      );
+      icon.classList.remove("spinning");
+    });
+
+    tabAll.addEventListener('pointerdown', () => switchTab(true));
+    tabMine.addEventListener('pointerdown', () => switchTab(false));
+
+    /* hook into your existing tab-switch logic --------------------- */
+    function switchTab(showAll) {
+      tabAll.classList.toggle('active', showAll);
+      tabMine.classList.toggle('active', !showAll);
+      panelAll.classList.toggle('active', showAll);
+      panelMine.classList.toggle('active', !showAll);
+
+      localStorage.setItem('activeTab', showAll ? 'all' : 'mine');
+      dateIndicator.style.opacity = '0';
+      updatePanelMessages();
+
+      /* NEW: rebuild the observer for the now-active panel */
+      const newRoot = document.querySelector('.tab-panel.active');
+      reassignObserver(newRoot);
+    }
+
+    // ── restore last-active tab on load ──────────────────────────────────────
+    const last = localStorage.getItem('activeTab');
+    if (last === 'mine') {
+      switchTab(false);
+    } else {
+      switchTab(true);
+    }
+
+    // ── upload flow ──────────────────────────────────────────────────────────
+    // wrap your picker.onchange to show progress
+    picker.onchange = async ev => {
+      // console.log("picker.onchange", ev);
+      const files = Array.from(ev.target.files);
+      if (files.length === 0) return;
+
+      // start the overlay
+      uploading = true;
+      ensureOverlayContent();
+      overlayContent.innerHTML = `
     <div style="color: white; font-size: 1.2rem; 
     text-align: center; padding: 1rem;">Uploading 0 / ${files.length}…</div>
   `;
-  overlay.classList.add('visible');
+      overlay.classList.add('visible');
 
 
-  const newKeys = [];
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const key = `${Date.now()}_${file.name}`;
+      const newKeys = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const key = `${Date.now()}_${file.name}`;
 
-    // Prepare metadata
-    const exifDate = await getExifDateFromFile(file);
-    const meta     = {};
-    if (exifDate) {
-      // store as ISO so it sorts and reads nicely
-      meta.taken = exifDate.toISOString();
-    }
+        // Prepare metadata
+        const exifDate = await getExifDateFromFile(file);
+        const meta = {};
+        if (exifDate) {
+          // store as ISO so it sorts and reads nicely
+          meta.taken = exifDate.toISOString();
+        }
 
-    // perform upload
-    await s3.send(new PutObjectCommand({
-      Bucket:      BUCKET,
-      Key:         key,
-      Body:        file,
-      ContentType: file.type,
-      Metadata: meta,
-    }));
+        // perform upload
+        await s3.send(new PutObjectCommand({
+          Bucket: BUCKET,
+          Key: key,
+          Body: file,
+          ContentType: file.type,
+          Metadata: meta,
+        }));
 
-    await putCredit(key, creditName);
+        await putCredit(key, creditName);
 
-    // remember & track
-    remember(key);
-    newKeys.push(key);
+        // remember & track
+        remember(key);
+        newKeys.push(key);
 
-    // update overlay progress
-    overlayContent.innerHTML = `
+        // update overlay progress
+        overlayContent.innerHTML = `
       <div style="color: white; font-size: 1.2rem; 
-      text-align: center; padding: 1rem;">Uploading ${i+1} / ${files.length}…</div>
+      text-align: center; padding: 1rem;">Uploading ${i + 1} / ${files.length}…</div>
     `;
-  }
+      }
 
-  ensureOverlayContent(); 
-  overlayContent.innerHTML = `<div style="color: white; font-size: 1.2rem;
+      ensureOverlayContent();
+      overlayContent.innerHTML = `<div style="color: white; font-size: 1.2rem;
                                 text-align: center; padding: 1rem;">
                                  Uploaded ${files.length} / ${files.length}<br>
                                  Success!!
                               </div>`;
-  await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-  // done!
-  uploading = false;
-  overlay.classList.remove('visible');
-  picker.value = "";
+      // done!
+      uploading = false;
+      overlay.classList.remove('visible');
+      picker.value = "";
 
-  // finally append new thumbnails
-  await appendNew(newKeys);
-};
+      // finally append new thumbnails
+      await appendNew(newKeys);
+    };
 
-// ── overlay & download ────────────────────────────────────────────────────
-let currentSrc = "", currentName = "";
-function openOverlay(src, isVideo, _tsReadable, fileName) {
-  
-  swallowNextClick = true; 
-  setTimeout(() => {
-    dateIndicator.style.opacity = '0';
-    ensureOverlayContent(); 
-    overlayContent.innerHTML = "";
-    
-    // 1) Find the <figure> whose lazy-loaded img/video src matches
-    const selector = isVideo
-      ? `video[src="${src}"]`
-      : `img[src="${src}"]`;
-    const mediaEl = document.querySelector(selector);
-    let dateMs = Date.now();
-    if (mediaEl) {
-      const fig = mediaEl.closest('figure');
-      if (fig && fig.dataset.taken) {
-        dateMs = Number(fig.dataset.taken);
-      }
-    }
+    // ── overlay & download ────────────────────────────────────────────────────
+    let currentSrc = "", currentName = "";
+    function openOverlay(src, isVideo, _tsReadable, fileName) {
 
-    // 2) Format the timestamp freshly
-    const ts = new Date(dateMs);
-    const timePart = ts.toLocaleTimeString("en-US", {
-      hour:   "2-digit",
-      minute: "2-digit",
-      hour12: false
-    });
-    const datePart = ts.toLocaleDateString("en-US", {
-      month: "short",
-      day:   "2-digit",
-      year:  "numeric"
-    });
-    const formatted = `${timePart}, ${datePart}`;
+      swallowNextClick = true;
+      setTimeout(() => {
+        dateIndicator.style.opacity = '0';
+        ensureOverlayContent();
+        overlayContent.innerHTML = "";
 
-    // 3) Build the overlay
-    currentSrc  = src;
-    currentName = fileName;
-    // clear out any previous <img> or <video> children
-    overlay.querySelectorAll('img, video').forEach(el => el.remove());
-
-    // update timestamp in place
-    const tsEl = document.getElementById('timestamp');
-    tsEl.textContent = formatted;
-
-    // append our new media node
-    overlayContent.appendChild(
-      isVideo
-        ? Object.assign(document.createElement('video'), {src, controls:true})
-        : Object.assign(document.createElement('img'),   {src})
-    );
-    overlay.classList.add('visible');
-
-    /* ── fetch + show credit, if any ─────────────────────────────── */
-    creditEl.textContent = '';
-    getCredit(fileName)
-      .then(c => {
-        // if (!c) return;
-        creditEl.textContent = !c || c == '' ? '':`Credit: ${c}`;
-      });
-
-    overlayBottom.style.display = 'flex';
-    if (document.querySelector('.tab-panel.active').id === 'panelMine') {
-      overlayBtn.style.display = 'block';
-    } else {
-      overlayBtn.style.display = 'none';
-    }
-
-    // 4) Push history so ESC/back closes it
-    history.pushState({ view: 'overlay' }, '');
-
-  }, 0);
-
-}
-
-function closeOverlay(){
-  // console.log("closeOverlay");
-  /* ① stop video if one is present */
-  const vid = overlay.querySelector('video');
-  if (vid) {
-    vid.pause();
-    vid.currentTime = 0;
-  }
-
-  if (history.state?.view === 'overlay') {
-    history.back(); // pops the “overlay” entry off the stack
-  }
-
-  overlay.classList.remove('visible');
-  overlayBottom.style.display = 'none';
-  ensureOverlayContent();
-  overlayContent.innerHTML = ""; 
-}
-// listen for pointerdown on the overlay background:
-// overlay.onclick = null;
-// overlay.addEventListener('pointerup', e => {
-//   if (uploading) return;
-//   if (e.target === overlay) {
-//     e.stopPropagation();
-//     closeOverlay();
-//   }
-// });
-window.addEventListener('keydown', e => {
-  if (uploading && e.key === 'Escape') return;
-  if (e.key === 'Escape') closeOverlay();
-});
-
-function ensureOverlayContent() {
-  if (overlayContent && overlay.contains(overlayContent)) return;
-
-  // either first run or someone wiped it out — recreate it
-  overlayContent = document.createElement('div');
-  overlayContent.id = 'overlayContent';
-  overlayContent.style.display = 'flex';          // keep old flex styles
-  overlayContent.style.width  = '100%';
-  overlayContent.style.height = '100%';
-  overlayContent.style.alignItems = 'center';
-  overlayContent.style.justifyContent = 'center';
-  overlayContent.style.pointerEvents = 'none';
-  overlay.insertBefore(overlayContent, overlayBottom); // before the bottom bar
-}
-
-
-
-/* ------------------------------------------------------------------
- *  Stop header buttons from receiving the stray click
- * ------------------------------------------------------------------ */
-let swallowNextClick = false;
-
-overlay.addEventListener('pointerup', e => {
-  if (uploading) return;
-
-  if (e.target === overlay) {
-    /* ① kill the click that this pointerup will generate */
-    e.preventDefault();          // no default click
-    e.stopPropagation();         // no bubbling pointerup
-    swallowNextClick = true;     // flag the upcoming click
-
-    /* ② hide the overlay AFTER the click cycle finishes */
-    setTimeout(closeOverlay, 0); // same-tick, but after click
-  }
-});
-
-/* ③ capture-phase listener that eats a single click */
-window.addEventListener(
-  'click',
-  e => {
-    if (swallowNextClick) {
-      e.stopPropagation();
-      e.preventDefault();
-      swallowNextClick = false;
-    }
-  },
-  true   // capture!
-);
-
-
-
-// ── gallery render (newest→oldest) ───────────────────────────────────────
-// ── lazy-load observer ─────────────────────────────────────────────────────
-// 👉 replace your existing observer with this
-
-/* --------------------------------------------------------------
- * Smarter lazy-loader
- *   – max 4 concurrent downloads
- *   – always loads the tile closest to the viewport first
- * -------------------------------------------------------------- */
-const MAX_CONCURRENT = 4;
-let   inFlight       = 0;
-const queue          = new Set();              // <img>/<video> waiting to load
-const LOAD_TIMEOUT = 4_000;
-
-
-function distanceToViewportCenter(rect) {
-  const vpCenter = window.innerHeight / 2;
-  return Math.abs((rect.top + rect.bottom) / 2 - vpCenter);
-}
-
-function processQueue() {
-  // console.log("processQueue", inFlight, queue.size);
-  if (inFlight >= MAX_CONCURRENT || queue.size === 0) return;
-
-  // console.log("processQueue: starting new load");
-
-  // pick the element whose centre is *closest* to the viewport centre
-  let bestEl = null, bestDist = Infinity;
-  for (const el of queue) {
-    const dist = distanceToViewportCenter(el.getBoundingClientRect());
-    if (dist < bestDist) { bestDist = dist; bestEl = el; }
-  }
-  if (!bestEl) return;
-
-  // console.log("processQueue: loading", bestEl);
-
-  queue.delete(bestEl);
-  startLoading(bestEl);
-}
-
-function startLoading(el) {
-  inFlight++;
-  if ('fetchPriority' in el) el.fetchPriority = 'high';
-
-  /* If the element has not fired anything in 15 seconds we call done()
-  ourselves; the thumbnail will simply try again the next time it scrolls
-  into view.*/ 
-  const kill = setTimeout(() => {
-    console.warn('lazy-loader timeout → giving up on', el.dataset.src);
-    done();
-  }, LOAD_TIMEOUT);
-
-  const done = () => {
-    delete el.dataset.queued;    // allow it to be queued again later
-    clearTimeout(kill);
-    io.unobserve(el);
-    inFlight = Math.max(0, inFlight - 1);
-    processQueue();
-  };
-
-  const eventName = el.tagName === 'VIDEO' ? 'loadeddata' : 'load';
-  el.addEventListener(eventName, done, { once: true });
-  el.addEventListener('error',     done, { once: true });
-  el.addEventListener('stalled',   done, { once: true }); 
-  el.addEventListener('abort',     done, { once: true });
-
-  el.src = el.dataset.src;
-  if (el.tagName === 'VIDEO') el.load();
-
-  /* fallback for already-cached resources */
-  if (el.tagName !== 'VIDEO' && el.complete) done();
-  if (el.tagName === 'VIDEO' && el.readyState >= 3) done();
-}
-
-/* ------------ IntersectionObserver ---------------------------- */
-function reassignObserver(rootEl) {
-  // stop watching everything with the old observer
-  io.disconnect();
-  io = makeObserver(rootEl);
-
-  // re-observe every thumb that hasn’t been loaded yet
-  document
-    .querySelectorAll('img[data-src]:not([src]), video[data-src]:not([src])')
-    .forEach(el => io.observe(el));
-}
-
-/*  ① we watch the *scroll-container* itself (the active tab-panel)
- *  ② we extend the “root” 400 px *below* the viewport so the
- *     thumbnails are queued well before they appear               */
-function makeObserver(rootEl) {
-  return new IntersectionObserver(
-    entries => {
-      for (const entry of entries) {
-        const el = entry.target;
-
-        if (entry.isIntersecting) {
-          //  in range  →  queue it (unless already queued / loaded)
-          if (!el.dataset.queued && !el.src) {
-            el.dataset.queued = '1';
-            if ('fetchPriority' in el) el.fetchPriority = 'low';
-            queue.add(el);
-            processQueue();
+        // 1) Find the <figure> whose lazy-loaded img/video src matches
+        const selector = isVideo
+          ? `video[src="${src}"]`
+          : `img[src="${src}"]`;
+        const mediaEl = document.querySelector(selector);
+        let dateMs = Date.now();
+        if (mediaEl) {
+          const fig = mediaEl.closest('figure');
+          if (fig && fig.dataset.taken) {
+            dateMs = Number(fig.dataset.taken);
           }
-        } else {
-          //  out of range again  →  drop from queue if not started yet
-          if (queue.delete(el)) delete el.dataset.queued;
         }
+
+        // 2) Format the timestamp freshly
+        const ts = new Date(dateMs);
+        const timePart = ts.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        });
+        const datePart = ts.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric"
+        });
+        const formatted = `${timePart}, ${datePart}`;
+
+        // 3) Build the overlay
+        currentSrc = src;
+        currentName = fileName;
+        // clear out any previous <img> or <video> children
+        overlay.querySelectorAll('img, video').forEach(el => el.remove());
+
+        // update timestamp in place
+        const tsEl = document.getElementById('timestamp');
+        tsEl.textContent = formatted;
+
+        // append our new media node
+        overlayContent.appendChild(
+          isVideo
+            ? Object.assign(document.createElement('video'), { src, controls: true })
+            : Object.assign(document.createElement('img'), { src })
+        );
+        overlay.classList.add('visible');
+
+        /* ── fetch + show credit, if any ─────────────────────────────── */
+        creditEl.textContent = '';
+        getCredit(fileName)
+          .then(c => {
+            // if (!c) return;
+            creditEl.textContent = !c || c == '' ? '' : `Credit: ${c}`;
+          });
+
+        overlayBottom.style.display = 'flex';
+        if (document.querySelector('.tab-panel.active').id === 'panelMine') {
+          overlayBtn.style.display = 'block';
+        } else {
+          overlayBtn.style.display = 'none';
+        }
+
+        // 4) Push history so ESC/back closes it
+        history.pushState({ view: 'overlay' }, '');
+
+      }, 0);
+
+    }
+
+    function closeOverlay() {
+      // console.log("closeOverlay");
+      /* ① stop video if one is present */
+      const vid = overlay.querySelector('video');
+      if (vid) {
+        vid.pause();
+        vid.currentTime = 0;
       }
-    },
-    {
-      // 300% loads the next 3 screens
-      // if we load too early, we waste bandwidth and CPU
-      root:       rootEl,
-      rootMargin: '0px 0px 450% 0px',
-      threshold:  0          // we don’t need any actual overlap
+
+      if (history.state?.view === 'overlay') {
+        history.back(); // pops the “overlay” entry off the stack
+      }
+
+      overlay.classList.remove('visible');
+      overlayBottom.style.display = 'none';
+      ensureOverlayContent();
+      overlayContent.innerHTML = "";
     }
-  );
-}
+    // listen for pointerdown on the overlay background:
+    // overlay.onclick = null;
+    // overlay.addEventListener('pointerup', e => {
+    //   if (uploading) return;
+    //   if (e.target === overlay) {
+    //     e.stopPropagation();
+    //     closeOverlay();
+    //   }
+    // });
+    window.addEventListener('keydown', e => {
+      if (uploading && e.key === 'Escape') return;
+      if (e.key === 'Escape') closeOverlay();
+    });
 
+    function ensureOverlayContent() {
+      if (overlayContent && overlay.contains(overlayContent)) return;
 
-
-// ── paging variables ───────────────────────────────────────────────────────
-const batchSize = 10;
-let loadedCount = batchSize;
-// const loadMoreBtn = document.getElementById('loadMoreBtn');
-// loadMoreBtn.onclick = () => {
-//   loadedCount += batchSize;
-//   render();
-// };
-
-
-/* ---------- FAST DATE HELPERS ---------------------------------- */
-// Use LastModified immediately; refine with EXIF later (images only)
-function quickDate(obj) {
-  return new Date(obj.LastModified);         // ✔ already in ListObjects
-}
-
-
-async function refineDate(key, origDate) {
-  // 1) Videos don’t carry EXIF
-  if (/\.(mp4|mov|webm)$/i.test(key)) {
-    return origDate;
-  }
-
-  const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
-  const exifDate = await getExifDateFromFile(url);
-  return exifDate || origDate;
-}
-
-
-/* ------------------------------------------------------------- *
- *  List *every* object in the bucket (handles the 1 000-key cap)
- * ------------------------------------------------------------- */
-async function listAllObjects() {
-  let   objects           = [];
-  let   ContinuationToken = undefined;
-
-  do {
-    const resp = await s3.send(
-      new ListObjectsV2Command({
-        Bucket: BUCKET,
-        ContinuationToken        // undefined on first call
-      })
-    );
-
-    objects.push(...(resp.Contents || []));
-    ContinuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
-  } while (ContinuationToken);
-
-  return objects;
-}
-
-
-
-/* ---------- RENDER ---------------------------------------------- */
-async function render() {
-  loader.style.display = 'flex';      // show spinner
-
-  try {
-
-    // 1. cheap list call, but ignore any metadata JSON files
-    const allObjects = await listAllObjects();
-    const Contents   = allObjects.filter(obj =>
-      // skip anything whose key ends with “.json” (case-insensitive)
-      !obj.Key.toLowerCase().endsWith('.json')
-    );
-
-    // 2. build a “raw” index using LastModified first
-    const index = Contents.map(obj => ({
-      Key: obj.Key,
-      takenDate: quickDate(obj)
-    }))
-    .sort((a, b) => b.takenDate - a.takenDate);
-
-    const mySet = mine();
-
-    /* -------- NEW: paint with **refined** dates right away -------- */
-    const firstScreen = 50;
-    for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
-      const { Key, takenDate } = index[i];
-      const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
-      index[i].takenDate = refined;                       // keep book-keeping tidy
-      await buildFigure(Key, refined, mySet);             // ⬅️ insertSorted() inside
+      // either first run or someone wiped it out — recreate it
+      overlayContent = document.createElement('div');
+      overlayContent.id = 'overlayContent';
+      overlayContent.style.display = 'flex';          // keep old flex styles
+      overlayContent.style.width = '100%';
+      overlayContent.style.height = '100%';
+      overlayContent.style.alignItems = 'center';
+      overlayContent.style.justifyContent = 'center';
+      overlayContent.style.pointerEvents = 'none';
+      overlay.insertBefore(overlayContent, overlayBottom); // before the bottom bar
     }
 
-    loader.style.display = 'none';      // spinner off
 
-    /* 4. stream the rest, but refine *before* insertion */
-    (async function streamRest() {
-      const chunk = 200; // The smaller chunk saves mobile data, but loads slower
-      for (let i = firstScreen; i < index.length; i += chunk) {
-        await Promise.all(
-          index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
-            const refined = await refineDate(Key, takenDate);
-            await buildFigure(Key, refined, mySet);        // already sorted
+
+    /* ------------------------------------------------------------------
+     *  Stop header buttons from receiving the stray click
+     * ------------------------------------------------------------------ */
+    let swallowNextClick = false;
+
+    overlay.addEventListener('pointerup', e => {
+      if (uploading) return;
+
+      if (e.target === overlay) {
+        /* ① kill the click that this pointerup will generate */
+        e.preventDefault();          // no default click
+        e.stopPropagation();         // no bubbling pointerup
+        swallowNextClick = true;     // flag the upcoming click
+
+        /* ② hide the overlay AFTER the click cycle finishes */
+        setTimeout(closeOverlay, 0); // same-tick, but after click
+      }
+    });
+
+    /* ③ capture-phase listener that eats a single click */
+    window.addEventListener(
+      'click',
+      e => {
+        if (swallowNextClick) {
+          e.stopPropagation();
+          e.preventDefault();
+          swallowNextClick = false;
+        }
+      },
+      true   // capture!
+    );
+
+
+
+    // ── gallery render (newest→oldest) ───────────────────────────────────────
+    // ── lazy-load observer ─────────────────────────────────────────────────────
+    // 👉 replace your existing observer with this
+
+    /* --------------------------------------------------------------
+     * Smarter lazy-loader
+     *   – max 4 concurrent downloads
+     *   – always loads the tile closest to the viewport first
+     * -------------------------------------------------------------- */
+    const MAX_CONCURRENT = 4;
+    let inFlight = 0;
+    const queue = new Set();              // <img>/<video> waiting to load
+    const LOAD_TIMEOUT = 4_000;
+
+
+    function distanceToViewportCenter(rect) {
+      const vpCenter = window.innerHeight / 2;
+      return Math.abs((rect.top + rect.bottom) / 2 - vpCenter);
+    }
+
+    function processQueue() {
+      // console.log("processQueue", inFlight, queue.size);
+      if (inFlight >= MAX_CONCURRENT || queue.size === 0) return;
+
+      // console.log("processQueue: starting new load");
+
+      // pick the element whose centre is *closest* to the viewport centre
+      let bestEl = null, bestDist = Infinity;
+      for (const el of queue) {
+        const dist = distanceToViewportCenter(el.getBoundingClientRect());
+        if (dist < bestDist) { bestDist = dist; bestEl = el; }
+      }
+      if (!bestEl) return;
+
+      // console.log("processQueue: loading", bestEl);
+
+      queue.delete(bestEl);
+      startLoading(bestEl);
+    }
+
+    function startLoading(el) {
+      inFlight++;
+      if ('fetchPriority' in el) el.fetchPriority = 'high';
+
+      /* If the element has not fired anything in 15 seconds we call done()
+      ourselves; the thumbnail will simply try again the next time it scrolls
+      into view.*/
+      const kill = setTimeout(() => {
+        console.warn('lazy-loader timeout → giving up on', el.dataset.src);
+        done();
+      }, LOAD_TIMEOUT);
+
+      const done = () => {
+        delete el.dataset.queued;    // allow it to be queued again later
+        clearTimeout(kill);
+        io.unobserve(el);
+        inFlight = Math.max(0, inFlight - 1);
+        processQueue();
+      };
+
+      const eventName = el.tagName === 'VIDEO' ? 'loadeddata' : 'load';
+      el.addEventListener(eventName, done, { once: true });
+      el.addEventListener('error', done, { once: true });
+      el.addEventListener('stalled', done, { once: true });
+      el.addEventListener('abort', done, { once: true });
+
+      el.src = el.dataset.src;
+      if (el.tagName === 'VIDEO') el.load();
+
+      /* fallback for already-cached resources */
+      if (el.tagName !== 'VIDEO' && el.complete) done();
+      if (el.tagName === 'VIDEO' && el.readyState >= 3) done();
+    }
+
+    /* ------------ IntersectionObserver ---------------------------- */
+    function reassignObserver(rootEl) {
+      // stop watching everything with the old observer
+      io.disconnect();
+      io = makeObserver(rootEl);
+
+      // re-observe every thumb that hasn’t been loaded yet
+      document
+        .querySelectorAll('img[data-src]:not([src]), video[data-src]:not([src])')
+        .forEach(el => io.observe(el));
+    }
+
+    /*  ① we watch the *scroll-container* itself (the active tab-panel)
+     *  ② we extend the “root” 400 px *below* the viewport so the
+     *     thumbnails are queued well before they appear               */
+    function makeObserver(rootEl) {
+      return new IntersectionObserver(
+        entries => {
+          for (const entry of entries) {
+            const el = entry.target;
+
+            if (entry.isIntersecting) {
+              //  in range  →  queue it (unless already queued / loaded)
+              if (!el.dataset.queued && !el.src) {
+                el.dataset.queued = '1';
+                if ('fetchPriority' in el) el.fetchPriority = 'low';
+                queue.add(el);
+                processQueue();
+              }
+            } else {
+              //  out of range again  →  drop from queue if not started yet
+              if (queue.delete(el)) delete el.dataset.queued;
+            }
+          }
+        },
+        {
+          // 300% loads the next 3 screens
+          // if we load too early, we waste bandwidth and CPU
+          root: rootEl,
+          rootMargin: '0px 0px 450% 0px',
+          threshold: 0          // we don’t need any actual overlap
+        }
+      );
+    }
+
+
+
+    // ── paging variables ───────────────────────────────────────────────────────
+    const batchSize = 10;
+    let loadedCount = batchSize;
+    // const loadMoreBtn = document.getElementById('loadMoreBtn');
+    // loadMoreBtn.onclick = () => {
+    //   loadedCount += batchSize;
+    //   render();
+    // };
+
+
+    /* ---------- FAST DATE HELPERS ---------------------------------- */
+    // Use LastModified immediately; refine with EXIF later (images only)
+    function quickDate(obj) {
+      return new Date(obj.LastModified);         // ✔ already in ListObjects
+    }
+
+
+    async function refineDate(key, origDate) {
+      // 1) Videos don’t carry EXIF
+      if (/\.(mp4|mov|webm)$/i.test(key)) {
+        return origDate;
+      }
+
+      const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
+      const exifDate = await getExifDateFromFile(url);
+      return exifDate || origDate;
+    }
+
+
+    /* ------------------------------------------------------------- *
+     *  List *every* object in the bucket (handles the 1 000-key cap)
+     * ------------------------------------------------------------- */
+    async function listAllObjects() {
+      let objects = [];
+      let ContinuationToken = undefined;
+
+      do {
+        const resp = await s3.send(
+          new ListObjectsV2Command({
+            Bucket: BUCKET,
+            ContinuationToken        // undefined on first call
           })
         );
-        await new Promise(r => setTimeout(r, 0));         // yield to UI
-      }
-    })();
 
-  } catch (err) {
-    console.error(err);            // log the real problem
-  } finally {
-    loader.style.display = 'none'; // hide spinner no matter what
-  }
-}
+        objects.push(...(resp.Contents || []));
+        ContinuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+      } while (ContinuationToken);
 
-
-/* ---------- helpers -------------------------------------------------- */
-// add a data-attribute that we can sort on
-function tagWithTaken(fig, date) {
-  fig.dataset.taken = String(date.getTime());   // newest → largest number
-}
-
-// (re)sort all children in a panel by that attribute (DESC)
-function sortPanel(panel) {
-  // console.log("sortPanel start", panel.id);
-  [...panel.children]                       // live HTMLCollection → array
-    .sort((a, b) => Number(b.dataset.taken) - Number(a.dataset.taken))
-    .forEach(el => panel.appendChild(el));  // re-append in correct order
-  // console.log("sortPanel end", panel.id);
-}
-
-function insertSorted(panel, fig) {
-  const newVal = Number(fig.dataset.taken);
-  for (const child of panel.children) {
-    if (Number(child.dataset.taken) < newVal) {
-      panel.insertBefore(fig, child);   // drop it just before the first “older” one
-      return;
-    }
-  }
-  panel.appendChild(fig);               // all others are newer → append at the end
-  updatePanelMessages();
-}
-
-// quickly wire clone → delete handler
-function rewireDelete(origFig, cloneFig) {
-  const o = origFig.querySelector('.del');
-  const c = cloneFig.querySelector('.del');
-  if (o && c) c.onclick = o.onclick;
-}
-
-async function appendNew(keys) {
-  keys = keys.filter(k => !k.toLowerCase().endsWith('.json'));
-
-  const me = mine();
-
-  for (const Key of keys) {
-    // head + EXIF → takenDate
-    const head      = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key }));
-
-    let takenDate;
-    if (head.Metadata?.taken) {
-      takenDate = new Date(head.Metadata.taken);
-    } else {
-      takenDate = await getExifDateFromURL(Key, head.LastModified);
+      return objects;
     }
 
-    /* build but DON’T append yet */
-    await buildFigure(Key, takenDate, me);
-
-    loadedCount++;              // keep paging logic happy
-  }
-
-  /* finally: re-sort both panels so the new items land in place */
-  sortPanel(panelAll);
-  sortPanel(panelMine);
-
-  updatePanelMessages();
-
-  // /* update "Load more" visibility */
-  // const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET }));
-  // loadMoreBtn.style.display = loadedCount < Contents.length ? 'inline-block' : 'none';
-}
-
-// 1) keep your File-based EXIF extractor as-is (but rename it to a generic "source")
-/**
- * Try to read all common EXIF date tags from a File or URL,
- * then return whichever is the oldest.
- */
-async function getExifDateFromFile(source) {
-  try {
-    // ask exifr for all the date fields it knows
-    const exif = await parse(source, [
-      "DateTimeOriginal",
-      "CreateDate",
-      "ModifyDate",
-      "DocumentName",       // sometimes JPEGs store edit dates here
-      "GPSTimeStamp"        // only for geo‐tagged images
-    ]) || {};
-
-    // collect only actual Date instances
-    const dates = [
-      exif.DateTimeOriginal,
-      exif.CreateDate,
-      exif.ModifyDate,
-      exif.GPSTimeStamp
-    ]
-    .filter(d => d instanceof Date)
-    .map(d => d.getTime());
-
-    if (dates.length === 0) {
-      return null;
-    }
-
-    // find the smallest (oldest) timestamp
-    const oldestMs = Math.min(...dates);
-    return new Date(oldestMs);
-
-  } catch (err) {
-    console.warn("EXIF parse failed for", source, err);
-    return null;
-  }
-}
 
 
-// 2) URL variant simply reuses the above
-async function getExifDateFromURL(key, fallbackMs) {
-  // Skip videos — they won’t have EXIF
-  if (/\.(mp4|mov|webm)$/i.test(key)) {
-    return new Date(fallbackMs);
-  }
+    /* ---------- RENDER ---------------------------------------------- */
+    async function render() {
+      loader.style.display = 'flex';      // show spinner
 
-  const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
-  const exifDate = await getExifDateFromFile(url);
-  if (exifDate) {
-    return exifDate;
-  }
+      try {
 
-  // fallback to S3’s LastModified timestamp
-  return new Date(fallbackMs);
-}
+        // 1. cheap list call, but ignore any metadata JSON files
+        const allObjects = await listAllObjects();
+        const Contents = allObjects.filter(obj =>
+          // skip anything whose key ends with “.json” (case-insensitive)
+          !obj.Key.toLowerCase().endsWith('.json')
+        );
 
+        // 2. build a “raw” index using LastModified first
+        const index = Contents.map(obj => ({
+          Key: obj.Key,
+          takenDate: quickDate(obj)
+        }))
+          .sort((a, b) => b.takenDate - a.takenDate);
 
-async function buildFigure(Key, takenDate, mySet) {
-  if (Key.toLowerCase().endsWith('.json')) return null;
+        const mySet = mine();
 
-  // This makes the images above the screen to be loaded in chunks
-  // If the image is inserted above the screen
-  if(dateIndicatorValue < Number(takenDate.getTime())){
-    pendingFigures.push({Key, takenDate, mySet});
-    
-    // if there is no timeout yet, let the pending figures accumulate for 5 seconds then render them simultaneously
-    if (!pendingFigures.timeout) {
-      pendingFigures.timeout = setTimeout(async () => {
-        // console.log("Inserting pending figures", pendingFigures);
-        for (const {Key, takenDate, mySet} of pendingFigures) {
-          await insertFigure(Key, takenDate, mySet);
+        /* -------- NEW: paint with **refined** dates right away -------- */
+        const firstScreen = 20;
+        for (let i = 0; i < Math.min(firstScreen, index.length); i++) {
+          const { Key, takenDate } = index[i];
+          const refined = await refineDate(Key, takenDate);   // 🔍 EXIF first
+          index[i].takenDate = refined;                       // keep book-keeping tidy
+          await buildFigure(Key, refined, mySet);             // ⬅️ insertSorted() inside
         }
-        pendingFigures = [];
-        pendingFigures.timeout = null; // reset timeout
-      }, 5000); // 5 seconds
-    }
-  } else {
-    // If the image is already on the screen, insert it immediately
-    await insertFigure(Key, takenDate, mySet);
-  }
 
-  async function insertFigure() {
-  const url        = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
-  const isMine     = mySet.has(Key);
-  const isVideo    = /\.(mp4|mov|webm)$/i.test(Key);
-  const timePart = takenDate.toLocaleTimeString("en-US", {
-    hour:   "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
-  const datePart = takenDate.toLocaleDateString("en-US", {
-    month: "short",
-    day:   "2-digit",
-    year:  "numeric"
-  });
-  const tsReadable = `${timePart}, ${datePart}`;
+        loader.style.display = 'none';      // spinner off
 
-  // build the figure
-  const fig = document.createElement('figure');
-  fig.style.touchAction = 'manipulation';             // for better pointer behavior
-  fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
-  fig.dataset.key = Key;
-  tagWithTaken(fig, takenDate);
-  fig.style.cursor = 'pointer';
-  
-  // thumbnail or video placeholder
-  if (isVideo) {
-    const v = document.createElement('video');
-    v.muted = true; v.controls = false; v.preload = 'none';
-    v.dataset.src = url;
-    fig.appendChild(v);
-    io.observe(v);
+        /* 4. stream the rest, but refine *before* insertion */
+        (async function streamRest() {
+          const chunk = 200; // The smaller chunk saves mobile data, but loads slower
+          for (let i = firstScreen; i < index.length; i += chunk) {
+            await Promise.all(
+              index.slice(i, i + chunk).map(async ({ Key, takenDate }) => {
+                const refined = await refineDate(Key, takenDate);
+                await buildFigure(Key, refined, mySet);        // already sorted
+              })
+            );
+            await new Promise(r => setTimeout(r, 0));         // yield to UI
+          }
+        })();
 
-    // add video icon
-    const icon = document.createElement('img');
-    icon.src   = 'https://img.icons8.com/fluency-systems-regular/48/video.png';
-    icon.alt   = 'video';
-    icon.className = 'video-icon';
-    icon.draggable = false;
-    fig.appendChild(icon);
-  } else {
-    const img = document.createElement('img');
-    img.loading   = 'lazy';
-    img.draggable = false;
-    img.dataset.src = url;
-    // img.addEventListener('dragstart', e => e.preventDefault()); // probably not needed
-    fig.appendChild(img);
-    io.observe(img);
-  }
-
-  function wireSelectionHandlers(fig, enableSelection = true) {
-    // add selection box to every item
-    if(enableSelection){
-    const box = document.createElement('div');
-    box.className = 'select-box';
-    fig.appendChild(box);}
-
-    // block just the native long-press menu
-    fig.addEventListener('contextmenu', e => e.preventDefault());
-
-    // --- LONG-PRESS SELECTION HANDLERS ---
-    let longPress = false;
-    let moved     = false;   // ← new
-    let startX, startY;
-    let lpTimer;
-
-    // on touch/pen/mouse down, start the 500ms timer
-    fig.addEventListener('pointerdown', e => {
-      startX = e.clientX;         // remember where the gesture began
-      startY = e.clientY;
-      moved  = false;
-      lpTimer = setTimeout(() => {
-        longPress = true;       
-        if (enableSelection) {toggleSelection(Key);}
-      }, 450);
-    });
-
-    // any significant move cancels “tap”
-    fig.addEventListener('pointermove', e => {
-      if (moved) return;
-      const dx = Math.abs(e.clientX - startX);
-      const dy = Math.abs(e.clientY - startY);
-      if (dx > 8 || dy > 8) {       // 8 px ≈ one finger wiggle
-        moved = true;
-        clearTimeout(lpTimer);      // stop long-press
+      } catch (err) {
+        console.error(err);            // log the real problem
+      } finally {
+        loader.style.display = 'none'; // hide spinner no matter what
       }
-    });
+    }
 
-    // on any exit or up, clear the timer
-    fig.addEventListener('pointerup', e => {
-      // console.log("pointerup", e);
-      clearTimeout(lpTimer);
-      if (longPress || moved) {
-        longPress = false;
-      } else if (e.target.className === "select-box" || selectedKeys.size > 0) {
-        if (enableSelection) {toggleSelection(Key);}
+
+    /* ---------- helpers -------------------------------------------------- */
+    // add a data-attribute that we can sort on
+    function tagWithTaken(fig, date) {
+      fig.dataset.taken = String(date.getTime());   // newest → largest number
+    }
+
+    // (re)sort all children in a panel by that attribute (DESC)
+    function sortPanel(panel) {
+      // console.log("sortPanel start", panel.id);
+      [...panel.children]                       // live HTMLCollection → array
+        .sort((a, b) => Number(b.dataset.taken) - Number(a.dataset.taken))
+        .forEach(el => panel.appendChild(el));  // re-append in correct order
+      // console.log("sortPanel end", panel.id);
+    }
+
+    function insertSorted(panel, fig) {
+      const newVal = Number(fig.dataset.taken);
+      for (const child of panel.children) {
+        if (Number(child.dataset.taken) < newVal) {
+          panel.insertBefore(fig, child);   // drop it just before the first “older” one
+          return;
+        }
+      }
+      panel.appendChild(fig);               // all others are newer → append at the end
+      updatePanelMessages();
+    }
+
+    // quickly wire clone → delete handler
+    function rewireDelete(origFig, cloneFig) {
+      const o = origFig.querySelector('.del');
+      const c = cloneFig.querySelector('.del');
+      if (o && c) c.onclick = o.onclick;
+    }
+
+    async function appendNew(keys) {
+      keys = keys.filter(k => !k.toLowerCase().endsWith('.json'));
+
+      const me = mine();
+
+      for (const Key of keys) {
+        // head + EXIF → takenDate
+        const head = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key }));
+
+        let takenDate;
+        if (head.Metadata?.taken) {
+          takenDate = new Date(head.Metadata.taken);
+        } else {
+          takenDate = await getExifDateFromURL(Key, head.LastModified);
+        }
+
+        /* build but DON’T append yet */
+        await buildFigure(Key, takenDate, me);
+
+        loadedCount++;              // keep paging logic happy
+      }
+
+      /* finally: re-sort both panels so the new items land in place */
+      sortPanel(panelAll);
+      sortPanel(panelMine);
+
+      updatePanelMessages();
+
+      // /* update "Load more" visibility */
+      // const { Contents = [] } = await s3.send(new ListObjectsV2Command({ Bucket: BUCKET }));
+      // loadMoreBtn.style.display = loadedCount < Contents.length ? 'inline-block' : 'none';
+    }
+
+    // 1) keep your File-based EXIF extractor as-is (but rename it to a generic "source")
+    /**
+     * Try to read all common EXIF date tags from a File or URL,
+     * then return whichever is the oldest.
+     */
+    async function getExifDateFromFile(source) {
+      try {
+        // ask exifr for all the date fields it knows
+        const exif = await parse(source, [
+          "DateTimeOriginal",
+          "CreateDate",
+          "ModifyDate",
+          "DocumentName",       // sometimes JPEGs store edit dates here
+          "GPSTimeStamp"        // only for geo‐tagged images
+        ]) || {};
+
+        // collect only actual Date instances
+        const dates = [
+          exif.DateTimeOriginal,
+          exif.CreateDate,
+          exif.ModifyDate,
+          exif.GPSTimeStamp
+        ]
+          .filter(d => d instanceof Date)
+          .map(d => d.getTime());
+
+        if (dates.length === 0) {
+          return null;
+        }
+
+        // find the smallest (oldest) timestamp
+        const oldestMs = Math.min(...dates);
+        return new Date(oldestMs);
+
+      } catch (err) {
+        console.warn("EXIF parse failed for", source, err);
+        return null;
+      }
+    }
+
+
+    // 2) URL variant simply reuses the above
+    async function getExifDateFromURL(key, fallbackMs) {
+      // Skip videos — they won’t have EXIF
+      if (/\.(mp4|mov|webm)$/i.test(key)) {
+        return new Date(fallbackMs);
+      }
+
+      const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
+      const exifDate = await getExifDateFromFile(url);
+      if (exifDate) {
+        return exifDate;
+      }
+
+      // fallback to S3’s LastModified timestamp
+      return new Date(fallbackMs);
+    }
+
+
+    async function buildFigure(Key, takenDate, mySet) {
+      if (Key.toLowerCase().endsWith('.json')) return null;
+
+      // This makes the images above the screen to be loaded in chunks
+      // If the image is inserted above the screen
+      if (dateIndicatorValue < Number(takenDate.getTime())) {
+        pendingFigures.push({ Key, takenDate, mySet });
+
+        // if there is no timeout yet, let the pending figures accumulate for 5 seconds then render them simultaneously
+        if (!pendingFigures.timeout) {
+          pendingFigures.timeout = setTimeout(async () => {
+            // console.log("Inserting pending figures", pendingFigures);
+            for (const { Key, takenDate, mySet } of pendingFigures) {
+              await insertFigure(Key, takenDate, mySet);
+            }
+            pendingFigures = [];
+            pendingFigures.timeout = null; // reset timeout
+          }, 5000); // 5 seconds
+        }
       } else {
-        openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
+        // If the image is already on the screen, insert it immediately
+        await insertFigure(Key, takenDate, mySet);
+      }
+
+      async function insertFigure(Key, takenDate, mySet) {
+        const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(Key)}`;
+        const isMine = mySet.has(Key);
+        const isVideo = /\.(mp4|mov|webm)$/i.test(Key);
+        const timePart = takenDate.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        });
+        const datePart = takenDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric"
+        });
+        const tsReadable = `${timePart}, ${datePart}`;
+
+        // build the figure
+        const fig = document.createElement('figure');
+        fig.style.touchAction = 'manipulation';             // for better pointer behavior
+        fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
+        fig.dataset.key = Key;
+        tagWithTaken(fig, takenDate);
+        fig.style.cursor = 'pointer';
+
+        // thumbnail or video placeholder
+        if (isVideo) {
+          const v = document.createElement('video');
+          v.muted = true; v.controls = false; v.preload = 'none';
+          v.dataset.src = url;
+          fig.appendChild(v);
+          io.observe(v);
+
+          // add video icon
+          const icon = document.createElement('img');
+          icon.src = 'https://img.icons8.com/fluency-systems-regular/48/video.png';
+          icon.alt = 'video';
+          icon.className = 'video-icon';
+          icon.draggable = false;
+          fig.appendChild(icon);
+        } else {
+          const img = document.createElement('img');
+          img.loading = 'lazy';
+          img.draggable = false;
+          img.dataset.src = url;
+          // img.addEventListener('dragstart', e => e.preventDefault()); // probably not needed
+          fig.appendChild(img);
+          io.observe(img);
+        }
+
+        function wireSelectionHandlers(fig, enableSelection = true) {
+          // add selection box to every item
+          if (enableSelection) {
+            const box = document.createElement('div');
+            box.className = 'select-box';
+            fig.appendChild(box);
+          }
+
+          // block just the native long-press menu
+          fig.addEventListener('contextmenu', e => e.preventDefault());
+
+          // --- LONG-PRESS SELECTION HANDLERS ---
+          let longPress = false;
+          let moved = false;   // ← new
+          let startX, startY;
+          let lpTimer;
+
+          // on touch/pen/mouse down, start the 500ms timer
+          fig.addEventListener('pointerdown', e => {
+            startX = e.clientX;         // remember where the gesture began
+            startY = e.clientY;
+            moved = false;
+            lpTimer = setTimeout(() => {
+              longPress = true;
+              if (enableSelection) { toggleSelection(Key); }
+            }, 450);
+          });
+
+          // any significant move cancels “tap”
+          fig.addEventListener('pointermove', e => {
+            if (moved) return;
+            const dx = Math.abs(e.clientX - startX);
+            const dy = Math.abs(e.clientY - startY);
+            if (dx > 8 || dy > 8) {       // 8 px ≈ one finger wiggle
+              moved = true;
+              clearTimeout(lpTimer);      // stop long-press
+            }
+          });
+
+          // on any exit or up, clear the timer
+          fig.addEventListener('pointerup', e => {
+            // console.log("pointerup", e);
+            clearTimeout(lpTimer);
+            if (longPress || moved) {
+              longPress = false;
+            } else if (e.target.className === "select-box" || selectedKeys.size > 0) {
+              if (enableSelection) { toggleSelection(Key); }
+            } else {
+              openOverlay(url, isVideo, tsReadable, Key.split('/').pop());
+            }
+          });
+
+
+          ['pointercancel'].forEach(evt =>
+            fig.addEventListener(evt, () => {
+              clearTimeout(lpTimer);
+            })
+          );
+        }
+
+        // always add to “All”
+        wireSelectionHandlers(fig, false); // no selection in “All” tab
+        insertSorted(panelAll, fig);
+
+        // if it’s mine, clone *and* re-attach handlers for “My Uploads”
+        if (isMine) {
+          // Clone the figure for the “My Uploads” pane
+          const clone = fig.cloneNode(true);
+
+          // // 0) get the original box and the clone's box
+          // const origBox  = fig.querySelector('.select-box');
+          // const cloneBox = clone.querySelector('.select-box');
+          // // 1) re-bind the click handler
+          // if (origBox && cloneBox) {
+          //   cloneBox.onclick = origBox.onclick;
+          // }
+
+          // 1) Re-attach lazy-load observer to the cloned thumb
+          const thumb = clone.querySelector('img, video');
+          if (thumb) io.observe(thumb);
+
+          // 2) Re-bind the click to openOverlay
+          clone.onclick = fig.onclick;
+
+          // // 3) Swap out the delete button’s handler to just open (no delete)
+          // const origDel  = fig .querySelector('.del');   // original delete handler
+          // const cloneDel = clone.querySelector('.del');  // delete in My Uploads
+          // if (origDel && cloneDel) {
+          //   cloneDel.onclick = origDel.onclick;          // give it *the same* handler
+          // }
+
+          wireSelectionHandlers(clone);
+          insertSorted(panelMine, clone);
+        }
+
+        return fig;
+      }
+
+
+    }
+
+    // pull out your selection logic so it’s easy to call from both tap and long-press
+    function toggleSelection(Key) {
+      const was = selectedKeys.has(Key);
+      if (was) selectedKeys.delete(Key);
+      else selectedKeys.add(Key);
+
+      // update *all* cloned figures for this Key
+      document.querySelectorAll(`figure[data-key="${Key}"]`).forEach(fig =>
+        fig.classList.toggle('selected', !was)
+      );
+      updateToolbar();
+    }
+
+    // initial render
+    render();
+
+    // 2) Delete Selected
+    btnDelete.onclick = async () => {
+      btnDelete.textContent = "Deleting…";
+      btnDelete.disabled = true;
+
+      const keys = Array.from(selectedKeys);          // ← all the keys up front
+      const count = keys.length;
+      if (!count) return reset();
+
+      if (!confirm(`Are you sure you want to delete ${count} file${count > 1 ? "s" : ""}?`)) {
+        return reset();
+      }
+
+      /* -----------------------------------------------------------------
+       * Build one flat array of promises.
+       * Each arrow callback receives its own `k`, so the template literal
+       * `${k}.json` is always defined.
+       * ----------------------------------------------------------------- */
+      const tasks = keys.flatMap(k => [
+        s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: k })), // main file
+        s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${k}.json` })) // credit JSON
+      ]);
+
+      await Promise.allSettled(tasks);      // continue even if one key is missing
+
+      /* ------- UI clean-up ------------------------------------------- */
+      for (const k of keys) {
+        document.querySelectorAll(`figure[data-key="${k}"]`).forEach(fig => fig.remove());
+        selectedKeys.delete(k);
+      }
+      updateToolbar();
+      updatePanelMessages();
+
+      reset();
+
+      function reset() {
+        btnDelete.disabled = false;
+        btnDelete.textContent = selectedKeys.size
+          ? `Delete (${selectedKeys.size})`
+          : "Delete";
+      }
+    };
+
+
+    overlayBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      // The overlay button is only visible in the “My Uploads” tab and it deletes the file
+      if (!currentSrc || !currentName) return;
+      if (!confirm(`Are you sure you want to delete this file?`)) return;
+      overlayBtn.disabled = true;
+      overlayBtn.textContent = "Deleting…";
+      try {
+        // delete from S3
+        const key = currentName; // your filename
+        console.log("Deleting", key);
+        await Promise.all([
+          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })),
+          s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${key}.json` }))
+        ]);
+
+        // remove from localStorage
+        const uploads = getUploads();
+        const idx = uploads.indexOf(currentSrc);
+        if (idx !== -1) {
+          uploads.splice(idx, 1);
+          saveUploads(uploads);
+        }
+
+        // remove the figure from both panels
+        document.querySelectorAll(`figure[data-key="${currentName}"]`).forEach(fig => fig.remove());
+
+        // re-check for empty panels
+        updatePanelMessages();
+      } finally {
+        overlayBtn.disabled = false;
+        overlayBtn.textContent = "Delete";
+        closeOverlay();
       }
     });
 
-
-    ['pointercancel'].forEach(evt =>
-      fig.addEventListener(evt, () => {
-        clearTimeout(lpTimer);
-      })
-    );
-  }
-
-  // always add to “All”
-  wireSelectionHandlers(fig, false); // no selection in “All” tab
-  insertSorted(panelAll, fig);
-
-  // if it’s mine, clone *and* re-attach handlers for “My Uploads”
-  if (isMine) {
-    // Clone the figure for the “My Uploads” pane
-    const clone = fig.cloneNode(true);
-
-    // // 0) get the original box and the clone's box
-    // const origBox  = fig.querySelector('.select-box');
-    // const cloneBox = clone.querySelector('.select-box');
-    // // 1) re-bind the click handler
-    // if (origBox && cloneBox) {
-    //   cloneBox.onclick = origBox.onclick;
-    // }
-
-    // 1) Re-attach lazy-load observer to the cloned thumb
-    const thumb = clone.querySelector('img, video');
-    if (thumb) io.observe(thumb);
-
-    // 2) Re-bind the click to openOverlay
-    clone.onclick = fig.onclick;
-
-    // // 3) Swap out the delete button’s handler to just open (no delete)
-    // const origDel  = fig .querySelector('.del');   // original delete handler
-    // const cloneDel = clone.querySelector('.del');  // delete in My Uploads
-    // if (origDel && cloneDel) {
-    //   cloneDel.onclick = origDel.onclick;          // give it *the same* handler
-    // }
-
-    wireSelectionHandlers(clone);
-    insertSorted(panelMine, clone);
-  }
-
-  return fig;
-}
-
-
-}
-
-// pull out your selection logic so it’s easy to call from both tap and long-press
-function toggleSelection(Key) {
-  const was = selectedKeys.has(Key);
-  if (was) selectedKeys.delete(Key);
-  else        selectedKeys.add(Key);
-
-  // update *all* cloned figures for this Key
-  document.querySelectorAll(`figure[data-key="${Key}"]`).forEach(fig =>
-    fig.classList.toggle('selected', !was)
-  );
-  updateToolbar();
-}
-
-// initial render
-render();
-
-// 2) Delete Selected
-btnDelete.onclick = async () => {
-  btnDelete.textContent = "Deleting…";
-  btnDelete.disabled    = true;
-
-  const keys  = Array.from(selectedKeys);          // ← all the keys up front
-  const count = keys.length;
-  if (!count) return reset();
-
-  if (!confirm(`Are you sure you want to delete ${count} file${count > 1 ? "s" : ""}?`)) {
-    return reset();
-  }
-
-  /* -----------------------------------------------------------------
-   * Build one flat array of promises.
-   * Each arrow callback receives its own `k`, so the template literal
-   * `${k}.json` is always defined.
-   * ----------------------------------------------------------------- */
-  const tasks = keys.flatMap(k => [
-    s3.send(new DeleteObjectCommand({ Bucket: BUCKET,     Key: k          })), // main file
-    s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${k}.json` })) // credit JSON
-  ]);
-
-  await Promise.allSettled(tasks);      // continue even if one key is missing
-
-  /* ------- UI clean-up ------------------------------------------- */
-  for (const k of keys) {
-    document.querySelectorAll(`figure[data-key="${k}"]`).forEach(fig => fig.remove());
-    selectedKeys.delete(k);
-  }
-  updateToolbar();
-  updatePanelMessages();
-
-  reset();
-
-  function reset() {
-    btnDelete.disabled  = false;
-    btnDelete.textContent = selectedKeys.size
-      ? `Delete (${selectedKeys.size})`
-      : "Delete";
-  }
-};
-
-
-overlayBtn.addEventListener('click', async (e) => {
-  e.preventDefault(); 
-  e.stopPropagation(); 
-  e.stopImmediatePropagation();
-
-  // The overlay button is only visible in the “My Uploads” tab and it deletes the file
-  if (!currentSrc || !currentName) return;
-  if (!confirm(`Are you sure you want to delete this file?`)) return;
-  overlayBtn.disabled = true;
-  overlayBtn.textContent = "Deleting…";
-  try {
-    // delete from S3
-    const key = currentName; // your filename
-    console.log("Deleting", key);
-    await Promise.all([
-      s3.send(new DeleteObjectCommand({ Bucket: BUCKET,        Key: key })),
-      s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET,   Key: `${key}.json` }))
-    ]);
-
-    // remove from localStorage
-    const uploads = getUploads();
-    const idx = uploads.indexOf(currentSrc);
-    if (idx !== -1) {
-      uploads.splice(idx, 1);
-      saveUploads(uploads);
-    }
-
-    // remove the figure from both panels
-    document.querySelectorAll(`figure[data-key="${currentName}"]`).forEach(fig => fig.remove());
-
-    // re-check for empty panels
-    updatePanelMessages();
-  } finally {
-    overlayBtn.disabled = false;
-    overlayBtn.textContent = "Delete";
-    closeOverlay();
-  }
-});
-
-function updatePanelMessages() {
-  function updateEmptyMessage(panel) {
-    if (!panel.querySelector('figure')) {
-      panel.innerHTML = "<p class='empty-message'>No uploads yet</p>";
-    } else {
-      panel.querySelector('.empty-message')?.remove();
-    }
-  }
-
-  updateEmptyMessage(panelAll);
-  updateEmptyMessage(panelMine);
-}
-
-
-// --- add “Select All” via Ctrl+A / ⌘+A, but only inside the active panel ---
-window.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-    e.preventDefault();
-
-    // find the active panel
-    const activePanel = document.querySelector('.tab-panel.active');
-    if (!activePanel) return;
-
-    // select every figure in that panel
-    activePanel
-      .querySelectorAll('figure[data-key]')
-      .forEach(fig => {
-        const key = fig.dataset.key;
-        if (!selectedKeys.has(key)) {
-          toggleSelection(key);
+    function updatePanelMessages() {
+      function updateEmptyMessage(panel) {
+        if (!panel.querySelector('figure')) {
+          panel.innerHTML = "<p class='empty-message'>No uploads yet</p>";
+        } else {
+          panel.querySelector('.empty-message')?.remove();
         }
-      });
-  }
-});
+      }
 
-</script>
-<!-- <script>
+      updateEmptyMessage(panelAll);
+      updateEmptyMessage(panelMine);
+    }
+
+
+    // --- add “Select All” via Ctrl+A / ⌘+A, but only inside the active panel ---
+    window.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+
+        // find the active panel
+        const activePanel = document.querySelector('.tab-panel.active');
+        if (!activePanel) return;
+
+        // select every figure in that panel
+        activePanel
+          .querySelectorAll('figure[data-key]')
+          .forEach(fig => {
+            const key = fig.dataset.key;
+            if (!selectedKeys.has(key)) {
+              toggleSelection(key);
+            }
+          });
+      }
+    });
+
+  </script>
+  <!-- <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(() => console.log('SW registered'))
@@ -1664,4 +1855,5 @@ window.addEventListener('keydown', e => {
   }
 </script> -->
 </body>
+
 </html>
