@@ -585,14 +585,18 @@
     /* Keep thumbnails from dimming the whole page on HDR phones */
     /* VS Code does not support this, but it works in Safari 17+ and 
     Chrome 121+ on iOS 17+ and Android 14+ */
-    @media (dynamic-range: high) {
-
-      .tab-panel img,
-      .tab-panel video {
-        dynamic-range-limit: constrained;
+    img,
+    video {
+      dynamic-range-limit: constrained; 
+      /* options are: "full", "constrained", "no-limit" */
+      /* "full" means the browser will use the full HDR range,
+         which can cause the whole page to dim on some phones */
+      /* "constrained" means the browser will use a limited
+         range that is safe for all devices, but still allows
+         for some HDR effects */
         /* was full HDR, now blended */
-      }
     }
+    
 
 
 
