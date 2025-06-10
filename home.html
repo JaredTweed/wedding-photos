@@ -582,6 +582,17 @@
 
 
 
+    /* Keep thumbnails from dimming the whole page on HDR phones */
+    /* VS Code does not support this, but it works in Safari 17+ and 
+    Chrome 121+ on iOS 17+ and Android 14+ */
+    @media (dynamic-range: high) {
+
+      .tab-panel img,
+      .tab-panel video {
+        dynamic-range-limit: constrained;
+        /* was full HDR, now blended */
+      }
+    }
 
 
 
@@ -905,7 +916,7 @@
 
       if (creditName == null) { creditName = ""; }
       const response = prompt(
-        "Enter your name if you want others to know these uploads are yours. Leave blank if you wish to remain anonymous.",
+        "Enter your name if you want others to know which uploads are yours. Leave blank if you wish to remain anonymous.",
         creditName || ""
       );
 
