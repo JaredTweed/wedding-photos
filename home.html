@@ -587,16 +587,16 @@
     Chrome 121+ on iOS 17+ and Android 14+ */
     img,
     video {
-      dynamic-range-limit: constrained; 
+      dynamic-range-limit: constrained;
       /* options are: "full", "constrained", "no-limit" */
       /* "full" means the browser will use the full HDR range,
          which can cause the whole page to dim on some phones */
       /* "constrained" means the browser will use a limited
          range that is safe for all devices, but still allows
          for some HDR effects */
-        /* was full HDR, now blended */
+      /* was full HDR, now blended */
     }
-    
+
 
 
 
@@ -721,6 +721,12 @@
     } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
     import { fromCognitoIdentityPool }
       from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
+    import {
+      CreateMultipartUploadCommand,
+      UploadPartCommand,
+      CompleteMultipartUploadCommand,
+      AbortMultipartUploadCommand
+    } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
 
     import JSZip from 'https://esm.sh/jszip@3.10.1';
 
@@ -734,6 +740,70 @@
     /* keep a single global observer that is rebuilt when the user
        switches tabs (because the scroll-container changes)          */
     let io = makeObserver(document.querySelector('.tab-panel.active'));
+
+
+
+    const PART_SIZE = 6 * 1024 * 1024;   // 6 MB
+    const MAX_SINGLE_UPLOAD = 80 * 1024 * 1024;  // files ≤ 80 MB go via PutObject
+
+    async function multipartUpload({ file, key, meta }) {
+      // 1️⃣  Start the MPU
+      const { UploadId } = await s3.send(
+        new CreateMultipartUploadCommand({
+          Bucket: BUCKET,
+          Key: key,
+          ContentType: file.type,
+          Metadata: meta
+        })
+      );
+
+      try {
+        // 2️⃣  Slice the File and upload each part
+        const parts = [];
+        let partNum = 1;
+
+        for (let start = 0; start < file.size; start += PART_SIZE) {
+          const end = Math.min(start + PART_SIZE, file.size);
+          const blob = file.slice(start, end);
+
+          const { ETag } = await s3.send(
+            new UploadPartCommand({
+              Bucket: BUCKET,
+              Key: key,
+              UploadId,
+              PartNumber: partNum,
+              Body: blob
+            })
+          );
+
+          parts.push({ ETag, PartNumber: partNum });
+          partNum++;
+
+          // ⚙️  (optional) update your overlay progress here
+        }
+
+        // 3️⃣  Finish the MPU
+        await s3.send(
+          new CompleteMultipartUploadCommand({
+            Bucket: BUCKET,
+            Key: key,
+            UploadId,
+            MultipartUpload: { Parts: parts }
+          })
+        );
+      } catch (err) {
+        // clean up on any failure
+        await s3.send(
+          new AbortMultipartUploadCommand({
+            Bucket: BUCKET,
+            Key: key,
+            UploadId
+          })
+        );
+        throw err;
+      }
+    }
+
 
 
     // NEW: scroll indicator logic
@@ -995,21 +1065,38 @@
         const key = `${Date.now()}_${file.name}`;
 
         // Prepare metadata
-        const exifDate = await getExifDateFromFile(file);
+        // const exifDate = await getExifDateFromFile(file);
+        const exifDate = isiOS                     // skip EXIF scan on iOS: heap-safe
+          ? null
+          : await getExifDateFromFile(file);
         const meta = {};
         if (exifDate) {
           // store as ISO so it sorts and reads nicely
           meta.taken = exifDate.toISOString();
         }
 
-        // perform upload
-        await s3.send(new PutObjectCommand({
-          Bucket: BUCKET,
-          Key: key,
-          Body: file,
-          ContentType: file.type,
-          Metadata: meta,
-        }));
+        // // perform upload
+        // await s3.send(new PutObjectCommand({
+        //   Bucket: BUCKET,
+        //   Key: key,
+        //   Body: file,
+        //   ContentType: file.type,
+        //   Metadata: meta,
+        // }));
+
+        if (file.size <= MAX_SINGLE_UPLOAD) {
+          // small enough → single PUT (streamed by Fetch)
+          await s3.send(new PutObjectCommand({
+            Bucket: BUCKET,
+            Key: key,
+            Body: file,
+            ContentType: file.type,
+            Metadata: meta
+          }));
+        } else {
+          // large file → browser-safe multipart
+          await multipartUpload({ file, key, meta });
+        }
 
         await putCredit(key, creditName);
 
