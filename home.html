@@ -475,6 +475,7 @@
 
     #overlayContent {
       display: flex;
+      flex-direction: column;
       width: 100%;
       height: 100%;
       align-items: center;
@@ -578,6 +579,52 @@
 
 
 
+
+    #progress-row-template {
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .progress-row {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+      width: 90%;
+      max-width: 30rem;
+      margin: .3rem auto 0;
+      color: #fff;
+      font: 500 1rem system-ui;
+      pointer-events: none;
+    }
+
+    .label {
+      display: none;
+    }
+
+    .progress-row progress {
+      flex: 1;
+      height: 1.75rem;
+      appearance: none;
+      border: none;
+      border-radius: 8px;
+    }
+
+    .progress-row progress::-webkit-progress-bar {
+      background: #444;
+      border-radius: 8px;
+    }
+
+    .progress-row progress::-webkit-progress-value {
+      background: var(--primary-color);
+      border-radius: 8px;
+    }
+
+    .progress-row.finish progress::-webkit-progress-value {
+      background: var(--primary-color);
+    }
 
 
 
@@ -695,6 +742,13 @@
   <div id="overlay">
     <div id="timestamp"></div>
     <div id="overlayContent"></div><!-- everything we wipe/repopulate lives in here -->
+    <template id="progress-row-template">
+      <div class="progress-row">
+        <span class="label"></span>
+        <progress max="100" value="0"></progress>
+      </div>
+    </template>
+
     <div id="overlayBottom" style="display:none">
       <button id="overlayBtn">Delete</button>
       <div class="credit"></div>
@@ -736,6 +790,8 @@
 
     let uploading = false;
     const isiOS = /iP(hone|od|ad)/.test(navigator.userAgent);
+    const isVideoFile = f => /^video\/|\.((mp4|mov|webm))$/i.test(f.type || f.name);
+
 
     /* keep a single global observer that is rebuilt when the user
        switches tabs (because the scroll-container changes)          */
@@ -743,10 +799,26 @@
 
 
 
+    function makeProgressRow(name) {
+      const tpl = document.getElementById('progress-row-template');
+      const row = tpl.content.firstElementChild.cloneNode(true);
+      row.querySelector('.label').textContent = name;
+      overlayContent.appendChild(row);
+      return {
+        set pct(v) { row.querySelector('progress').value = v },
+        finish() { row.classList.add('finish'); row.querySelector('progress').value = 100 }
+      };
+    }
+
+
+
     const PART_SIZE = 6 * 1024 * 1024;   // 6 MB
     const MAX_SINGLE_UPLOAD = 80 * 1024 * 1024;  // files ≤ 80 MB go via PutObject
 
-    async function multipartUpload({ file, key, meta }) {
+    async function multipartUpload({ file, key, meta, isVideo }) {
+      const bar = isVideo ? makeProgressRow(file.name) : null;
+      let sent = 0;
+
       // 1️⃣  Start the MPU
       const { UploadId } = await s3.send(
         new CreateMultipartUploadCommand({
@@ -779,7 +851,8 @@
           parts.push({ ETag, PartNumber: partNum });
           partNum++;
 
-          // ⚙️  (optional) update your overlay progress here
+          sent += blob.size;
+          if (bar) bar.pct = Math.round(sent / file.size * 100);
         }
 
         // 3️⃣  Finish the MPU
@@ -791,6 +864,8 @@
             MultipartUpload: { Parts: parts }
           })
         );
+
+        if (bar) bar.finish();
       } catch (err) {
         // clean up on any failure
         await s3.send(
@@ -1084,18 +1159,39 @@
         //   Metadata: meta,
         // }));
 
+        const isVid = isVideoFile(file);
+        let bar = null, uploaded = 0;
+
         if (file.size <= MAX_SINGLE_UPLOAD) {
-          // small enough → single PUT (streamed by Fetch)
+          if (isVid) bar = makeProgressRow(file.name);
           await s3.send(new PutObjectCommand({
             Bucket: BUCKET,
             Key: key,
-            Body: file,
             ContentType: file.type,
-            Metadata: meta
+            Metadata: meta,
+            Body: file,
+            // on browsers that support Fetch-upload progress
+            // the SDK passes through to fetch(); we tap it here:
+            requestHandler: {
+              handle: (req, opts) => {
+                if (isVid) {
+                  const total = file.size;
+                  req.body = file.stream();
+                  req.body.on('data', chunk => {
+                    uploaded += chunk.length;
+                    bar.pct = Math.round(uploaded / total * 100);
+                  });
+                } else {
+                  req.body = file;          // photo → no progress bar
+                }
+                return fetch(req, opts);
+              }
+            }
           }));
+          if (bar) bar.finish();
         } else {
           // large file → browser-safe multipart
-          await multipartUpload({ file, key, meta });
+          await multipartUpload({ file, key, meta, isVideo: isVideoFile(file) });
         }
 
         await putCredit(key, creditName);
