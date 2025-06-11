@@ -813,7 +813,7 @@
 
 
     const PART_SIZE = 6 * 1024 * 1024;   // 6 MB
-    const MAX_SINGLE_UPLOAD = 80 * 1024 * 1024;  // files ≤ 80 MB go via PutObject
+    const MAX_SINGLE_UPLOAD = 30 * 1024 * 1024;  // files ≤ 30 MB go via PutObject
 
     async function multipartUpload({ file, key, meta, isVideo }) {
       const bar = isVideo ? makeProgressRow(file.name) : null;
