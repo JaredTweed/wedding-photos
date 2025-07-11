@@ -880,12 +880,11 @@
     }
 
 
+    const PART_SIZE = 5 * 1024 * 1024;   // How frequently to slice the file & update progress bar
+    const MAX_SINGLE_UPLOAD = 5 * 1024 * 1024;  // To determine if we need to use MPU & loading bar
 
-    const PART_SIZE = 6 * 1024 * 1024;   // 6 MB
-    const MAX_SINGLE_UPLOAD = 30 * 1024 * 1024;  // files ≤ 30 MB go via PutObject
-
-    async function multipartUpload({ file, key, meta, isVideo }) {
-      const bar = isVideo ? makeProgressRow(file.name) : null;
+    async function multipartUpload({ file, key, meta, isVideo, progressCb = () => { } }) {
+      const bar = makeProgressRow(file.name);
       let sent = 0;
 
       // 1️⃣  Start the MPU
@@ -921,7 +920,9 @@
           partNum++;
 
           sent += blob.size;
-          if (bar) bar.pct = Math.round(sent / file.size * 100);
+          const pct = Math.round(sent / file.size * 100);
+          if (bar) bar.pct = pct;
+          progressCb(pct);
         }
 
         // 3️⃣  Finish the MPU
@@ -935,8 +936,8 @@
         );
 
         if (bar) bar.finish();
+        progressCb(100);
       } catch (err) {
-        // clean up on any failure
         await s3.send(
           new AbortMultipartUploadCommand({
             Bucket: BUCKET,
@@ -1195,7 +1196,7 @@
       ensureOverlayContent();
       overlayContent.innerHTML =
         `<div style="color:#fff;font-size:1.2rem;text-align:center;padding:1rem;">
-       Uploading 0 / ${files.length}…
+       Uploading 1 / ${files.length}…
        </div>`;
       overlay.classList.add('visible');
 
@@ -1234,23 +1235,25 @@
           const meta = exifDate ? { taken: exifDate.toISOString() } : {};
 
           const isVid = isVideoFile(file);
-          let bar = null;
+          // let bar = null;
 
           /* -------- choose simple PUT or multipart -------- */
           if (file.size <= MAX_SINGLE_UPLOAD) {
-            if (isVid) bar = makeProgressRow(file.name);
+            // small file → one-shot upload, no progress bar
             await s3.send(new PutObjectCommand({
-              Bucket: BUCKET, Key: key, Body: file,
-              ContentType: file.type, Metadata: meta
+              Bucket: BUCKET,
+              Key: key,
+              Body: file,
+              ContentType: file.type,
+              Metadata: meta
             }));
-            if (bar) bar.finish();
           } else {
+            // large file → let multipartUpload() create & update the bar
             await multipartUpload({
-              file, key, meta, isVideo: isVid,
-              progressCb: pct => {
-                if (!bar && isVid) bar = makeProgressRow(file.name);
-                if (bar) bar.pct = pct;
-              }
+              file,
+              key,
+              meta,
+              isVideo: isVid        // still passed for any future logic
             });
           }
 
@@ -1261,7 +1264,7 @@
           /* update overlay after each chunk */
           overlayContent.innerHTML =
             `<div style="color:#fff;font-size:1.2rem;text-align:center;padding:1rem;">
-            Uploading ${start + index + 1} / ${files.length}…</div>`;
+            Uploading ${start + index + 2} / ${files.length}…</div>`;
         }
       }
 
