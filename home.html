@@ -759,10 +759,10 @@
   <script type="module">
     // ── AWS config ─────────────────────────────────────────────────────────────
     const REGION = "us-west-2";
-    const ID_POOL = "us-west-2:8e34a4e5-741b-402e-9bfb-eeb90b5643e3";
-    const BUCKET = "weddingphotos-2025";
+    const ID_POOL = "";  // Cognito Identity Pool ID
+    const BUCKET = ""; // S3 Bucket name
 
-    const META_BUCKET = BUCKET;// "weddingphotos-metadata";         // ← second bucket
+    const META_BUCKET = BUCKET;
 
     // credit that *this* browser has chosen (string | "")
     let creditName = localStorage.getItem("creditName") ?? "";
