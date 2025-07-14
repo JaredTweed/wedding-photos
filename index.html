@@ -3,7 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Maiya & Jared 2025</title>
+
+  <!-- will be set via JS -->
+  <title id="page-title"></title>
+  <link id="favicon" rel="icon" type="image/x-icon" href="">
+
   <style>
     body {
       display: flex;
@@ -18,8 +22,6 @@
     #entryImage {
       max-width: 90vw;
       max-height: 80vh;
-      width: auto;
-      height: auto;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
       margin-bottom: 1rem;
@@ -27,7 +29,7 @@
     #enterBtn {
       padding: 1rem 2rem;
       font-size: 1.25rem;
-      background: hsl(96, 23.7%, 54%);
+      background: var(--primary-color);
       color: white;
       border: none;
       border-radius: 8px;
@@ -39,18 +41,35 @@
   </style>
 </head>
 <body>
-  <!-- Your photo -->
-  <img id="entryImage" src="./icons/original-photo.webp" alt="Maiya & Jared">
+  <!-- src will be set by JS -->
+  <img id="entryImage" alt="">
 
-  <!-- Enter button -->
   <button id="enterBtn">View Gallery</button>
 
-  <script>
+  <script type="module">
+    import {
+      PRIMARY_COLOR,
+      SITE_TITLE,
+      ENTRY_IMAGE,
+      ICO_IMAGE
+    } from './config.js';
+
+    // 1) Title & favicon
+    document.title = SITE_TITLE;
+    document.getElementById('page-title').textContent = SITE_TITLE;
+    document.getElementById('favicon').href = ICO_IMAGE;
+
+    // 2) Entry image
+    document.getElementById('entryImage').src = ENTRY_IMAGE;
+
+    // 3) Primary color
+    document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
+
+    // 4) Button navigation
     document.getElementById('enterBtn')
-            .addEventListener('click', () => {
-      // Change 'home.html' to whatever you named your real index file
-      window.location.href = 'home.html';
-    });
+      .addEventListener('click', () => {
+        window.location.href = 'home.html';
+      });
   </script>
 </body>
 </html>

@@ -4,8 +4,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Maiya & Jared 2025</title>
-  <link rel="icon" href="./icons/image.ico" type="image/x-icon">
+  <!-- <title>Maiya & Jared 2025</title> -->
+  <title id="page-title"></title>
+  <!-- <link rel="icon" href="./icons/image.ico" type="image/x-icon"> -->
+
+  <link id="favicon" rel="icon" type="image/x-icon" href="">
 
   <!-- <link rel="manifest" href="./manifest.json"> -->
   <!-- <meta name="theme-color" content="#60a060"> -->
@@ -15,8 +18,8 @@
 
   <style>
     :root {
-      --primary-color: hsl(96 23.7% 54%);
-      --secondary-color: hsl(96 21% 94%);
+      /* --primary-color: hsl(96 23.7% 54%);
+      --secondary-color: hsl(96 21% 94%); */
       --font-size: 1.2rem;
       --image-width: 160px;
     }
@@ -758,9 +761,54 @@
 
   <script type="module">
     // ── AWS config ─────────────────────────────────────────────────────────────
-    const REGION = "us-west-2";
-    const ID_POOL = "";  // Cognito Identity Pool ID
-    const BUCKET = ""; // S3 Bucket name
+    import {
+      PRIMARY_COLOR,
+      // SECONDARY_COLOR,
+      REGION,
+      ID_POOL,
+      BUCKET,
+      SITE_TITLE,
+      ICO_IMAGE
+    } from './config.js';
+    // 1) apply CSS–variable overrides at runtime
+    document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
+
+    // Set the HTML <title> and document.title
+    document.title = SITE_TITLE;
+    document.getElementById('page-title').textContent = SITE_TITLE;
+    document.getElementById('favicon').href = ICO_IMAGE;
+
+    /**
+     * Given a primary HSL string, returns a lighter secondary HSL color.
+     * The new lightness is `min(94, (original_lightness + 100) / 2)`
+     *
+     * @param {string} primaryHSL — e.g. "hsl(96 23.7% 54%)"
+     * @returns {string} — lighter HSL string, e.g. "hsl(96 23.7% 94%)"
+     */
+    function getSecondaryColor(primaryHSL) {
+      function parseHSL(hsl) {
+        const m = hsl.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/i);
+        if (!m) throw new Error(`Invalid HSL string: ${hsl}`);
+        return {
+          h: parseFloat(m[1]),
+          s: parseFloat(m[2]),
+          l: parseFloat(m[3]),
+        };
+      }
+
+      const { h, s, l } = parseHSL(primaryHSL);
+      const averaged = (l + 100) / 2;
+      const newL = Math.max(94, averaged);
+      return `hsl(${h} ${s}% ${newL}%)`;
+    }
+
+
+    document.documentElement.style.setProperty('--secondary-color', getSecondaryColor(PRIMARY_COLOR));
+
+    // (pulled from config.js)
+    // const REGION     = REGION;
+    // const ID_POOL    = ID_POOL;
+    // const BUCKET     = BUCKET;
 
     const META_BUCKET = BUCKET;
 
