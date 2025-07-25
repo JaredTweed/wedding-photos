@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- will be set via JS -->
+  <title id="page-title"></title>
+  <link id="favicon" rel="icon" type="image/x-icon" href="">
+
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #fafafa;
+    }
+    #entryImage {
+      max-width: 90vw;
+      max-height: 80vh;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      margin-bottom: 1rem;
+    }
+    #enterBtn {
+      padding: 1rem 2rem;
+      font-size: 1.25rem;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #enterBtn:active {
+      transform: translateY(2px);
+    }
+  </style>
+</head>
+<body>
+  <!-- src will be set by JS -->
+  <img id="entryImage" alt="">
+
+  <button id="enterBtn">View Gallery</button>
+
+  <script type="module">
+    import {
+      PRIMARY_COLOR,
+      SITE_TITLE,
+      ENTRY_IMAGE,
+      ICO_IMAGE
+    } from './config.js';
+
+    // 1) Title & favicon
+    document.title = SITE_TITLE;
+    document.getElementById('page-title').textContent = SITE_TITLE;
+    document.getElementById('favicon').href = ICO_IMAGE;
+
+    // 2) Entry image
+    document.getElementById('entryImage').src = ENTRY_IMAGE;
+
+    // 3) Primary color
+    document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
+
+    // 4) Button navigation
+    document.getElementById('enterBtn')
+      .addEventListener('click', () => {
+        window.location.href = 'home.html';
+      });
+  </script>
+</body>
+</html>

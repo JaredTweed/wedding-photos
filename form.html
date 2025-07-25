@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wedding Photos Config</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    /* ───────────  Base theme & CSS variables  ─────────── */
+    :root {
+      /* starting colour = hsl(96 23.7% 54%) */
+      --primary: hsl(96 23.7% 54%);
+      --current-hue: 96;   /* used to paint the saturation / lightness sliders */
+      --current-sat: 23.7; /* %  – gets updated by JS */
+    }
+
+    /* ───────────  Layout  ─────────── */
+    html,
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    .form-container {
+      background: #fff;
+      padding: 2rem 3rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 100%;
+    }
+
+    h2 {
+      margin: 0 0 1.5rem;
+      text-align: center;
+      color: var(--primary);
+    }
+
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: 600;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 0.3rem;
+      font-size: 1rem;
+      background: #fafafa;
+    }
+
+    /* ───────────  Fancy colour‑picker card  ─────────── */
+    .color-selector-section {
+      background: linear-gradient(135deg, #f8f9fa, #ffffff);
+      border: 2px solid #e9ecef;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+    .color-selector-section::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      height: 4px;
+      border-radius: 16px 16px 0 0;
+      background: linear-gradient(
+        90deg,
+        #ff0000,
+        #ffff00,
+        #00ff00,
+        #00ffff,
+        #0000ff,
+        #ff00ff,
+        #ff0000
+      );
+    }
+
+    .color-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .color-title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    #colorPreviewLarge {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+      background: var(--primary);
+      position: relative;
+      transition: background 0.3s ease;
+    }
+    #colorPreviewLarge::before {
+      content: "";
+      position: absolute;
+      top: 10%;
+      left: 20%;
+      width: 30%;
+      height: 30%;
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      filter: blur(8px);
+    }
+
+    .hsl-value-display {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-family: "Courier New", monospace;
+      font-size: 0.9rem;
+      color: #2c3e50;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .slider-group {
+      margin-bottom: 1.5rem;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: #555;
+      font-weight: 500;
+    }
+    .slider-value {
+      font-family: "Courier New", monospace;
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      min-width: 50px;
+      text-align: center;
+    }
+    .slider-container {
+      position: relative;
+      padding: 4px 0;
+    }
+
+    /* ───────────  Range sliders  ─────────── */
+    .hsl-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 12px;
+      border-radius: 6px;
+      outline: none;
+      margin: 0;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .hsl-slider:hover {
+      transform: scaleY(1.05);
+    }
+    .hsl-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #2c3e50;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s ease;
+    }
+    .hsl-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .hsl-slider::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #2c3e50;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Track backgrounds */
+    .hue {
+      background: linear-gradient(
+        to right,
+        #ff0000 0%,
+        #ff8000 12.5%,
+        #ffff00 25%,
+        #80ff00 37.5%,
+        #00ff00 50%,
+        #00ff80 62.5%,
+        #00ffff 75%,
+        #0080ff 87.5%,
+        #0000ff 100%,
+        #8000ff 112.5%,
+        #ff00ff 125%,
+        #ff0080 137.5%,
+        #ff0000 150%
+      );
+    }
+    /* these two are dynamically updated by JS after each input event */
+    .sat {
+      background: linear-gradient(
+        to right,
+        hsl(var(--current-hue) 0% 50%) 0%,
+        hsl(var(--current-hue) 100% 50%) 100%
+      );
+    }
+    .light {
+      background: linear-gradient(
+        to right,
+        hsl(var(--current-hue) var(--current-sat) 0%) 0%,
+        hsl(var(--current-hue) var(--current-sat) 50%) 50%,
+        hsl(var(--current-hue) var(--current-sat) 100%) 100%
+      );
+    }
+
+    /* ───────────  Buttons & extras  ─────────── */
+    .submit-btn {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0.75rem;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 30px;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      filter: brightness(0.95);
+    }
+
+    .info-toggle {
+      background: none;
+      border: none;
+      color: var(--primary);
+      cursor: pointer;
+      margin-left: 0.3rem;
+      font-size: 1rem;
+    }
+    .info-box {
+      display: none;
+      margin-top: 1rem;
+      background: #f1f3f5;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+
+    /* ───────────  Responsive tweaks  ─────────── */
+    @media (max-width: 640px) {
+      .form-container {
+        padding: 1.5rem 1.75rem;
+      }
+      .color-header {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <form class="form-container" onsubmit="submitForm(event)">
+    <h2>Configure Your Wedding Photos Site</h2>
+
+    <label>SITE_TITLE</label>
+    <input type="text" value="Wedding Photos" readonly />
+
+    <!-- ───────────────────  Colour chooser  ─────────────────── -->
+    <div class="color-selector-section">
+      <div class="color-header">
+        <h3 class="color-title">PRIMARY_COLOR</h3>
+        <div id="colorPreviewLarge"></div>
+      </div>
+
+      <div class="hsl-value-display" id="hslValue">hsl(96 23.7% 54%)</div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Hue</span><span class="slider-value" id="hueValue">96°</span>
+        </div>
+        <div class="slider-container">
+          <input id="hue" class="hsl-slider hue" type="range" min="0" max="360" step="1" value="96" oninput="updateColor()" />
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Saturation</span><span class="slider-value" id="satValue">23.7%</span>
+        </div>
+        <div class="slider-container">
+          <input id="sat" class="hsl-slider sat" type="range" min="0" max="100" step="0.1" value="23.7" oninput="updateColor()" />
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Lightness</span><span class="slider-value" id="lightValue">54%</span>
+        </div>
+        <div class="slider-container">
+          <input id="light" class="hsl-slider light" type="range" min="0" max="100" step="0.1" value="54" oninput="updateColor()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────────────────  S3 config  ─────────────────── -->
+    <label>Use Your Own S3 Bucket?</label>
+    <select id="useS3" onchange="toggleS3Fields()">
+      <option value="no">No</option>
+      <option value="yes">Yes</option>
+    </select>
+
+    <div id="s3Fields" style="display: none;">
+      <label>REGION</label>
+      <input type="text" value="ca-central-1" />
+
+      <label>ID_POOL</label>
+      <input type="text" value="ca-central-1:58bd9d1e-5338-44fb-90b0-9c22153739da" />
+
+      <label>BUCKET</label>
+      <input type="text" value="the-wedding-share" />
+
+      <button class="info-toggle" type="button" onclick="toggleInfoBox()">ℹ️ How do I get this info?</button>
+
+      <div class="info-box" id="s3Instructions">
+For all the following steps replace `the-wedding-share` with your bucket name.
+
+        ### Step 1
+        Create an s3 bucket with the bucket policy below:
+        ```
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": "AllowPublicRead",
+                    "Effect": "Allow",
+                    "Principal": "*",
+                    "Action": "s3:GetObject",
+                    "Resource": "arn:aws:s3:::the-wedding-share/*"
+                }
+            ]
+        }
+        ```
+        and the CORS below:
+        ```
+        [
+            {
+                "AllowedHeaders": ["*"],
+                "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+                "AllowedOrigins": ["*", "null"],
+                "ExposeHeaders": ["ETag", "x-amz-request-id", "x-amz-meta-description", "x-amz-meta-otherkey"],
+                "MaxAgeSeconds": 1800
+            }
+        ]
+        ```
+
+        ### Step 2
+        Create a role with the inline policy below.
+        ```
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "s3:ListBucket",
+              "Resource": "arn:aws:s3:::the-wedding-share"
+            },
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+              "Resource": "arn:aws:s3:::the-wedding-share/*"
+            }
+          ]
+        }
+        ```
+
+        ### Step 3
+        Make a Cognito identity pool with guest access attached to the above role.
+      </div>
+    </div>
+
+    <div id="notAvailable" style="display:none; margin-top:1rem; color: #a00;">
+      S3 integration is not available yet unless using your own bucket.
+    </div>
+
+    <button type="submit" class="submit-btn">Submit</button>
+  </form>
+
+  <script>
+    /* --- dynamic HSL handling --- */
+    function hsl() {
+      const h = document.getElementById('hue').value;
+      const s = document.getElementById('sat').value;
+      const l = document.getElementById('light').value;
+      return `hsl(${h} ${s}% ${l}%)`;
+    }
+
+    function updateColor(){
+      const h = document.getElementById('hue').value;
+      const s = document.getElementById('sat').value;
+      const l = document.getElementById('light').value;
+      const color = `hsl(${h} ${s}% ${l}%)`;
+      
+      // Update CSS custom properties
+      document.documentElement.style.setProperty('--primary', color);
+      document.documentElement.style.setProperty('--current-hue', h);
+      document.documentElement.style.setProperty('--current-sat', s);
+      
+      // Update displays
+      document.getElementById('hslValue').textContent = color;
+      document.getElementById('colorPreviewLarge').style.background = color;
+      
+      // Update individual value displays
+      document.getElementById('hueValue').textContent = h + '°';
+      document.getElementById('satValue').textContent = s + '%';
+      document.getElementById('lightValue').textContent = l + '%';
+      
+      // Update slider backgrounds for saturation and lightness
+      const satSlider = document.getElementById('sat');
+      const lightSlider = document.getElementById('light');
+      
+      satSlider.style.background = `linear-gradient(to right, 
+        hsl(${h}, 0%, 50%) 0%, 
+        hsl(${h}, 100%, 50%) 100%)`;
+        
+      lightSlider.style.background = `linear-gradient(to right, 
+        hsl(${h}, ${s}%, 0%) 0%, 
+        hsl(${h}, ${s}%, 50%) 50%, 
+        hsl(${h}, ${s}%, 100%) 100%)`;
+    }
+    
+    // Initialize color display
+    updateColor();
+
+    /* --- S3 toggle & info box --- */
+    function toggleS3Fields(){
+      const useS3 = document.getElementById('useS3').value === 'yes';
+      document.getElementById('s3Fields').style.display   = useS3 ? 'block':'none';
+      document.getElementById('notAvailable').style.display = useS3 ? 'none':'block';
+    }
+    function toggleInfoBox(){
+      const box = document.getElementById('s3Instructions');
+      box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
+
+    /* --- demo submit --- */
+    function submitForm(e){
+      e.preventDefault();
+      alert('Configuration submitted!\nPrimary color: '+hsl());
+    }
+  </script>
+</body>
+</html>
