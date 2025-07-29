@@ -1378,12 +1378,23 @@
         const tsEl = document.getElementById('timestamp');
         tsEl.textContent = formatted;
 
-        // append our new media node
-        overlayContent.appendChild(
-          isVideo
-            ? Object.assign(document.createElement('video'), { src, controls: true })
-            : Object.assign(document.createElement('img'), { src })
-        );
+        // Pause all thumbnail work and prioritize the opened media
+        pauseThumbLoading();
+        const big = isVideo
+          ? Object.assign(document.createElement('video'), { controls: true, preload: 'auto', playsInline: true })
+          : Object.assign(document.createElement('img'), { loading: 'eager', decoding: 'sync' });
+        if ('fetchPriority' in big) big.fetchPriority = 'high';
+        big.src = src;
+        const done = () => resumeThumbLoading();
+        if (isVideo) {
+          big.addEventListener('canplaythrough', done, { once: true }); // best-effort “fully buffered”
+          big.addEventListener('loadeddata', done, { once: true }); // fallback
+          big.addEventListener('error', done, { once: true });
+        } else {
+          big.addEventListener('load', done, { once: true });
+          big.addEventListener('error', done, { once: true });
+        }
+        overlayContent.appendChild(big);
         overlay.classList.add('visible');
 
         /* ── fetch + show credit, if any ─────────────────────────────── */
@@ -1425,6 +1436,7 @@
       overlayBottom.style.display = 'none';
       ensureOverlayContent();
       overlayContent.innerHTML = "";
+      resumeThumbLoading();
     }
     // listen for pointerdown on the overlay background:
     // overlay.onclick = null;
@@ -1505,6 +1517,27 @@
     const queue = new Set();              // <img>/<video> waiting to load
     const LOAD_TIMEOUT = 4_000;
 
+    let suspendThumbs = false;
+
+    function pauseThumbLoading() {
+      suspendThumbs = true;
+      // Drop queued-but-not-started thumbs AND clear their 'data-queued' flags
+      for (const el of queue) {
+        delete el.dataset.queued;
+      }
+      queue.clear();
+      try { io.disconnect(); } catch { }
+    }
+
+    function resumeThumbLoading() {
+      if (!suspendThumbs) return;
+      suspendThumbs = false;
+      const root = document.querySelector('.tab-panel.active');
+      reassignObserver(root); // re-watch all not-yet-loaded thumbs
+      processQueue();         // kick the queue
+    }
+
+
 
     function distanceToViewportCenter(rect) {
       const vpCenter = window.innerHeight / 2;
@@ -1513,7 +1546,7 @@
 
     function processQueue() {
       // console.log("processQueue", inFlight, queue.size);
-      if (inFlight >= MAX_CONCURRENT || queue.size === 0) return;
+      if (suspendThumbs || inFlight >= MAX_CONCURRENT || queue.size === 0) return;
 
       // console.log("processQueue: starting new load");
 
@@ -1571,6 +1604,11 @@
       io.disconnect();
       io = makeObserver(rootEl);
 
+      // Clear any stale 'queued' flags from a previous session
+      document
+        .querySelectorAll('img[data-src][data-queued]:not([src]), video[data-src][data-queued]:not([src])')
+        .forEach(el => delete el.dataset.queued);
+
       // re-observe every thumb that hasn’t been loaded yet
       document
         .querySelectorAll('img[data-src]:not([src]), video[data-src]:not([src])')
@@ -1592,7 +1630,7 @@
                 el.dataset.queued = '1';
                 if ('fetchPriority' in el) el.fetchPriority = 'low';
                 queue.add(el);
-                processQueue();
+                if (!suspendThumbs) processQueue();
               }
             } else {
               //  out of range again  →  drop from queue if not started yet
