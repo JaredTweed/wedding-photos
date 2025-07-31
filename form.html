@@ -387,17 +387,17 @@
     <div id="s3Fields" style="display: none;">
       <button class="info-toggle" type="button" onclick="toggleInfoBox()">How do I get this info?</button>
 
-      <label>Region</label>
+      <label>Bucket Title</label>
+      <input type="text" placeholder="my-bucket-title" />
+
+      <label>Bucket Region</label>
       <input type="text" placeholder="ca-central-1" />
 
       <!-- This refers to the Cognito Identity Pool ID -->
       <label>Cognito Identity Pool ID</label>
       <input type="text" placeholder="ca-central-1:28bf9d1e-5338-44fb-90b0-9c22153739da" />
 
-      <label>Bucket Title</label>
-      <input type="text" placeholder="my-bucket-title" />
-
-
+      
       <div class="info-box" id="s3Instructions">
         <h4>Step 1: Create an S3 bucket</h4>
         Replace 'my-bucket-title' with your actual bucket name.<br>
