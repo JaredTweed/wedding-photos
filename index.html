@@ -21,14 +21,37 @@
     .container {
       text-align: center;
       background: white;
-      padding: 3rem 2rem;
+      padding: 1rem 2rem;
+      margin: 0.5rem;
       border-radius: 16px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     }
 
+    p {
+      color: #333;
+      max-width: 450px;
+      margin: 0.5rem 0;
+    }
+
+    h1 {
+      margin: 0 0 -0.3rem 0;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 0.6rem;
+      /* background-color: #f1f1f1; */
+      border: 1px solid #ddd;
+      border-radius: 12px;
+    }
+
+
     .button {
       display: inline-block;
-      margin: 1rem;
+      margin: 0rem;
       padding: 0.75rem 2rem;
       font-size: 1rem;
       font-weight: 600;
@@ -70,11 +93,23 @@
 
 <body>
   <div class="container">
-    <button class="button demo-btn" onclick="viewDemo()">View Demo</button>
-    <button class="button google-btn" onclick="signInWithGoogle()">
-      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
-      Sign-In With Google to Create Your Own
-    </button>
+    <h1>Shared Lens</h1>
+    <p>by <a href="https://github.com/JaredTweed" target="_blank" rel="noopener noreferrer">Jared Tweed</a></p>
+
+
+    <p>Welcome to Shared Lens, a collaborative platform where wedding guests can share and manage photos, view others' contributions, all without logging in.</p>
+    <!-- <p>Sign in with Google to create your own wedding photo collection.</p> -->
+    <!-- <p>Or view the demo to see how it works.</p> -->
+
+    <div class="button-group">
+      <button class="button demo-btn" onclick="viewDemo()">View Demo</button>
+      <button class="button google-btn" onclick="signInWithGoogle()">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+        Sign-In With Google to Create Your Own
+      </button>
+    </div>
+
+    <p>WARNING: This website is not yet for commercial use, it is a personal project.</p>
   </div>
 
   <script>
