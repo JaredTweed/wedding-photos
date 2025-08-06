@@ -334,7 +334,7 @@
     <h2>Configure Your Wedding Photos Site</h2>
 
     <label>Site Title</label>
-    <input type="text" placeholder="Wedding Photos"/>
+    <input id="siteTitle" type="text" placeholder="Wedding Photos" />
 
     <!-- ───────────────────  Colour chooser  ─────────────────── -->
     <div class="color-selector-section">
@@ -388,15 +388,13 @@
       <button class="info-toggle" type="button" onclick="toggleInfoBox()">How do I get this info?</button>
 
       <label>Bucket Title</label>
-      <input type="text" placeholder="my-bucket-title" />
+      <input id="bucketName" type="text" placeholder="my-bucket-title" />
 
       <label>Bucket Region</label>
-      <input type="text" placeholder="ca-central-1" />
+      <input id="bucketRegion" type="text" placeholder="ca-central-1" />
 
-      <!-- This refers to the Cognito Identity Pool ID -->
       <label>Cognito Identity Pool ID</label>
-      <input type="text" placeholder="ca-central-1:28bf9d1e-5338-44fb-90b0-9c22153739da" />
-
+      <input id="idPool" type="text" placeholder="ca-central-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
 
       <div class="info-box" id="s3Instructions">
         <h4>Step 1: Create an S3 bucket</h4>
@@ -463,6 +461,21 @@
     <button type="submit" class="submit-btn">Submit</button>
   </form>
 
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAOcPjy9OsoWDuykf0XuvKfB9sAxSRvC7A",
+      authDomain: "sharedlens.ca",
+      projectId: "wedding-login-32785",
+      storageBucket: "wedding-login-32785.firebasestorage.app",
+      messagingSenderId: "554454604780",
+      appId: "1:554454604780:web:d7dfe10583f26d13cc7ec9",
+      measurementId: "G-J9BEKPXHYF"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
   <script>
     /* --- dynamic HSL handling --- */
     function hsl() {
@@ -520,11 +533,72 @@
       box.style.display = box.style.display === 'block' ? 'none' : 'block';
     }
 
-    /* --- demo submit --- */
-    function submitForm(e) {
-      e.preventDefault();
-      alert('Configuration submitted!\nPrimary color: ' + hsl());
+
+
+    // Title rules: letters/numbers/spaces only (ASCII space), no leading/trailing spaces
+    const TITLE_RE = /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/;
+
+    function makeSlug(title) {
+      // normalize spaces → single, trim, lower, spaces→hyphens
+      return title.trim().replace(/\s+/g, ' ').toLowerCase().replace(/ /g, '-');
     }
+
+    async function submitForm(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('siteTitle').value;
+      if (!TITLE_RE.test(title)) {
+        alert('Title can only contain letters, numbers, and single spaces (no tabs/newlines).');
+        return;
+      }
+
+      const color = (function hsl() {
+        const h = document.getElementById('hue').value;
+        const s = document.getElementById('sat').value;
+        const l = document.getElementById('light').value;
+        return `hsl(${h} ${s}% ${l}%)`;
+      })();
+
+      const useCustom = document.getElementById('useS3').value === 'yes';
+      const payload = {
+        siteTitle: title,
+        primaryColor: color,
+        // If user didn’t provide custom S3 values, the Lambda will fall back to env defaults
+        region: useCustom ? document.getElementById('bucketRegion').value : undefined,
+        idPool: useCustom ? document.getElementById('idPool').value : undefined,
+        bucket: useCustom ? document.getElementById('bucketName').value : undefined
+      };
+
+      // Must be signed in (index.html already sent them here after Google sign-in)
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert('Please sign in first.');
+        return;
+      }
+      const idToken = await user.getIdToken(/* forceRefresh */ true);
+
+      // Call your API Gateway endpoint
+      const res = await fetch('https://<YOUR_API_ID>.execute-api.<REGION>.amazonaws.com/sites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        alert('Failed: ' + msg);
+        return;
+      }
+
+      const { slug, url } = await res.json();
+      // send them to the new site
+      window.location.href = url; // e.g., https://sharedlens.ca/my-wedding-2025/
+    }
+
+
 
     function generatePerfectHueGradient() {
       const canvas = document.getElementById('hueGradientCanvas');
