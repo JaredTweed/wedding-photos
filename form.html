@@ -326,10 +326,71 @@
         flex-direction: column;
       }
     }
+
+    /* ───────────  User menu  ─────────── */
+    #sl-userbar {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10000;
+    }
+
+    #sl-user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, .15);
+      cursor: pointer;
+      background: #eee;
+      object-fit: cover;
+    }
+
+    #sl-user-menu {
+      position: absolute;
+      top: 52px;
+      right: 0;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, .12);
+      padding: 6px;
+      min-width: 160px;
+      display: none;
+    }
+
+    #sl-user-menu.show {
+      display: block;
+    }
+
+    #sl-user-menu button {
+      width: 100%;
+      background: none;
+      border: none;
+      text-align: left;
+      padding: .6rem .8rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #sl-user-menu button:hover {
+      background: #f3f4f6;
+    }
   </style>
 </head>
 
 <body>
+  <div id="sl-userbar">
+    <img id="sl-user-avatar" alt="User" />
+    <div id="sl-user-menu">
+      <button id="sl-logout">Sign out</button>
+    </div>
+  </div>
+
   <form class="form-container" onsubmit="submitForm(event)">
     <h2>Configure Your Wedding Photos Site</h2>
 
@@ -557,6 +618,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
   <script>
     // --- Auth readiness helper (fixes the "first submit says not signed in") ---
+    // Tiny helper to wait for a definitive auth state
     function waitForUser() {
       const u = firebase.auth().currentUser;
       if (u) return Promise.resolve(u);
@@ -564,6 +626,50 @@
         const off = firebase.auth().onAuthStateChanged(user => { off(); resolve(user || null); });
       });
     }
+
+    const userbar = document.getElementById('sl-userbar');
+    const avatarEl = document.getElementById('sl-user-avatar');
+    const menuEl = document.getElementById('sl-user-menu');
+    const logoutBtn = document.getElementById('sl-logout');
+
+    function setUserMenu(user) {
+      // Avatar image + tooltip
+      const fallback = (txt) => `https://ui-avatars.com/api/?name=${encodeURIComponent(txt)}&background=E5E7EB&color=111827`;
+      const nameOrEmail = user?.displayName || user?.email || 'You';
+      avatarEl.src = user?.photoURL || fallback(nameOrEmail);
+      avatarEl.title = user ? `${nameOrEmail}` : 'Not signed in';
+
+      // If not signed in, clicking avatar returns to home
+      if (!user) {
+        logoutBtn.textContent = 'Go to main page';
+        logoutBtn.onclick = () => { window.location.href = 'https://sharedlens.ca/'; };
+      } else {
+        logoutBtn.textContent = 'Sign out';
+        logoutBtn.onclick = async () => {
+          try {
+            await firebase.auth().signOut();
+            window.location.href = 'https://sharedlens.ca/';
+          } catch (e) {
+            alert('Sign-out failed: ' + (e.message || e));
+          }
+        };
+      }
+    }
+
+    // Toggle dropdown
+    avatarEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menuEl.classList.toggle('show');
+    });
+    document.addEventListener('click', () => menuEl.classList.remove('show'));
+
+    // Keep it in sync with auth state
+    firebase.auth().onAuthStateChanged(user => {
+      setUserMenu(user);
+    });
+
+    // If the page loads with a cached user, this ensures the avatar appears immediately
+    waitForUser().then(setUserMenu);
 
     const db = firebase.firestore();
 
