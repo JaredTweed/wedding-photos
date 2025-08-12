@@ -758,51 +758,73 @@
     </div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Re-use the same Firebase config you have in index.html/form.html
+    const firebaseConfig = {
+      apiKey: "AIzaSyAOcPjy9OsoWDuykf0XuvKfB9sAxSRvC7A",
+      authDomain: "sharedlens.ca",
+      projectId: "wedding-login-32785",
+      storageBucket: "wedding-login-32785.firebasestorage.app",
+      messagingSenderId: "554454604780",
+      appId: "1:554454604780:web:d7dfe10583f26d13cc7ec9",
+      measurementId: "G-J9BEKPXHYF"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  </script>
+
   <script type="module">
-    // ── AWS config ─────────────────────────────────────────────────────────────
-    import {
-      PRIMARY_COLOR,
-      // SECONDARY_COLOR,
-      REGION,
-      ID_POOL,
-      BUCKET,
-      SITE_TITLE,
-      ICO_IMAGE
-    } from './config.js';
-    // 1) apply CSS–variable overrides at runtime
-    document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
+    // 🔽 NEW: load site config for the current path
+    import { S3Client, PutObjectCommand, ListObjectsV2Command, HeadObjectCommand, DeleteObjectCommand } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
+    import { fromCognitoIdentityPool } from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
+    import JSZip from 'https://esm.sh/jszip@3.10.1';
+    import { parse } from "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs";
 
-    // Set the HTML <title> and document.title
-    document.title = SITE_TITLE;
-    document.getElementById('page-title').textContent = SITE_TITLE;
-    document.getElementById('favicon').href = ICO_IMAGE;
+    const db = firebase.firestore();
+    const slug = location.pathname.replace(/^\/+|\/+$/g, ''); // '' when visiting /home.html directly
+    const fallbackSlug = ''; // if you want a default demo config when opening /home.html
 
-    /**
-     * Given a primary HSL string, returns a lighter secondary HSL color.
-     * The new lightness is `min(94, (original_lightness + 100) / 2)`
-     *
-     * @param {string} primaryHSL — e.g. "hsl(96 23.7% 54%)"
-     * @returns {string} — lighter HSL string, e.g. "hsl(96 23.7% 94%)"
-     */
-    function getSecondaryColor(primaryHSL) {
-      function parseHSL(hsl) {
-        const m = hsl.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/i);
-        if (!m) throw new Error(`Invalid HSL string: ${hsl}`);
-        return {
-          h: parseFloat(m[1]),
-          s: parseFloat(m[2]),
-          l: parseFloat(m[3]),
-        };
-      }
-
-      const { h, s, l } = parseHSL(primaryHSL);
-      const averaged = (l + 100) / 2;
-      const newL = Math.max(94, averaged);
-      return `hsl(${h} ${s}% ${newL}%)`;
+    async function loadSiteConfig(slugValue) {
+      if (!slugValue) return {
+        SITE_TITLE: "Demo Site",
+        PRIMARY_COLOR: "hsl(96 23.7% 54%)",
+        REGION: "",
+        ID_POOL: "",
+        BUCKET: "",
+        ICO_IMAGE: ""
+      };
+      const snap = await db.collection('sites').doc(slugValue).get();
+      if (!snap.exists) throw new Error('Site not found');
+      const d = snap.data();
+      return {
+        SITE_TITLE: d.title,
+        PRIMARY_COLOR: d.primaryColor,
+        REGION: d.region,
+        ID_POOL: d.idPool,
+        BUCKET: d.bucket,
+        ICO_IMAGE: d.icoImage || ""
+      };
     }
 
+    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE } =
+      await loadSiteConfig(slug || fallbackSlug);
 
+    // Apply theme + title/favicon
+    document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
+    document.title = SITE_TITLE;
+    document.getElementById('page-title').textContent = SITE_TITLE;
+    if (ICO_IMAGE) document.getElementById('favicon').href = ICO_IMAGE;
+
+    // Build secondary color like your original code
+    function getSecondaryColor(primaryHSL) {
+      const m = primaryHSL.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/i);
+      const h = parseFloat(m[1]), s = parseFloat(m[2]), l = parseFloat(m[3]);
+      const newL = Math.max(94, (l + 100) / 2);
+      return `hsl(${h} ${s}% ${newL}%)`;
+    }
     document.documentElement.style.setProperty('--secondary-color', getSecondaryColor(PRIMARY_COLOR));
+
 
     // (pulled from config.js)
     // const REGION     = REGION;
@@ -815,26 +837,6 @@
     let creditName = localStorage.getItem("creditName") ?? "";
     // one-shot cache so we don’t refetch the same JSON again
     const creditCache = new Map();   // Key → credit string | null
-
-    import { parse } from
-      "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs";
-    import {
-      S3Client, ListObjectsV2Command, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand
-    } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
-    import { fromCognitoIdentityPool }
-      from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
-    import {
-      CreateMultipartUploadCommand,
-      UploadPartCommand,
-      CompleteMultipartUploadCommand,
-      AbortMultipartUploadCommand
-    } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
-
-    import JSZip from 'https://esm.sh/jszip@3.10.1';
-
-
-
-
 
     /* ---------- THUMBNAILS (client-side) -------------------------------- */
     const THUMB_PREFIX = 'thumbs/';   // folder that will live in the *same* bucket

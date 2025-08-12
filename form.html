@@ -535,70 +535,6 @@
 
 
 
-    // Title rules: letters/numbers/spaces only (ASCII space), no leading/trailing spaces
-    const TITLE_RE = /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/;
-
-    function makeSlug(title) {
-      // normalize spaces → single, trim, lower, spaces→hyphens
-      return title.trim().replace(/\s+/g, ' ').toLowerCase().replace(/ /g, '-');
-    }
-
-    async function submitForm(e) {
-      e.preventDefault();
-
-      const title = document.getElementById('siteTitle').value;
-      if (!TITLE_RE.test(title)) {
-        alert('Title can only contain letters, numbers, and single spaces (no tabs/newlines).');
-        return;
-      }
-
-      const color = (function hsl() {
-        const h = document.getElementById('hue').value;
-        const s = document.getElementById('sat').value;
-        const l = document.getElementById('light').value;
-        return `hsl(${h} ${s}% ${l}%)`;
-      })();
-
-      const useCustom = document.getElementById('useS3').value === 'yes';
-      const payload = {
-        siteTitle: title,
-        primaryColor: color,
-        // If user didn’t provide custom S3 values, the Lambda will fall back to env defaults
-        region: useCustom ? document.getElementById('bucketRegion').value : undefined,
-        idPool: useCustom ? document.getElementById('idPool').value : undefined,
-        bucket: useCustom ? document.getElementById('bucketName').value : undefined
-      };
-
-      // Must be signed in (index.html already sent them here after Google sign-in)
-      const user = firebase.auth().currentUser;
-      if (!user) {
-        alert('Please sign in first.');
-        return;
-      }
-      const idToken = await user.getIdToken(/* forceRefresh */ true);
-
-      // Call your API Gateway endpoint
-      const res = await fetch('https://<YOUR_API_ID>.execute-api.<REGION>.amazonaws.com/sites', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const msg = await res.text();
-        alert('Failed: ' + msg);
-        return;
-      }
-
-      const { slug, url } = await res.json();
-      // send them to the new site
-      window.location.href = url; // e.g., https://sharedlens.ca/my-wedding-2025/
-    }
-
-
 
     function generatePerfectHueGradient() {
       const canvas = document.getElementById('hueGradientCanvas');
@@ -617,6 +553,69 @@
 
     generatePerfectHueGradient();
 
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script>
+    // Put this near your other scripts on form.html
+    function waitForUser() {
+      const u = firebase.auth().currentUser;
+      if (u) return Promise.resolve(u);
+      return new Promise(resolve => {
+        const off = firebase.auth().onAuthStateChanged(user => {
+          off(); resolve(user || null);
+        });
+      });
+    }
+
+    const db = firebase.firestore();
+    const TITLE_RE = /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/;
+
+    function toSlug(title) {
+      const clean = title.trim().replace(/\s+/g, ' ');
+      if (!TITLE_RE.test(clean)) {
+        throw new Error('Title may only contain letters, numbers, and single spaces between words.');
+      }
+      return clean.toLowerCase().replace(/ /g, '-');
+    }
+
+    async function submitForm(e) {
+      e.preventDefault();
+
+      const user = await waitForUser();
+      if (!user) { alert('Please sign in first.'); return; }
+
+      const titleRaw = document.getElementById('siteTitle').value || '';
+      let slug; try { slug = toSlug(titleRaw); } catch (err) { alert(err.message); return; }
+
+      const h = document.getElementById('hue').value;
+      const s = document.getElementById('sat').value;
+      const l = document.getElementById('light').value;
+      const primaryColor = `hsl(${h} ${s}% ${l}%)`;
+
+      const useS3 = document.getElementById('useS3').value === 'yes';
+      const bucket = useS3 ? (document.getElementById('bucketName').value || '') : '';
+      const region = useS3 ? (document.getElementById('bucketRegion').value || '') : '';
+      const idPool = useS3 ? (document.getElementById('idPool').value || '') : '';
+
+      const docRef = db.collection('sites').doc(slug);
+      try {
+        await docRef.set({
+          title: titleRaw.trim().replace(/\s+/g, ' '),
+          slug,
+          primaryColor,
+          region, idPool, bucket,
+          icoImage: "",
+          createdBy: user.uid,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: false });
+
+        window.location.href = `/${slug}`;
+      } catch (err) {
+        alert(err.code === 'permission-denied'
+          ? 'That title is taken. Try another.'
+          : 'Could not create site: ' + err.message);
+      }
+    }
   </script>
 </body>
 

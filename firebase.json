@@ -7,10 +7,16 @@
       "**/node_modules/**"
     ],
     "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
+      { "source": "/form", "destination": "/form.html" },
+      { "source": "/home", "destination": "/home.html" },
+      { "source": "/:slug", "destination": "/home.html" },
+      { "source": "**", "destination": "/index.html"}
     ]
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "us-west2",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }

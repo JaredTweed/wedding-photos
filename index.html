@@ -130,9 +130,13 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
+    // make this go to the slug route /wedding-photos (which is not an html file))
     function viewDemo() {
-      window.location.href = 'home.html';
+      window.location.href = "wedding-photos";
     }
+
+
+      
 
     function signInWithGoogle() {
       const provider = new firebase.auth.GoogleAuthProvider();
