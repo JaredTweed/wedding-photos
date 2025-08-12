@@ -556,49 +556,154 @@
   </script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
   <script>
-    // Put this near your other scripts on form.html
+    // --- Auth readiness helper (fixes the "first submit says not signed in") ---
     function waitForUser() {
       const u = firebase.auth().currentUser;
       if (u) return Promise.resolve(u);
       return new Promise(resolve => {
-        const off = firebase.auth().onAuthStateChanged(user => {
-          off(); resolve(user || null);
-        });
+        const off = firebase.auth().onAuthStateChanged(user => { off(); resolve(user || null); });
       });
     }
 
     const db = firebase.firestore();
+
+    // Title: letters/numbers + single spaces (ASCII), no leading/trailing spaces
     const TITLE_RE = /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/;
 
     function toSlug(title) {
       const clean = title.trim().replace(/\s+/g, ' ');
-      if (!TITLE_RE.test(clean)) {
-        throw new Error('Title may only contain letters, numbers, and single spaces between words.');
-      }
+      if (!TITLE_RE.test(clean)) throw new Error('Title may only contain letters, numbers, and single spaces between words.');
       return clean.toLowerCase().replace(/ /g, '-');
     }
 
+    // --- Prefill the form with your latest site (if you’ve created one before) ---
+    async function prefillFromAccount() {
+      const user = await waitForUser();
+      if (!user) return; // not signed in → nothing to prefill
+
+      const snap = await db.collection('sites')
+        .where('createdBy', '==', user.uid)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
+
+      if (snap.empty) return;
+
+      const d = snap.docs[0].data();
+      // 1) Title
+      const titleEl = document.getElementById('siteTitle');  // exists in your form
+      titleEl.value = d.title || '';
+
+      // 2) Primary color → parse "hsl(H S% L%)" and set sliders
+      const m = (d.primaryColor || '').match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/i);
+      if (m) {
+        document.getElementById('hue').value = +m[1];
+        document.getElementById('sat').value = +m[2];
+        document.getElementById('light').value = +m[3];
+        // your page already defines updateColor()
+        if (typeof updateColor === 'function') updateColor();
+      }
+
+      // 3) S3 settings
+      const hasS3 = !!(d.bucket && d.region && d.idPool);
+      document.getElementById('useS3').value = hasS3 ? 'yes' : 'no';
+      document.getElementById('bucketName').value = d.bucket || '';
+      document.getElementById('bucketRegion').value = d.region || '';
+      document.getElementById('idPool').value = d.idPool || '';
+      if (typeof toggleS3Fields === 'function') toggleS3Fields();
+    }
+
+    // Run prefill as soon as auth resolves (user or null)
+    firebase.auth().onAuthStateChanged(() => { prefillFromAccount(); });
+
+    // Reflect whatever the HTML default is on first paint
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof toggleS3Fields === 'function') toggleS3Fields();
+    });
+
+
+    // --- S3 bucket health check (list → put → public head → delete) ---
+    async function s3HealthCheck({ region, idPool, bucket }) {
+      // Dynamic import keeps your form a classic script; no bundler needed
+      const s3lib = await import("https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser");
+      const idlib = await import("https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser");
+
+      const { S3Client, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } = s3lib;
+      const { fromCognitoIdentityPool } = idlib;
+
+      const s3 = new S3Client({
+        region,
+        credentials: fromCognitoIdentityPool({ identityPoolId: idPool, clientConfig: { region } })
+      });
+
+      const key = `__healthcheck__/${Date.now()}_${Math.random().toString(36).slice(2)}.txt`;
+      let putOk = false;
+
+      try {
+        // 1) Bucket exists & List allowed
+        await s3.send(new ListObjectsV2Command({ Bucket: bucket, MaxKeys: 0 }));
+
+        // 2) Can upload
+        await s3.send(new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: new Blob(['ok'], { type: 'text/plain' }),
+          ContentType: 'text/plain'
+        }));
+        putOk = true;
+
+        // 3) Object publicly readable (matches how home.html fetches via HTTPS URL)
+        const headUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`;
+        const resp = await fetch(headUrl, { method: 'HEAD' });
+        if (!resp.ok) throw new Error(`Public read failed (HTTP ${resp.status}) — check your bucket policy & CORS.`);
+
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, message: err.message || String(err) };
+      } finally {
+        // 4) Clean up if we managed to PUT
+        if (putOk) {
+          try { await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })); } catch { }
+        }
+      }
+    }
+
+    // --- Submit handler: now includes the S3 check ---
     async function submitForm(e) {
       e.preventDefault();
+      const btn = e.submitter || document.querySelector('button[type="submit"]');
+      if (btn) btn.disabled = true;
 
-      const user = await waitForUser();
-      if (!user) { alert('Please sign in first.'); return; }
-
-      const titleRaw = document.getElementById('siteTitle').value || '';
-      let slug; try { slug = toSlug(titleRaw); } catch (err) { alert(err.message); return; }
-
-      const h = document.getElementById('hue').value;
-      const s = document.getElementById('sat').value;
-      const l = document.getElementById('light').value;
-      const primaryColor = `hsl(${h} ${s}% ${l}%)`;
-
-      const useS3 = document.getElementById('useS3').value === 'yes';
-      const bucket = useS3 ? (document.getElementById('bucketName').value || '') : '';
-      const region = useS3 ? (document.getElementById('bucketRegion').value || '') : '';
-      const idPool = useS3 ? (document.getElementById('idPool').value || '') : '';
-
-      const docRef = db.collection('sites').doc(slug);
       try {
+        const user = await waitForUser();
+        if (!user) { alert('Please sign in first.'); return; }
+
+        const titleRaw = document.getElementById('siteTitle').value || '';
+        let slug; try { slug = toSlug(titleRaw); } catch (err) { alert(err.message); return; }
+
+        // Color → HSL string
+        const h = document.getElementById('hue').value;
+        const s = document.getElementById('sat').value;
+        const l = document.getElementById('light').value;
+        const primaryColor = `hsl(${h} ${s}% ${l}%)`;
+
+        // S3 fields
+        const useS3 = document.getElementById('useS3').value === 'yes';
+        const bucket = useS3 ? (document.getElementById('bucketName').value || '') : '';
+        const region = useS3 ? (document.getElementById('bucketRegion').value || '') : '';
+        const idPool = useS3 ? (document.getElementById('idPool').value || '') : '';
+
+        // If using S3, verify access before writing Firestore
+        if (useS3) {
+          const result = await s3HealthCheck({ region, idPool, bucket });
+          if (!result.ok) {
+            alert('S3 check failed: ' + result.message + '\n\nPlease fix the bucket policy/CORS/role permissions and try again.');
+            return;
+          }
+        }
+
+        // Create the Firestore doc (ID = slug; uniqueness is enforced by rules)
+        const docRef = db.collection('sites').doc(slug);
         await docRef.set({
           title: titleRaw.trim().replace(/\s+/g, ' '),
           slug,
@@ -609,14 +714,18 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         }, { merge: false });
 
+        // Go to /<slug> (Hosting rewrites serve home.html there)
         window.location.href = `/${slug}`;
       } catch (err) {
         alert(err.code === 'permission-denied'
           ? 'That title is taken. Try another.'
-          : 'Could not create site: ' + err.message);
+          : 'Could not create site: ' + (err.message || err));
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
   </script>
+
 </body>
 
 </html>
