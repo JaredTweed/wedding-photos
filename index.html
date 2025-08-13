@@ -5,142 +5,230 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shared Lens</title>
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Type: elegant serif for wordmark + clean sans for body -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Poppins:wght@400;600&display=swap"
+    rel="stylesheet">
 
   <style>
+    :root {
+      --ink: #111;
+      /* near-black */
+      --paper: #f6f6f6;
+      /* off-white background */
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+    }
+
     body {
       margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      height: 100vh;
+      font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 600px at 50% -20%, #fff 0%, var(--paper) 60%),
+        linear-gradient(#fff, var(--paper));
       display: flex;
+      align-items: center;
       justify-content: center;
-      align-items: center;
+      padding: 2rem;
     }
 
-    .container {
+    .card {
+      width: 100%;
+      max-width: 720px;
+      background: #fff;
+      border: 1.5px solid #000;
+      border-radius: 18px;
+      box-shadow: 0 10px 0 #000;
+      padding: 2rem clamp(1.25rem, 3vw, 2.5rem);
       text-align: center;
-      background: white;
-      padding: 1rem 2rem;
-      margin: 0.5rem;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     }
 
+    /* Brand lockup */
+    .brand {
+      display: grid;
+      grid-template-columns: 100%;
+      justify-items: center;
+      gap: .75rem;
+      margin-bottom: 1rem;
+    }
+
+    .logo-mark {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      /* Replace src below with your real logo path (PNG/SVG) */
+      /* Example: src="/assets/shared-lens-logo.svg" */
+    }
+
+    .wordmark {
+      margin: 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      font-size: clamp(1.6rem, 5.2vw, 2.2rem);
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: .25rem 0 0 0;
+      font-size: .95rem;
+      color: #444;
+      font-style: italic;
+    }
+
+    /* Content text */
     p {
-      color: #333;
-      max-width: 450px;
-      margin: 0.5rem 0;
+      margin: .75rem auto;
+      max-width: 46ch;
+      line-height: 1.6;
     }
 
-    h1 {
-      margin: 0 0 -1rem 0;
+    a {
+      color: inherit;
+      text-underline-offset: 3px;
     }
 
+    /* Divider (hairline) */
+    .rule {
+      border: none;
+      height: 1px;
+      background: #000;
+      margin: 1rem auto 1.25rem;
+      width: min(520px, 80%);
+      opacity: 0.15;
+    }
+
+    /* Buttons: monochrome + subtle motion */
     .button-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      padding: 1rem 0.6rem;
-      /* background-color: #f1f1f1; */
-      border: 1px solid #ddd;
-      border-radius: 12px;
+      display: grid;
+      gap: .75rem;
+      margin: 1rem auto 1.25rem;
+      justify-items: center;
     }
 
-
-    .button {
-      display: inline-block;
-      margin: 0rem;
-      padding: 0.75rem 2rem;
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .6rem;
+      padding: .85rem 1.4rem;
       font-size: 1rem;
       font-weight: 600;
-      border-radius: 30px;
-      border: none;
+      border-radius: 999px;
+      border: 2px solid #000;
       cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      text-decoration: none;
+      transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
+      will-change: transform;
     }
 
-    .button:hover {
+    .btn-fill {
+      background: #000;
+      color: #fff;
+      box-shadow: 0 6px 0 #000;
+    }
+
+    .btn-fill:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
 
-    .demo-btn {
-      background-color: #007bff;
-      color: white;
+    .btn-fill:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 0 #000;
     }
 
-    .google-btn {
-      background-color: white;
-      color: #555;
-      border: 2px solid #ddd;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .btn-outline {
+      background: #fff;
+      color: #000;
+      box-shadow: 0 6px 0 #000000;
     }
 
-    .google-btn img {
+    .btn-outline:hover {
+      background: #111;
+      color: #fff;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline:active {
+      transform: translateY(0);
+    }
+
+    .google-icon {
       height: 20px;
-      margin-right: 10px;
+      width: 20px;
+      object-fit: contain;
+      filter: grayscale(100%);
+      /* keep the page truly monochrome */
     }
 
-    .google-btn:hover {
-      border-color: #aaa;
+    /* Small print */
+    .notice {
+      font-size: .85rem;
+      color: #555;
+      opacity: .9;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>Shared Lens</h1>
-    <p>by <a href="https://github.com/JaredTweed" target="_blank" rel="noopener noreferrer">Jared Tweed</a></p>
-
-
-    <p>Welcome to Shared Lens, a collaborative platform where wedding guests can share and manage photos, view others'
-      contributions, all without logging in.</p>
-    <!-- <p>Sign in with Google to create your own wedding photo collection.</p> -->
-    <!-- <p>Or view the demo to see how it works.</p> -->
-
-    <div class="button-group">
-      <button class="button demo-btn" onclick="viewDemo()">View Demo</button>
-      <button class="button google-btn" onclick="signInWithGoogle()">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
-        Sign-In With Google to Create Your Own
-      </button>
-
-      <!-- This allows switching accounts, even when logged in --> 
-      <!-- <p style="margin-top:.5rem">
-        <a href="#" id="switchAccount">Use a different Google account</a>
-      </p>
-      <script>
-        document.getElementById('switchAccount').addEventListener('click', async (e) => {
-          e.preventDefault();
-          try {
-            await auth.signOut();            // end current Firebase session
-            await signInWithGoogle();        // re-enter flow with chooser
-          } catch (err) {
-            alert('Could not switch account: ' + (err.message || err));
-          }
-        });
-      </script> -->
-
+  <main class="card">
+    <!-- --- PLACE YOUR LOGO FILE HERE --- -->
+    <!-- Replace the src with your actual logo path (PNG or SVG). -->
+    <div class="brand">
+      <img class="logo-mark" src="/assets/shared-lens-logo.png" alt="Shared Lens logo">
+      <h1 class="wordmark">Shared Lens</h1>
+      <p class="subtitle">Different perspectives, one story.</p>
     </div>
 
-    <p>WARNING: This website is not yet for commercial use, it is a personal project.</p>
-  </div>
+    <hr class="rule" />
+
+    <p>
+      by <a href="https://github.com/JaredTweed" target="_blank" rel="noopener noreferrer">Jared Tweed</a>
+    </p>
+
+    <p>
+      Shared Lens is a collaborative platform where wedding guests can share and manage photos, and enjoy others’
+      contributions —
+      all without logging in.
+    </p>
+
+    <div class="button-group">
+      <button class="btn btn-fill" onclick="viewDemo()">View Demo</button>
+
+      <button class="btn btn-outline" onclick="signInWithGoogle()">
+        <img class="google-icon" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+        Sign in with Google to Create Your Own
+      </button>
+    </div>
+
+    <p class="notice">
+      WARNING: This website is not yet for commercial use — it is a personal project.
+    </p>
+  </main>
 
   <script>
-    // make this go to the slug route /wedding-photos (which is not an html file))
+    // Navigation
     function viewDemo() {
+      // go to slug route (not an html file)
       window.location.href = "wedding-photos";
     }
 
-
-
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAOcPjy9OsoWDuykf0XuvKfB9sAxSRvC7A",
       authDomain: "sharedlens.ca",
@@ -153,18 +241,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-
-    // function signInWithGoogle() {
-    //   const provider = new firebase.auth.GoogleAuthProvider();
-    //   auth.signInWithPopup(provider)
-    //     .then((result) => {
-    //       // Signed in
-    //       window.location.href = "form.html";
-    //     })
-    //     .catch((error) => {
-    //       alert("Sign-in failed: " + error.message);
-    //     });
-    // }
 
     // If we came back from a redirect and got a user, continue to form
     auth.getRedirectResult()
@@ -188,12 +264,9 @@
           await auth.signInWithRedirect(provider);
           return; // page will redirect away
         }
-
         await auth.signInWithPopup(provider);
-        // success → go to form
         window.location.href = 'form.html';
       } catch (e) {
-        // Popup blocked or cancelled? try redirect
         if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
           await auth.signInWithRedirect(provider);
         } else {

@@ -3,331 +3,329 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Wedding Photos Config</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wedding Photos Config — Shared Lens</title>
+  <meta name="theme-color" content="#000000" />
+
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+
+  <!-- Type: elegant serif for wordmark + clean sans for body -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Poppins:wght@400;600&display=swap"
+    rel="stylesheet">
 
   <style>
-    /* ───────────  Base theme & CSS variables  ─────────── */
     :root {
-      /* starting colour = hsl(96 23.7% 54%) */
+      --ink: #111;
+      --paper: #f6f6f6;
       --primary: hsl(96 23.7% 54%);
+      /* default to match the sliders' initial values */
       --current-hue: 96;
-      /* used to paint the saturation / lightness sliders */
       --current-sat: 23.7;
-      /* %  – gets updated by JS */
+      --current-light: 54;
     }
 
-    /* ───────────  Layout  ─────────── */
-    html,
-    body {
-      margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0;
-    }
-
-
-
-    .form-container {
-      background: #fff;
-      padding: 2rem 3rem;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      width: 100%;
-      margin: 2rem 8px;
-    }
-
-    h2 {
-      margin: 0 0 1.5rem;
-      text-align: center;
-      color: var(--primary);
-    }
-
-    label {
-      display: block;
-      margin-top: 1rem;
-      font-weight: 600;
-    }
-
-    input,
-    select {
-      width: 100%;
-      padding: 0.6rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      margin-top: 0.3rem;
-      font-size: 1rem;
-      background: #fafafa;
+    * {
       box-sizing: border-box;
     }
 
-    /* ───────────  Fancy colour‑picker card  ─────────── */
-    .color-selector-section {
-      background: linear-gradient(135deg, #f8f9fa, #ffffff);
-      border: 2px solid #e9ecef;
+    /* html,
+    body {
+      height: 100%;
+    } */
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100svh;
+      padding: 0;
+      margin: 8px 8px 16px;
+    }
+
+
+    /* Card shell matches the landing page */
+    .card {
+      width: 100%;
+      max-width: 820px;
+      background: #fff;
+      border: 1.5px solid #000;
+      border-radius: 18px;
+      box-shadow: 0 10px 0 #000;
+      padding: 2rem clamp(1.25rem, 3vw, 2.5rem);
+      text-align: center;
+    }
+
+    /* Brand lockup */
+    .brand {
+      display: grid;
+      grid-template-columns: 100%;
+      justify-items: center;
+      gap: .75rem;
+      margin-bottom: .5rem;
+    }
+
+    .logo-mark {
+      width: 90px;
+      height: 90px;
+      object-fit: contain;
+    }
+
+    .wordmark {
+      margin: 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      font-size: clamp(1.4rem, 4.8vw, 2rem);
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: .25rem 0 0 0;
+      font-size: .95rem;
+      color: #444;
+      font-style: italic;
+    }
+
+    /* Divider */
+    .rule {
+      border: none;
+      height: 1px;
+      background: #000;
+      margin: 1rem auto 1.25rem;
+      width: min(620px, 90%);
+      opacity: 0.15;
+    }
+
+    /* Content text */
+    p {
+      margin: auto;
+      /* max-width: 60ch; */
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+      text-underline-offset: 3px;
+    }
+
+    /* Form layout (kept monochrome to match style) */
+    form {
+      text-align: left;
+      margin: 0 auto;
+      width: min(640px, 100%);
+    }
+
+    .field {
+      margin: 1rem 0;
+    }
+
+    label {
+      display: inline-block;
+      font-weight: 600;
+      margin-bottom: .35rem;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: .85rem 1rem;
+      border-radius: 12px;
+      border: 2px solid #000;
+      background: #fff;
+      font-size: 1rem;
+      box-shadow: 0 4px 0 #000;
+      outline: none;
+      transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
+    }
+
+    input[type="text"]:focus,
+    select:focus {
+      transform: translateY(-1px);
+    }
+
+    input::placeholder {
+      color: #6b7280;
+    }
+
+    /* Buttons (identical language to landing page) */
+    .button-row {
+      display: grid;
+      gap: .75rem;
+      justify-items: center;
+      margin-top: 1.25rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .6rem;
+      padding: .85rem 1.4rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 999px;
+      border: 2px solid #000;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease, color .12s ease;
+      will-change: transform;
+    }
+
+    .btn-fill {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 6px 0 #000;
+    }
+
+    .btn-fill:hover {
+      transform: translateY(-2px);
+      filter: brightness(0.96);
+    }
+
+    .btn-fill:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 0 #000;
+      filter: brightness(0.9);
+    }
+
+    /* Color section (kept clean; only tracks are colorful) */
+    .color-card {
+      background: #fff;
+      border: 1.5px solid #000;
       border-radius: 16px;
-      padding: 1.5rem;
-      margin: 1.5rem 0;
-      position: relative;
+      box-shadow: 0 6px 0 #000;
+      padding: 1.25rem;
+      margin: 1rem 0 0.25rem;
     }
 
-    .color-selector-section::before {
-      content: "";
-      position: absolute;
-      inset: 0 auto auto 0;
-      height: 4px;
-      border-radius: 16px 16px 0 0;
-      background: linear-gradient(90deg,
-          #ff0000,
-          #ffff00,
-          #00ff00,
-          #00ffff,
-          #0000ff,
-          #ff00ff,
-          #ff0000);
-    }
-
-    .color-header {
+    .color-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
-      margin-bottom: 1.5rem;
       flex-wrap: wrap;
+      margin-bottom: .75rem;
     }
 
     .color-title {
       margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #2c3e50;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .02em;
     }
 
     #colorPreviewLarge {
-      width: 60px;
-      height: 60px;
+      width: 54px;
+      height: 54px;
       border-radius: 50%;
-      border: 3px solid #fff;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.3);
-      background: var(--primary);
-      position: relative;
-      transition: none;
+      border: 2px solid #000;
+      box-shadow: 0 4px 0 #000;
+      background: hsl(var(--current-hue), var(--current-sat), var(--current-light));
     }
 
-    #colorPreviewLarge::before {
-      content: "";
-      position: absolute;
-      top: 10%;
-      left: 20%;
-      width: 30%;
-      height: 30%;
-      background: rgba(255, 255, 255, 0.4);
-      border-radius: 50%;
-      filter: blur(8px);
-    }
-
-    .hsl-value-display {
-      background: rgba(0, 0, 0, 0.05);
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-family: "Courier New", monospace;
-      font-size: 0.9rem;
-      color: #2c3e50;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+    .hsl-readout {
+      margin: .5rem 0 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: .9rem;
+      background: #fff;
+      border: 1.5px solid #000;
+      border-radius: 10px;
+      box-shadow: 0 4px 0 #000;
+      padding: .5rem .75rem;
       text-align: center;
-      margin-bottom: 1rem;
     }
 
-    .slider-group {
-      margin-bottom: 1.5rem;
+    .slider-block {
+      margin: .8rem 0 1rem;
     }
 
     .slider-label {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-      color: #555;
-      font-weight: 500;
+      justify-content: space-between;
+      font-size: .9rem;
     }
 
     .slider-value {
-      font-family: "Courier New", monospace;
-      background: rgba(0, 0, 0, 0.05);
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      min-width: 50px;
-      text-align: center;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      border: 1.5px solid #000;
+      border-radius: 8px;
+      padding: .2rem .5rem;
     }
 
-    .slider-container {
-      position: relative;
-      padding: 4px 0;
-    }
-
-    /* ───────────  Range sliders  ─────────── */
-    .hsl-slider {
+    input[type="range"] {
       -webkit-appearance: none;
+      appearance: none;
       width: 100%;
-      height: 30px;
-      border-radius: 6px;
-      outline: none;
-      margin: 0;
+      height: 28px;
+      border-radius: 8px;
+      margin-top: .45rem;
+      border: 1.5px solid #000;
+      background: #eee;
+      box-shadow: 0 3px 0 #000;
       cursor: pointer;
-      transition: transform 0.2s ease;
-
-      box-sizing: border-box;
     }
 
-    .hsl-slider:hover {
-      transform: scaleY(1.05);
-    }
-
-    .hsl-slider::-webkit-slider-thumb {
+    input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 24px;
-      height: 24px;
+      appearance: none;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
-      background: #ffffff;
-      border: 3px solid #2c3e50;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-      transition: transform 0.2s ease;
+      background: #fff;
+      border: 2px solid #000;
+      box-shadow: 0 2px 0 #000;
     }
 
-    .hsl-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
-    }
-
-    .hsl-slider::-moz-range-thumb {
-      width: 24px;
-      height: 24px;
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
-      background: #ffffff;
-      border: 3px solid #2c3e50;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      background: #fff;
+      border: 2px solid #000;
+      box-shadow: 0 2px 0 #000;
     }
 
-    /* Track backgrounds */
-    .hue {
-      background: #ccc;
-      /* fallback until JS applies real gradient */
-    }
-
-    /* .hue {
+    /* Colorful tracks */
+    .hue-track {
       background: linear-gradient(to right,
           #ff0000 0%,
-          #ff8000 12.5%,
-          #ffff00 25%,
-          #80ff00 37.5%,
-          #00ff00 50%,
-          #00ff80 62.5%,
-          #00ffff 75%,
-          #0080ff 87.5%,
-          #0000ff 100%,
-          #8000ff 112.5%,
-          #ff00ff 125%,
-          #ff0080 137.5%,
-          #ff0000 150%);
-    } */
+          #ffff00 17%,
+          #00ff00 33%,
+          #00ffff 50%,
+          #0000ff 67%,
+          #ff00ff 83%,
+          #ff0000 100%);
+    }
 
-    /* these two are dynamically updated by JS after each input event */
-    .sat {
+    .sat-track {
       background: linear-gradient(to right,
           hsl(var(--current-hue) 0% 50%) 0%,
           hsl(var(--current-hue) 100% 50%) 100%);
     }
 
-    .light {
+    .light-track {
       background: linear-gradient(to right,
           hsl(var(--current-hue) var(--current-sat) 0%) 0%,
           hsl(var(--current-hue) var(--current-sat) 50%) 50%,
           hsl(var(--current-hue) var(--current-sat) 100%) 100%);
     }
 
-    /* ───────────  Buttons & extras  ─────────── */
-    .submit-btn {
-      width: 100%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      padding: 0.75rem;
-      font-size: 1rem;
-      font-weight: 700;
-      border-radius: 30px;
-      cursor: pointer;
-      margin-top: 1.5rem;
-      transition: none;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    /* Tiny note */
+    .notice {
+      font-size: .85rem;
+      color: #555;
+      opacity: .9;
+      text-align: center;
     }
 
-    .submit-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-      filter: brightness(0.95);
-    }
-
-    .info-toggle {
-      background: none;
-      border: none;
-      color: var(--primary);
-      cursor: pointer;
-      margin-left: 0.3rem;
-      font-size: 1rem;
-    }
-
-    .info-box {
-      display: none;
-      margin-top: 1rem;
-      background: #f8f9fa;
-      padding: 0.5rem 1.5rem 1.5rem 1.5rem;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      line-height: 1.5;
-      color: #212529;
-      border: 1px solid #dee2e6;
-      white-space: normal;
-    }
-
-    .info-box h4 {
-      margin-top: 1rem;
-      margin-bottom: 0.5rem;
-      font-size: 1.05rem;
-      color: #495057;
-    }
-
-    .info-box pre {
-      background: #f1f3f5;
-      border-left: 4px solid var(--primary);
-      padding: 0.75rem 1rem;
-      border-radius: 6px;
-      overflow-x: auto;
-      font-size: 0.85rem;
-      margin: 0.5rem 0 1rem;
-
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-
-
-    /* ───────────  Responsive tweaks  ─────────── */
-    @media (max-width: 640px) {
-      .form-container {
-        padding: 1.5rem 1.75rem;
-      }
-
-      .color-header {
-        flex-direction: column;
-      }
-    }
-
-    /* ───────────  User menu  ─────────── */
+    /* User bar (monochrome) */
     #sl-userbar {
       position: fixed;
       top: 12px;
@@ -339,11 +337,11 @@
     }
 
     #sl-user-avatar {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
-      border: 2px solid #fff;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, .15);
+      border: 2px solid #000;
+      box-shadow: 0 4px 0 #000;
       cursor: pointer;
       background: #eee;
       object-fit: cover;
@@ -351,14 +349,14 @@
 
     #sl-user-menu {
       position: absolute;
-      top: 52px;
+      top: 56px;
       right: 0;
       background: #fff;
-      border: 1px solid #e5e7eb;
+      border: 1.5px solid #000;
       border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, .12);
+      box-shadow: 0 8px 0 #000;
       padding: 6px;
-      min-width: 160px;
+      min-width: 180px;
       display: none;
     }
 
@@ -369,7 +367,7 @@
     #sl-user-menu button {
       width: 100%;
       background: none;
-      border: none;
+      border: 0;
       text-align: left;
       padding: .6rem .8rem;
       border-radius: 8px;
@@ -378,91 +376,123 @@
     }
 
     #sl-user-menu button:hover {
-      background: #f3f4f6;
+      background: #111;
+      color: #fff;
+    }
+
+    @media (max-width: 640px) {
+      .card {
+        padding: 1.5rem;
+      }
+
+      form {
+        width: 100%;
+      }
     }
   </style>
 </head>
 
 <body>
-  <div id="sl-userbar">
+  <!-- User menu -->
+  <div id="sl-userbar" style="display:none;">
     <img id="sl-user-avatar" alt="User" />
     <div id="sl-user-menu">
       <button id="sl-logout">Sign out</button>
     </div>
   </div>
 
-  <form class="form-container" onsubmit="submitForm(event)">
-    <h2>Configure Your Wedding Photos Site</h2>
-
-    <label>Site Title</label>
-    <input id="siteTitle" type="text" placeholder="Wedding Photos" />
-
-    <!-- ───────────────────  Colour chooser  ─────────────────── -->
-    <div class="color-selector-section">
-      <div class="color-header">
-        <h3 class="color-title">Primary Color</h3>
-        <div id="colorPreviewLarge"></div>
-      </div>
-
-      <div class="hsl-value-display" id="hslValue">hsl(96 23.7% 54%)</div>
-
-      <div class="slider-group">
-        <div class="slider-label">
-          <span>Hue</span><span class="slider-value" id="hueValue">96°</span>
-        </div>
-        <div class="slider-container">
-          <input id="hue" class="hsl-slider hue" type="range" min="0" max="360" step="1" value="96"
-            oninput="updateColor()" />
-          <canvas id="hueGradientCanvas" width="360" height="1" style="display:none;"></canvas>
-        </div>
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label">
-          <span>Saturation</span><span class="slider-value" id="satValue">23.7%</span>
-        </div>
-        <div class="slider-container">
-          <input id="sat" class="hsl-slider sat" type="range" min="0" max="100" step="0.1" value="23.7"
-            oninput="updateColor()" />
-        </div>
-      </div>
-
-      <div class="slider-group">
-        <div class="slider-label">
-          <span>Lightness</span><span class="slider-value" id="lightValue">54%</span>
-        </div>
-        <div class="slider-container">
-          <input id="light" class="hsl-slider light" type="range" min="0" max="100" step="0.1" value="54"
-            oninput="updateColor()" />
-        </div>
-      </div>
+  <main class="card">
+    <!-- Brand -->
+    <div class="brand">
+      <img class="logo-mark" src="/assets/shared-lens-logo.png" alt="Shared Lens logo" />
+      <h1 class="wordmark">Shared Lens</h1>
+      <p class="subtitle">Different perspectives, one story.</p>
     </div>
 
-    <!-- ───────────────────  S3 config  ─────────────────── -->
-    <label>Use Your Own S3 Bucket?</label>
-    <select id="useS3" onchange="toggleS3Fields()">
-      <option value="no">No</option>
-      <option value="yes">Yes</option>
-    </select>
+    <hr class="rule" />
 
-    <div id="s3Fields" style="display: none;">
-      <button class="info-toggle" type="button" onclick="toggleInfoBox()">How do I get this info?</button>
+    <!-- Config form -->
+    <form onsubmit="submitForm(event)">
+      <p style="text-align:center; margin-top:.25rem">
+        Configure your wedding photos site. Your settings can be changed later.
+      </p>
 
-      <label>Bucket Title</label>
-      <input id="bucketName" type="text" placeholder="my-bucket-title" />
+      <div class="field">
+        <label for="siteTitle">Site Title</label>
+        <input id="siteTitle" type="text" placeholder="Wedding Photos" />
+      </div>
 
-      <label>Bucket Region</label>
-      <input id="bucketRegion" type="text" placeholder="ca-central-1" />
+      <div class="color-card" aria-label="Primary color selector">
+        <canvas id="hueGradientCanvas" width="360" height="1" style="display:none;"></canvas>
 
-      <label>Cognito Identity Pool ID</label>
-      <input id="idPool" type="text" placeholder="ca-central-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+        <div class="color-head">
+          <h3 class="color-title">Primary Color</h3>
+          <div id="colorPreviewLarge" title="Preview"></div>
+        </div>
 
-      <div class="info-box" id="s3Instructions">
-        <h4>Step 1: Create an S3 bucket</h4>
-        Replace 'my-bucket-title' with your actual bucket name.<br>
+        <div id="hslValue" class="hsl-readout">hsl(96 23.7% 54%)</div>
 
-        <strong>Bucket Policy:</strong>
-        <pre><code>{
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>Hue</span><span class="slider-value" id="hueValue">96°</span>
+          </div>
+          <input id="hue" class="hue-track hue" type="range" min="0" max="360" step="1" value="96"
+            oninput="updateColor()" />
+        </div>
+
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>Saturation</span><span class="slider-value" id="satValue">23.7%</span>
+          </div>
+          <input id="sat" class="sat-track" type="range" min="0" max="100" step="0.1" value="23.7"
+            oninput="updateColor()" />
+        </div>
+
+        <div class="slider-block">
+          <div class="slider-label">
+            <span>Lightness</span><span class="slider-value" id="lightValue">54%</span>
+          </div>
+          <input id="light" class="light-track" type="range" min="0" max="100" step="0.1" value="54"
+            oninput="updateColor()" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="useS3">Use Your Own S3 Bucket?</label>
+        <select id="useS3" onchange="toggleS3Fields()">
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </div>
+
+      <div id="s3Fields" style="display:none;">
+        <div class="field" style="margin-top:.5rem;">
+          <button class="btn" type="button" onclick="toggleInfoBox()">How do I get this info?</button>
+        </div>
+
+        <div class="field">
+          <label for="bucketName">Bucket Title</label>
+          <input id="bucketName" type="text" placeholder="my-bucket-title" />
+        </div>
+
+        <div class="field">
+          <label for="bucketRegion">Bucket Region</label>
+          <input id="bucketRegion" type="text" placeholder="ca-central-1" />
+        </div>
+
+        <div class="field">
+          <label for="idPool">Cognito Identity Pool ID</label>
+          <input id="idPool" type="text" placeholder="ca-central-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+        </div>
+
+        <div id="s3Instructions" style="display:none; margin-top:.5rem;">
+          <div class="color-card" style="box-shadow:none;">
+            <p style="margin-top:0"><strong>Step 1:</strong> Create an S3 bucket and replace
+              <code>my-bucket-title</code> accordingly.
+            </p>
+            <p><strong>Bucket Policy:</strong></p>
+            <pre
+              style="text-align:left; white-space:pre-wrap; word-break:break-word; border:1px solid #000; border-radius:10px; padding:.75rem; box-shadow:0 3px 0 #000; background:#fff;">{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -473,57 +503,46 @@
       "Resource": "arn:aws:s3:::my-bucket-title/*"
     }
   ]
-}</code></pre>
+}</pre>
 
-        <strong>CORS Configuration:</strong>
-        <pre><code>[
+            <p><strong>CORS Configuration:</strong></p>
+            <pre
+              style="text-align:left; white-space:pre-wrap; word-break:break-word; border:1px solid #000; border-radius:10px; padding:.75rem; box-shadow:0 3px 0 #000; background:#fff;">[
   {
     "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET", "PUT", "POST", "DELETE", "HEAD"],
-    "AllowedOrigins": ["*", "null"],
-    "ExposeHeaders": [
-      "ETag",
-      "x-amz-request-id",
-      "x-amz-meta-description",
-      "x-amz-meta-otherkey"
-    ],
+    "AllowedMethods": ["GET","PUT","POST","DELETE","HEAD"],
+    "AllowedOrigins": ["*","null"],
+    "ExposeHeaders": ["ETag","x-amz-request-id","x-amz-meta-description","x-amz-meta-otherkey"],
     "MaxAgeSeconds": 1800
   }
-]</code></pre>
+]</pre>
 
-        <h4>Step 2: Create a role with permissions</h4>
-        Use the following inline policy:
-        <pre><code>{
+            <p><strong>Step 2:</strong> Create a role with permissions.</p>
+            <pre
+              style="text-align:left; white-space:pre-wrap; word-break:break-word; border:1px solid #000; border-radius:10px; padding:.75rem; box-shadow:0 3px 0 #000; background:#fff;">{
   "Version": "2012-10-17",
   "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::my-bucket-title"
-    },
-    {
-      "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::my-bucket-title/*"
-    }
+    { "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::my-bucket-title" },
+    { "Effect": "Allow", "Action": ["s3:GetObject","s3:PutObject","s3:DeleteObject"], "Resource": "arn:aws:s3:::my-bucket-title/*" }
   ]
-}</code></pre>
+}</pre>
 
-        <h4>Step 3: Configure Cognito</h4>
-        Create a Cognito Identity Pool and enable guest access using the role you created in Step 2.
+            <p><strong>Step 3:</strong> Create a Cognito Identity Pool and enable guest access using the role from Step
+              2.</p>
+          </div>
+        </div>
       </div>
 
-    </div>
+      <div id="notAvailable" class="notice" style="display:none; margin-top:1rem;">
+        S3 integration is not available yet unless using your own bucket.
+      </div>
 
-    <div id="notAvailable" style="display:none; margin-top:1rem; color: #a00;">
-      S3 integration is not available yet unless using your own bucket.
-    </div>
+      <div class="button-row">
+        <button type="submit" class="btn btn-fill">Submit</button>
+      </div>
+    </form>
+  </main>
 
-    <button type="submit" class="submit-btn">Submit</button>
-  </form>
-
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAOcPjy9OsoWDuykf0XuvKfB9sAxSRvC7A",
@@ -634,6 +653,7 @@
 
     function setUserMenu(user) {
       // Avatar image + tooltip
+      userbar.style.display = user ? 'flex' : 'none';
       const fallback = (txt) => `https://ui-avatars.com/api/?name=${encodeURIComponent(txt)}&background=E5E7EB&color=111827`;
       const nameOrEmail = user?.displayName || user?.email || 'You';
       avatarEl.src = user?.photoURL || fallback(nameOrEmail);

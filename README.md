@@ -2,7 +2,7 @@ Site: https://jaredtweed.github.io/wedding-photos/
 
 https://sharedlens.ca
 
-To Deploy:  `firebase deploy --only hosting`
+To Deploy: `firebase deploy --only hosting`
 
 To run: `npx http-server .`
 <!-- 
