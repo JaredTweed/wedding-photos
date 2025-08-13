@@ -391,7 +391,8 @@
   <div id="sl-userbar" style="display:none;">
     <img id="sl-user-avatar" alt="User" />
     <div id="sl-user-menu">
-      <button id="sl-logout">Sign out</button>
+      <button id="sl-main">Go to main page</button>
+      <button id="sl-auth">Sign in</button>
     </div>
   </div>
 
@@ -643,23 +644,43 @@
     const userbar = document.getElementById('sl-userbar');
     const avatarEl = document.getElementById('sl-user-avatar');
     const menuEl = document.getElementById('sl-user-menu');
-    const logoutBtn = document.getElementById('sl-logout');
+    const mainBtn = document.getElementById('sl-main');
+    const authBtn = document.getElementById('sl-auth');
+
+    // Sign-in helper
+    async function signInWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      try {
+        if (isMobile) {
+          await firebase.auth().signInWithRedirect(provider);
+        } else {
+          await firebase.auth().signInWithPopup(provider);
+        }
+      } catch (e) {
+        alert('Sign-in failed: ' + (e.message || e));
+      }
+    }
 
     function setUserMenu(user) {
-      // Avatar image + tooltip
-      userbar.style.display = user ? 'flex' : 'none';
-      const fallback = (txt) => `https://ui-avatars.com/api/?name=${encodeURIComponent(txt)}&background=E5E7EB&color=111827`;
-      const nameOrEmail = user?.displayName || user?.email || 'You';
-      avatarEl.src = user?.photoURL || fallback(nameOrEmail);
-      avatarEl.title = user ? `${nameOrEmail}` : 'Not signed in';
+      // Always show the userbar (avatar + dropdown)
+      userbar.style.display = 'flex';
 
-      // If not signed in, clicking avatar returns to home
-      if (!user) {
-        logoutBtn.textContent = 'Go to main page';
-        logoutBtn.onclick = () => { window.location.href = 'https://sharedlens.ca/'; };
-      } else {
-        logoutBtn.textContent = 'Sign out';
-        logoutBtn.onclick = async () => {
+      // Blank 1×1 transparent PNG for the "blank icon" state
+      const BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+      if (user) {
+        const nameOrEmail = user.displayName || user.email || 'You';
+        avatarEl.src = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(nameOrEmail)}&background=E5E7EB&color=111827`;
+        avatarEl.title = nameOrEmail;
+
+        // Show both "Go to main page" and "Sign out"
+        mainBtn.textContent = 'Go to main page';
+        mainBtn.onclick = () => { window.location.href = 'https://sharedlens.ca/'; };
+
+        authBtn.textContent = 'Sign out';
+        authBtn.onclick = async () => {
           try {
             await firebase.auth().signOut();
             window.location.href = 'https://sharedlens.ca/';
@@ -667,6 +688,16 @@
             alert('Sign-out failed: ' + (e.message || e));
           }
         };
+      } else {
+        // Blank avatar + menu with "Go to main page" and "Sign in"
+        avatarEl.src = BLANK;
+        avatarEl.title = 'Not signed in';
+
+        mainBtn.textContent = 'Go to main page';
+        mainBtn.onclick = () => { window.location.href = 'https://sharedlens.ca/'; };
+
+        authBtn.textContent = 'Sign in';
+        authBtn.onclick = () => { signInWithGoogle(); };
       }
     }
 
@@ -678,11 +709,9 @@
     document.addEventListener('click', () => menuEl.classList.remove('show'));
 
     // Keep it in sync with auth state
-    firebase.auth().onAuthStateChanged(user => {
-      setUserMenu(user);
-    });
+    firebase.auth().onAuthStateChanged(user => { setUserMenu(user); });
 
-    // If the page loads with a cached user, this ensures the avatar appears immediately
+    // Ensure avatar/menu render ASAP on load
     waitForUser().then(setUserMenu);
 
     const db = firebase.firestore();
