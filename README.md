@@ -1,6 +1,4 @@
-Site: https://jaredtweed.github.io/wedding-photos/
-
-https://sharedlens.ca
+Site: https://sharedlens.ca
 
 To Deploy: `firebase deploy --only hosting`
 
