@@ -1183,6 +1183,7 @@
     const tsLabel = document.getElementById('timestamp');
     const overlayBtn = document.getElementById('overlayBtn');
     const loader = document.getElementById('loader');
+    let downloadAllInProgress = false;
     const settingsBtn = document.getElementById('settingsBtn');
     const icon = document.getElementById('settingsIcon');
     const overlayBottom = document.getElementById('overlayBottom');
@@ -1716,6 +1717,111 @@
     }
 
 
+    async function downloadAllFullRes() {
+      if (downloadAllInProgress) return;
+      downloadAllInProgress = true;
+
+      let statusEl = null;
+      const loaderWasVisible = loader.style.display !== 'none';
+
+      try {
+        const allObjects = await listAllObjects();
+        const originals = allObjects.filter(obj =>
+          obj.Key &&
+          !obj.Key.toLowerCase().endsWith('.json') &&
+          !obj.Key.startsWith(THUMB_PREFIX)
+        );
+
+        if (!originals.length) {
+          alert('No photos or videos to download yet.');
+          return;
+        }
+
+        if (!loaderWasVisible) loader.style.display = 'flex';
+        statusEl = document.createElement('div');
+        statusEl.style.marginLeft = '1rem';
+        statusEl.style.font = '500 1rem system-ui';
+        statusEl.style.color = '#111';
+        statusEl.textContent = `Preparing originals (0/${originals.length})…`;
+        loader.appendChild(statusEl);
+
+        const zip = new JSZip();
+        const errors = [];
+        const queue = [...originals];
+        const total = queue.length;
+        let completed = 0;
+
+        const updateStatus = () => {
+          if (statusEl) {
+            statusEl.textContent = `Downloading originals (${completed}/${total})…`;
+          }
+        };
+
+        const MAX_CONCURRENT_DOWNLOADS = 3;
+
+        async function worker() {
+          while (queue.length) {
+            const next = queue.shift();
+            if (!next) return;
+
+            try {
+              const response = await fetch(s3Url(next.Key));
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+              }
+              const blob = await response.blob();
+              zip.file(next.Key, blob);
+            } catch (err) {
+              console.error('Failed to include', next.Key, err);
+              errors.push(next.Key);
+            } finally {
+              completed++;
+              updateStatus();
+            }
+          }
+        }
+
+        updateStatus();
+        const workers = Array.from({ length: Math.min(MAX_CONCURRENT_DOWNLOADS, total) }, () => worker());
+        await Promise.all(workers);
+
+        const successfulCount = total - errors.length;
+        if (!successfulCount) {
+          alert('Could not download any files. Please try again.');
+          return;
+        }
+
+        if (statusEl) statusEl.textContent = 'Finalising ZIP…';
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const baseSlug = (slug || fallbackSlug || 'gallery') || 'gallery';
+        const safeName = baseSlug.replace(/[^a-z0-9-]+/gi, '-');
+        const filename = `${safeName || 'gallery'}-originals-${timestamp}.zip`;
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(zipBlob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          URL.revokeObjectURL(link.href);
+          link.remove();
+        }, 0);
+
+        if (errors.length) {
+          alert(`Downloaded ${successfulCount} file${successfulCount === 1 ? '' : 's'}, but ${errors.length} failed. Check the console for details.`);
+        }
+      } catch (err) {
+        console.error('Download all failed', err);
+        alert('Could not prepare the download. Please try again.');
+      } finally {
+        downloadAllInProgress = false;
+        if (statusEl) statusEl.remove();
+        if (!loaderWasVisible) loader.style.display = 'none';
+      }
+    }
+
+
 
     /* ---------- RENDER ---------------------------------------------- */
     async function render() {
@@ -2197,7 +2303,20 @@
 
     // --- add “Select All” via Ctrl+A / ⌘+A, but only inside the active panel ---
     window.addEventListener('keydown', e => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+      if (e.defaultPrevented) return;
+
+      const isModifier = e.ctrlKey || e.metaKey;
+      if (isModifier && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        const focusTag = (e.target.tagName || '').toLowerCase();
+        const isEditable = e.target.isContentEditable || focusTag === 'input' || focusTag === 'textarea';
+        if (!isEditable) {
+          downloadAllFullRes();
+        }
+        return;
+      }
+
+      if (isModifier && e.key.toLowerCase() === 'a') {
         e.preventDefault();
 
         // find the active panel
