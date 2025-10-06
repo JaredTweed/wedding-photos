@@ -12,9 +12,10 @@ To delete all the items on the server: `aws s3 rm s3://the-wedding-share --recur
 
 TODO:
 - Make the managed S3 buckets purchasable.
-- Don't create duplicates in the firebase database when making changes (such as it currently does with the site title changes). Instead, replace that piece of information.
+- Don't create duplicates in the firebase database when making changes (such as it currently does with the site title changes). Instead, replace that piece of information. 
+- When making change to the site title, make sure to change the name of the managed S3 bucket folder if it needs to be changed.
 - Make not found webpage for non-existent url paths.
 - Make scrolling on the form not risk affecting the color.
-- Make it possible to delete your webpage.
+- Make it possible to delete your webpage and/or all the data on it.
 -->
 
