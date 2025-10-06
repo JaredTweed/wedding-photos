@@ -453,10 +453,10 @@
       </div>
 
       <div class="field">
-        <label for="useS3">Use Your Own S3 Bucket?</label>
+        <label for="useS3">Storage Option</label>
         <select id="useS3" onchange="toggleS3Fields()">
-          <option value="no">No</option>
-          <option value="yes">Yes</option>
+          <option value="managed">Use SharedLens managed storage</option>
+          <option value="self-managed">Bring my own S3 bucket</option>
         </select>
       </div>
 
@@ -528,8 +528,8 @@
         </div>
       </div>
 
-      <div id="notAvailable" class="notice" style="display:none; margin-top:1rem;">
-        S3 integration is not available yet unless using your own bucket.
+      <div id="managedMessage" class="notice" style="display:none; margin-top:1rem;">
+        We will host your uploads in a SharedLens-managed bucket. Switch to “Bring my own S3 bucket” anytime if you prefer to control the storage yourself.
       </div>
 
       <div class="button-row">
@@ -552,6 +552,7 @@
   </script>
 
   <script>
+    const managedConfigPromise = import('/config.js');
     /* --- dynamic HSL handling --- */
     function hsl() {
       const h = document.getElementById('hue').value;
@@ -599,9 +600,10 @@
 
     /* --- S3 toggle & info box --- */
     function toggleS3Fields() {
-      const useS3 = document.getElementById('useS3').value === 'yes';
-      document.getElementById('s3Fields').style.display = useS3 ? 'block' : 'none';
-      document.getElementById('notAvailable').style.display = useS3 ? 'none' : 'block';
+      const mode = document.getElementById('useS3').value;
+      const isSelfManaged = mode === 'self-managed';
+      document.getElementById('s3Fields').style.display = isSelfManaged ? 'block' : 'none';
+      document.getElementById('managedMessage').style.display = isSelfManaged ? 'none' : 'block';
     }
     function toggleInfoBox() {
       const box = document.getElementById('s3Instructions');
@@ -754,11 +756,12 @@
       }
 
       // 3) S3 settings
-      const hasS3 = !!(d.bucket && d.region && d.idPool);
-      document.getElementById('useS3').value = hasS3 ? 'yes' : 'no';
-      document.getElementById('bucketName').value = d.bucket || '';
-      document.getElementById('bucketRegion').value = d.region || '';
-      document.getElementById('idPool').value = d.idPool || '';
+      const plan = d.plan || (d.bucket && d.region && d.idPool ? 'self-managed' : 'managed');
+      document.getElementById('useS3').value = plan;
+
+      document.getElementById('bucketName').value = plan === 'self-managed' ? (d.bucket || '') : '';
+      document.getElementById('bucketRegion').value = plan === 'self-managed' ? (d.region || '') : '';
+      document.getElementById('idPool').value = plan === 'self-managed' ? (d.idPool || '') : '';
       if (typeof toggleS3Fields === 'function') toggleS3Fields();
     }
 
@@ -837,18 +840,47 @@
         const primaryColor = `hsl(${h} ${s}% ${l}%)`;
 
         // S3 fields
-        const useS3 = document.getElementById('useS3').value === 'yes';
-        const bucket = useS3 ? (document.getElementById('bucketName').value || '') : '';
-        const region = useS3 ? (document.getElementById('bucketRegion').value || '') : '';
-        const idPool = useS3 ? (document.getElementById('idPool').value || '') : '';
+        const storageChoice = document.getElementById('useS3').value;
+        const plan = storageChoice === 'self-managed' ? 'self-managed' : 'managed';
 
-        // If using S3, verify access before writing Firestore
-        if (useS3) {
+        let bucket = '';
+        let region = '';
+        let idPool = '';
+        let objectPrefix = '';
+
+        if (plan === 'self-managed') {
+          bucket = (document.getElementById('bucketName').value || '').trim();
+          region = (document.getElementById('bucketRegion').value || '').trim();
+          idPool = (document.getElementById('idPool').value || '').trim();
+
+          if (!bucket || !region || !idPool) {
+            alert('Please provide the bucket, region, and identity pool for your S3 setup.');
+            return;
+          }
+
           const result = await s3HealthCheck({ region, idPool, bucket });
           if (!result.ok) {
             alert('S3 check failed: ' + result.message + '\n\nPlease fix the bucket policy/CORS/role permissions and try again.');
             return;
           }
+        } else {
+          try {
+            const managed = await managedConfigPromise;
+            bucket = managed.BUCKET;
+            region = managed.REGION;
+            idPool = managed.ID_POOL;
+          } catch (err) {
+            console.error('Managed config load failed', err);
+            alert('Managed storage is not configured yet. Please choose “Bring my own S3 bucket” or try again later.');
+            return;
+          }
+
+          if (!bucket || !region || !idPool) {
+            alert('Managed storage is not configured yet. Please choose “Bring my own S3 bucket” or try again later.');
+            return;
+          }
+
+          objectPrefix = `sites/${slug}/`;
         }
 
         // Create the Firestore doc (ID = slug; uniqueness is enforced by rules)
@@ -857,7 +889,11 @@
           title: titleRaw.trim().replace(/\s+/g, ' '),
           slug,
           primaryColor,
-          region, idPool, bucket,
+          region,
+          idPool,
+          bucket,
+          objectPrefix,
+          plan,
           icoImage: "",
           createdBy: user.uid,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),

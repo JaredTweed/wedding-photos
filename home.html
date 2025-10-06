@@ -788,39 +788,85 @@
 
   <script type="module">
     // 🔽 NEW: load site config for the current path
-    import { S3Client, PutObjectCommand, ListObjectsV2Command, HeadObjectCommand, DeleteObjectCommand } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
+    import {
+      S3Client,
+      PutObjectCommand,
+      ListObjectsV2Command,
+      HeadObjectCommand,
+      DeleteObjectCommand,
+      CreateMultipartUploadCommand,
+      UploadPartCommand,
+      CompleteMultipartUploadCommand,
+      AbortMultipartUploadCommand
+    } from "https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser";
     import { fromCognitoIdentityPool } from "https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser";
     import JSZip from 'https://esm.sh/jszip@3.10.1';
     import { parse } from "https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.esm.mjs";
+    import { REGION as MANAGED_REGION, ID_POOL as MANAGED_ID_POOL, BUCKET as MANAGED_BUCKET } from '/config.js';
 
     const db = firebase.firestore();
     const slug = location.pathname.replace(/^\/+|\/+$/g, ''); // '' when visiting /home.html directly
     const fallbackSlug = ''; // if you want a default demo config when opening /home.html
 
+    const THUMB_FOLDER = 'thumbs/';   // folder that will live in the *same* bucket
+    const THUMB_SIZE = 330;         // shortest side in px
+    let KEY_PREFIX = '';
+
+    function normalizePrefix(value) {
+      if (!value) return '';
+      return value.endsWith('/') ? value : `${value}/`;
+    }
+    function toS3Key(baseKey) {
+      return KEY_PREFIX ? `${KEY_PREFIX}${baseKey}` : baseKey;
+    }
+    function fromS3Key(fullKey) {
+      if (!KEY_PREFIX) return fullKey;
+      return fullKey.startsWith(KEY_PREFIX) ? fullKey.slice(KEY_PREFIX.length) : fullKey;
+    }
+    function encodeKeyForUrl(key) {
+      return key.split('/').map(encodeURIComponent).join('/');
+    }
+
     async function loadSiteConfig(slugValue) {
       if (!slugValue) return {
         SITE_TITLE: "Demo Site",
         PRIMARY_COLOR: "hsl(96 23.7% 54%)",
-        REGION: "",
-        ID_POOL: "",
-        BUCKET: "",
-        ICO_IMAGE: ""
+        REGION: MANAGED_REGION,
+        ID_POOL: MANAGED_ID_POOL,
+        BUCKET: MANAGED_BUCKET,
+        ICO_IMAGE: "",
+        PLAN: 'managed',
+        OBJECT_PREFIX: 'sites/demo/'
       };
       const snap = await db.collection('sites').doc(slugValue).get();
       if (!snap.exists) throw new Error('Site not found');
       const d = snap.data();
+      const plan = d.plan || (d.bucket && d.region && d.idPool ? 'self-managed' : 'managed');
+      const isManaged = plan === 'managed';
+      const objectPrefixRaw = typeof d.objectPrefix === 'string' ? d.objectPrefix : null;
+      const objectPrefix = objectPrefixRaw && objectPrefixRaw.length
+        ? objectPrefixRaw
+        : (isManaged ? `sites/${slugValue}/` : '');
       return {
         SITE_TITLE: d.title,
         PRIMARY_COLOR: d.primaryColor,
-        REGION: d.region,
-        ID_POOL: d.idPool,
-        BUCKET: d.bucket,
-        ICO_IMAGE: d.icoImage || ""
+        REGION: isManaged ? MANAGED_REGION : d.region,
+        ID_POOL: isManaged ? MANAGED_ID_POOL : d.idPool,
+        BUCKET: isManaged ? MANAGED_BUCKET : d.bucket,
+        ICO_IMAGE: d.icoImage || "",
+        PLAN: plan,
+        OBJECT_PREFIX: objectPrefix
       };
     }
 
-    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE } =
+    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE, PLAN, OBJECT_PREFIX } =
       await loadSiteConfig(slug || fallbackSlug);
+
+    const IS_MANAGED_PLAN = PLAN === 'managed';
+    const prefixCandidate = (OBJECT_PREFIX && OBJECT_PREFIX.length)
+      ? OBJECT_PREFIX
+      : (IS_MANAGED_PLAN && (slug || fallbackSlug) ? `sites/${slug || fallbackSlug}/` : '');
+    KEY_PREFIX = normalizePrefix(prefixCandidate);
 
     // Apply theme + title/favicon
     document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
@@ -851,8 +897,6 @@
     const creditCache = new Map();   // Key → credit string | null
 
     /* ---------- THUMBNAILS (client-side) -------------------------------- */
-    const THUMB_PREFIX = 'thumbs/';   // folder that will live in the *same* bucket
-    const THUMB_SIZE = 330;         // shortest side in px
 
     // 1A – images
     async function makeImageThumb(file) {
@@ -882,32 +926,49 @@
     // 1B – videos
     async function makeVideoThumb(file) {
       const url = URL.createObjectURL(file);
-      const video = Object.assign(document.createElement('video'), { src: url, muted: true });
+      const video = document.createElement('video');
+      video.muted = true;
+      video.preload = 'auto';
+      video.src = url;
 
-      await new Promise(r => (video.onloadedmetadata = r));
-      video.currentTime = 0;
-      await new Promise(r => (video.onseeked = r));
+      try {
+        await new Promise((resolve, reject) => {
+          video.onloadeddata = resolve;
+          video.onerror = () => reject(new Error('Could not load video for thumbnail.'));
+        });
 
-      const scale = THUMB_SIZE / Math.min(video.videoWidth, video.videoHeight);
-      const sw = Math.round(video.videoWidth * scale);
-      const sh = Math.round(video.videoHeight * scale);
+        video.currentTime = 0;
+        await new Promise((resolve, reject) => {
+          video.onseeked = resolve;
+          video.onerror = () => reject(new Error('Could not seek video for thumbnail.'));
+        });
 
-      const canvas = self.OffscreenCanvas
-        ? new OffscreenCanvas(THUMB_SIZE, THUMB_SIZE)
-        : Object.assign(document.createElement('canvas'),
-          { width: THUMB_SIZE, height: THUMB_SIZE });
+        const scale = THUMB_SIZE / Math.min(video.videoWidth, video.videoHeight || THUMB_SIZE);
+        const sw = Math.round((video.videoWidth || THUMB_SIZE) * scale);
+        const sh = Math.round((video.videoHeight || THUMB_SIZE) * scale);
 
-      const ctx = canvas.getContext('2d');
-      const offsetX = (sw - THUMB_SIZE) / 2;
-      const offsetY = (sh - THUMB_SIZE) / 2;
-      ctx.drawImage(video, -offsetX, -offsetY, sw, sh);
+        const canvas = self.OffscreenCanvas
+          ? new OffscreenCanvas(THUMB_SIZE, THUMB_SIZE)
+          : Object.assign(document.createElement('canvas'),
+            { width: THUMB_SIZE, height: THUMB_SIZE });
 
-      URL.revokeObjectURL(url);
-      return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.72 });
+        const ctx = canvas.getContext('2d');
+        const offsetX = (sw - THUMB_SIZE) / 2;
+        const offsetY = (sh - THUMB_SIZE) / 2;
+        ctx.drawImage(video, -offsetX, -offsetY, sw, sh);
+
+        return canvas.convertToBlob({ type: 'image/jpeg', quality: 0.72 });
+      } finally {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        video.remove();
+        URL.revokeObjectURL(url);
+      }
     }
 
     // 1C – given the *original* key, return the thumb key
-    const thumbKeyOf = k => `${THUMB_PREFIX}${k.replace(/\.[^.]+$/, '.jpg')}`;
+    const thumbKeyOf = k => `${THUMB_FOLDER}${k.replace(/\.[^.]+$/, '.jpg')}`;
 
 
 
@@ -947,12 +1008,13 @@
     async function multipartUpload({ file, key, meta, isVideo, progressCb = () => { } }) {
       const bar = makeProgressRow(file.name);
       let sent = 0;
+      const s3Key = toS3Key(key);
 
       // 1️⃣  Start the MPU
       const { UploadId } = await s3.send(
         new CreateMultipartUploadCommand({
           Bucket: BUCKET,
-          Key: key,
+          Key: s3Key,
           ContentType: file.type,
           Metadata: meta
         })
@@ -970,7 +1032,7 @@
           const { ETag } = await s3.send(
             new UploadPartCommand({
               Bucket: BUCKET,
-              Key: key,
+              Key: s3Key,
               UploadId,
               PartNumber: partNum,
               Body: blob
@@ -990,7 +1052,7 @@
         await s3.send(
           new CompleteMultipartUploadCommand({
             Bucket: BUCKET,
-            Key: key,
+            Key: s3Key,
             UploadId,
             MultipartUpload: { Parts: parts }
           })
@@ -1002,7 +1064,7 @@
         await s3.send(
           new AbortMultipartUploadCommand({
             Bucket: BUCKET,
-            Key: key,
+            Key: s3Key,
             UploadId
           })
         );
@@ -1133,7 +1195,7 @@
     async function putCredit(key, credit) {
       await s3.send(new PutObjectCommand({
         Bucket: META_BUCKET,
-        Key: `${key}.json`, // *exactly* the same key, plus “.json”
+        Key: toS3Key(`${key}.json`), // *exactly* the same key, plus “.json”
         Body: JSON.stringify({ credit }),
         ContentType: "application/json"
       }));
@@ -1153,8 +1215,7 @@
       if (creditCache.has(key)) return creditCache.get(key);
 
       try {
-        const url = `https://${META_BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}.json`;
-        const resp = await fetch(url);
+        const resp = await fetch(s3Url(`${key}.json`));
         if (!resp.ok) {
           creditCache.set(key, null);
           return null;                 // no credit stored for this photo
@@ -1276,7 +1337,9 @@
           let thumbBlob = null;
           let thumbKey = thumbKeyOf(key);
 
-          if (isVideoFile(file)) {
+          const isVid = isVideoFile(file);
+
+          if (isVid) {
             thumbBlob = await makeVideoThumb(file);
           } else {
             thumbBlob = await makeImageThumb(file);
@@ -1284,7 +1347,7 @@
 
           await s3.send(new PutObjectCommand({
             Bucket: BUCKET,
-            Key: thumbKey,
+            Key: toS3Key(thumbKey),
             Body: thumbBlob,
             ContentType: 'image/jpeg',
             Metadata: { parent: key }          // (optional bookkeeping)
@@ -1293,18 +1356,15 @@
 
 
           /* metadata – skip EXIF on iOS to save RAM */
-          const exifDate = isiOS ? null : await getExifDateFromFile(file);
+          const exifDate = isiOS || isVid ? null : await getExifDateFromFile(file);
           const meta = exifDate ? { taken: exifDate.toISOString() } : {};
-
-          const isVid = isVideoFile(file);
-          // let bar = null;
 
           /* -------- choose simple PUT or multipart -------- */
           if (file.size <= MAX_SINGLE_UPLOAD) {
             // small file → one-shot upload, no progress bar
             await s3.send(new PutObjectCommand({
               Bucket: BUCKET,
-              Key: key,
+              Key: toS3Key(key),
               Body: file,
               ContentType: file.type,
               Metadata: meta
@@ -1688,8 +1748,7 @@
         return origDate;
       }
 
-      const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
-      const exifDate = await getExifDateFromFile(url);
+      const exifDate = await getExifDateFromFile(s3Url(key));
       return exifDate || origDate;
     }
 
@@ -1705,11 +1764,16 @@
         const resp = await s3.send(
           new ListObjectsV2Command({
             Bucket: BUCKET,
-            ContinuationToken        // undefined on first call
+            ContinuationToken,
+            Prefix: KEY_PREFIX || undefined
           })
         );
 
-        objects.push(...(resp.Contents || []));
+        const contents = (resp.Contents || [])
+          .map(obj => ({ ...obj, Key: fromS3Key(obj.Key) }))
+          .filter(obj => obj.Key && obj.Key.length);
+
+        objects.push(...contents);
         ContinuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
       } while (ContinuationToken);
 
@@ -1729,7 +1793,7 @@
         const originals = allObjects.filter(obj =>
           obj.Key &&
           !obj.Key.toLowerCase().endsWith('.json') &&
-          !obj.Key.startsWith(THUMB_PREFIX)
+          !obj.Key.startsWith(THUMB_FOLDER)
         );
 
         if (!originals.length) {
@@ -1833,7 +1897,7 @@
         const allObjects = await listAllObjects();
         const Contents = allObjects.filter(obj =>
           !obj.Key.toLowerCase().endsWith('.json') &&
-          !obj.Key.startsWith(THUMB_PREFIX)          //  << add this line
+          !obj.Key.startsWith(THUMB_FOLDER)          //  << add this line
         );
 
         // 2. build a “raw” index using LastModified first
@@ -1919,7 +1983,7 @@
 
       for (const Key of keys) {
         // head + EXIF → takenDate
-        const head = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key }));
+        const head = await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: toS3Key(Key) }));
 
         let takenDate;
         if (head.Metadata?.taken) {
@@ -1993,8 +2057,7 @@
         return new Date(fallbackMs);
       }
 
-      const url = `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(key)}`;
-      const exifDate = await getExifDateFromFile(url);
+      const exifDate = await getExifDateFromFile(s3Url(key));
       if (exifDate) {
         return exifDate;
       }
@@ -2003,7 +2066,7 @@
       return new Date(fallbackMs);
     }
 
-    const s3Url = k => `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeURIComponent(k)}`;
+    const s3Url = k => `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeKeyForUrl(toS3Key(k))}`;
 
     async function buildFigure(Key, takenDate, mySet) {
       if (Key.toLowerCase().endsWith('.json')) return null;
@@ -2221,9 +2284,9 @@
        * `${k}.json` is always defined.
        * ----------------------------------------------------------------- */
       const tasks = keys.flatMap(k => [
-        s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: k })), // main file
-        s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${k}.json` })), // credit JSON
-        s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: thumbKeyOf(k) }))
+        s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(k) })), // main file
+        s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: toS3Key(`${k}.json`) })), // credit JSON
+        s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(thumbKeyOf(k)) }))
       ]);
 
       await Promise.allSettled(tasks);      // continue even if one key is missing
@@ -2262,9 +2325,9 @@
         const key = currentKey; // your filename
         console.log("Deleting", key);
         await Promise.all([
-          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })),
-          s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: `${key}.json` })),
-          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: thumbKeyOf(key) }))
+          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(key) })),
+          s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: toS3Key(`${key}.json`) })),
+          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(thumbKeyOf(key)) }))
         ]);
 
         // remove from localStorage

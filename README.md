@@ -1,6 +1,6 @@
 Site: https://sharedlens.ca
 
-To Deploy: `firebase deploy --only hosting`
+To Deploy: `firebase deploy --only hosting` or `firebase deploy --only firestore:rules,hosting`
 
 To run: `npx http-server .`
 <!-- 

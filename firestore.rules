@@ -13,13 +13,20 @@ service cloud.firestore {
         && request.resource.data.slug == slug
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.keys().hasOnly([
-          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt'
-        ]);
+          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix'
+        ])
+        && (!('plan' in request.resource.data) || request.resource.data.plan in ['managed', 'self-managed'])
+        && (!('objectPrefix' in request.resource.data) || request.resource.data.objectPrefix is string);
 
       allow update: if isSignedIn()
         && resource.data.createdBy == request.auth.uid
         && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.slug == resource.data.slug;
+        && request.resource.data.slug == resource.data.slug
+        && request.resource.data.keys().hasOnly([
+          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix'
+        ])
+        && (!('plan' in request.resource.data) || request.resource.data.plan in ['managed', 'self-managed'])
+        && (!('objectPrefix' in request.resource.data) || request.resource.data.objectPrefix is string);
 
       allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
     }
