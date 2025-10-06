@@ -535,6 +535,8 @@
       <div class="button-row">
         <button type="submit" class="btn btn-fill">Submit</button>
       </div>
+
+      <div id="siteResult" class="notice" style="display:none; margin-top:1rem;"></div>
     </form>
   </main>
 
@@ -648,6 +650,7 @@
     const menuEl = document.getElementById('sl-user-menu');
     const mainBtn = document.getElementById('sl-main');
     const authBtn = document.getElementById('sl-auth');
+    const siteResult = document.getElementById('siteResult');
 
     // Sign-in helper
     async function signInWithGoogle() {
@@ -827,6 +830,10 @@
       if (btn) btn.disabled = true;
 
       try {
+        if (siteResult) {
+          siteResult.style.display = 'none';
+          siteResult.textContent = '';
+        }
         const user = await waitForUser();
         if (!user) { alert('Please sign in first.'); return; }
 
@@ -899,8 +906,12 @@
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         }, { merge: false });
 
-        // Go to /<slug> (Hosting rewrites serve home.html there)
-        window.location.href = `/${slug}`;
+        if (siteResult) {
+          const url = new URL(`/${slug}`, window.location.origin).toString();
+          siteResult.innerHTML = `Your site is ready at <a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+          siteResult.style.display = 'block';
+          siteResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       } catch (err) {
         alert(err.code === 'permission-denied'
           ? 'That title is taken. Try another.'
