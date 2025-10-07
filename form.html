@@ -638,6 +638,66 @@
 
     generatePerfectHueGradient();
 
+    // Guard range sliders against accidental changes while scrolling on touch devices
+    (function installRangeGuards() {
+      const sliders = document.querySelectorAll('input[type="range"]');
+      const THRESHOLD = 8;
+
+      sliders.forEach(slider => {
+        let startX = 0, startY = 0, startValue = slider.value;
+
+        const resetGuard = () => {
+          slider.dataset.touchGuard = '';
+        };
+
+        slider.addEventListener('pointerdown', e => {
+          if (e.pointerType !== 'touch') return;
+          startX = e.clientX;
+          startY = e.clientY;
+          startValue = slider.value;
+          slider.dataset.touchGuard = 'pending';
+        }, { passive: true });
+
+        slider.addEventListener('pointermove', e => {
+          if (e.pointerType !== 'touch') return;
+          const guardState = slider.dataset.touchGuard;
+          if (!guardState || guardState === 'allowed') return;
+
+          const dx = Math.abs(e.clientX - startX);
+          const dy = Math.abs(e.clientY - startY);
+
+          if (guardState === 'pending') {
+            if (dy > dx && dy > THRESHOLD) {
+              slider.dataset.touchGuard = 'blocked';
+              if (slider.value !== startValue) {
+                slider.value = startValue;
+                if (typeof updateColor === 'function') updateColor();
+              }
+              slider.blur();
+              return;
+            }
+            if (dx > THRESHOLD) {
+              slider.dataset.touchGuard = 'allowed';
+            }
+          }
+        }, { passive: true });
+
+        const cleanup = () => {
+          slider.dataset.touchGuard = '';
+        };
+
+        slider.addEventListener('pointerup', cleanup, { passive: true });
+        slider.addEventListener('pointercancel', cleanup, { passive: true });
+
+        slider.addEventListener('input', () => {
+          if (slider.dataset.touchGuard === 'blocked') {
+            slider.value = startValue;
+            if (typeof updateColor === 'function') updateColor();
+          }
+        });
+      });
+    })();
+
   </script>
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
   <script>
