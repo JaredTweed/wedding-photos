@@ -555,6 +555,12 @@
 
   <script>
     const managedConfigPromise = import('/config.js');
+    let editingSite = null;
+
+    const ensureTrailingSlash = (value) => {
+      if (!value) return '';
+      return value.endsWith('/') ? value : `${value}/`;
+    };
     /* --- dynamic HSL handling --- */
     function hsl() {
       const h = document.getElementById('hue').value;
@@ -743,7 +749,8 @@
 
       if (snap.empty) return;
 
-      const d = snap.docs[0].data();
+      const doc = snap.docs[0];
+      const d = doc.data();
       // 1) Title
       const titleEl = document.getElementById('siteTitle');  // exists in your form
       titleEl.value = d.title || '';
@@ -766,6 +773,15 @@
       document.getElementById('bucketRegion').value = plan === 'self-managed' ? (d.region || '') : '';
       document.getElementById('idPool').value = plan === 'self-managed' ? (d.idPool || '') : '';
       if (typeof toggleS3Fields === 'function') toggleS3Fields();
+
+      editingSite = {
+        slug: d.slug || doc.id,
+        plan,
+        objectPrefix: ensureTrailingSlash(d.objectPrefix || (plan === 'managed' ? `sites/${(d.slug || doc.id)}/` : '')),
+        bucket: d.bucket || '',
+        region: d.region || '',
+        idPool: d.idPool || ''
+      };
     }
 
     // Run prefill as soon as auth resolves (user or null)
@@ -887,12 +903,44 @@
             return;
           }
 
-          objectPrefix = `sites/${slug}/`;
+          if (editingSite && editingSite.plan === 'managed') {
+            objectPrefix = ensureTrailingSlash(editingSite.objectPrefix || `sites/${editingSite.slug}`);
+          } else {
+            objectPrefix = ensureTrailingSlash(`sites/${slug}`);
+          }
         }
 
-        // Create the Firestore doc (ID = slug; uniqueness is enforced by rules)
+        const isEditing = !!(editingSite && editingSite.slug);
+        const oldSlug = isEditing ? editingSite.slug : null;
+        const slugChanged = isEditing && oldSlug !== slug;
+
+        if (slugChanged) {
+          const existing = await db.collection('sites').doc(slug).get();
+          if (existing.exists) {
+            alert('That title is taken. Try another.');
+            return;
+          }
+        }
+
+        if (plan === 'managed' && objectPrefix) {
+          const prefixSnap = await db.collection('sites')
+            .where('objectPrefix', '==', objectPrefix)
+            .get();
+          const conflict = prefixSnap.docs.some(doc => {
+            const docId = doc.id;
+            if (slugChanged) {
+              return docId !== oldSlug;
+            }
+            return docId !== slug;
+          });
+          if (conflict) {
+            alert('That storage folder is already in use. Please choose a different site title.');
+            return;
+          }
+        }
+
         const docRef = db.collection('sites').doc(slug);
-        await docRef.set({
+        const docData = {
           title: titleRaw.trim().replace(/\s+/g, ' '),
           slug,
           primaryColor,
@@ -904,7 +952,25 @@
           icoImage: "",
           createdBy: user.uid,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        }, { merge: false });
+        };
+
+        if (isEditing && slugChanged) {
+          await db.runTransaction(async txn => {
+            txn.set(docRef, docData);
+            txn.delete(db.collection('sites').doc(oldSlug));
+          });
+        } else {
+          await docRef.set(docData, { merge: false });
+        }
+
+        editingSite = {
+          slug,
+          plan,
+          objectPrefix: plan === 'managed' ? objectPrefix : '',
+          bucket,
+          region,
+          idPool
+        };
 
         if (siteResult) {
           const url = new URL(`/${slug}`, window.location.origin).toString();
