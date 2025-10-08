@@ -820,7 +820,9 @@
       return value.endsWith('/') ? value : `${value}/`;
     }
     function toS3Key(baseKey) {
-      return KEY_PREFIX ? `${KEY_PREFIX}${baseKey}` : baseKey;
+      if (!KEY_PREFIX) return baseKey;
+      if (baseKey.startsWith(STREAM_FOLDER)) return baseKey;
+      return `${KEY_PREFIX}${baseKey}`;
     }
     function fromS3Key(fullKey) {
       if (!KEY_PREFIX) return fullKey;
@@ -898,6 +900,34 @@
     let creditName = localStorage.getItem("creditName") ?? "";
     // one-shot cache so we don’t refetch the same JSON again
     const creditCache = new Map();   // Key → credit string | null
+    const headCache = new Map();     // Stream HEAD responses
+
+    function streamHead(url) {
+      const cached = headCache.get(url);
+      if (cached === true || cached === false) {
+        return Promise.resolve(cached);
+      }
+      if (cached instanceof Promise) {
+        return cached;
+      }
+      const promise = fetch(url, { method: 'HEAD' })
+        .then(resp => {
+          const ok = resp.ok;
+          headCache.set(url, ok);
+          return ok;
+        })
+        .catch(() => {
+          headCache.set(url, false);
+          return false;
+        });
+      headCache.set(url, promise);
+      return promise;
+    }
+
+    async function verifyStreamExists(url) {
+      if (!url) return false;
+      return streamHead(url);
+    }
 
     /* ---------- THUMBNAILS (client-side) -------------------------------- */
 
@@ -975,8 +1005,9 @@
     const isVideoKey = key => VIDEO_EXT_RE.test(key);
     const isTranscodedVideoKey = key => key.startsWith(STREAM_FOLDER) || key.toLowerCase().endsWith(TRANSCODE_SUFFIX);
     const streamKeyOf = originalKey => {
-      const parts = originalKey.split('/');
-      const baseName = parts.pop() || originalKey;
+      const fullKey = toS3Key(originalKey);
+      const parts = fullKey.split('/');
+      const baseName = parts.pop() || fullKey;
       const nameWithoutExt = baseName.replace(/\.[^.]+$/, '');
       const dir = parts.length ? parts.join('/') + '/' : '';
       return `${STREAM_FOLDER}${dir}${nameWithoutExt}${TRANSCODE_SUFFIX}`;
@@ -1432,14 +1463,11 @@
         const selector = isVideo
           ? `video[src="${originalSrc}"]`
           : `img[src="${originalSrc}"]`;
-        const mediaEl = document.querySelector(selector);
+        let mediaEl = document.querySelector(selector);
+        let fig = mediaEl?.closest('figure') || document.querySelector(`figure[data-key="${fileName}"]`);
         let dateMs = Date.now();
-        let fig = null;
-        if (mediaEl) {
-          fig = mediaEl.closest('figure');
-          if (fig && fig.dataset.taken) {
-            dateMs = Number(fig.dataset.taken);
-          }
+        if (fig && fig.dataset.taken) {
+          dateMs = Number(fig.dataset.taken);
         }
 
         // 2) Format the timestamp freshly
@@ -1472,21 +1500,41 @@
           ? Object.assign(document.createElement('video'), { controls: true, preload: 'auto', playsInline: true })
           : Object.assign(document.createElement('img'), { loading: 'eager', decoding: 'sync' });
         if ('fetchPriority' in big) big.fetchPriority = 'high';
-        let preferredSrc = originalSrc;
+        big.src = originalSrc;
+
+        let streamUrl = null;
         if (isVideo) {
           const streamKey = fig?.dataset.streamKey || '';
           if (streamKey) {
-            preferredSrc = s3Url(streamKey);
+            streamUrl = s3Url(streamKey);
+            verifyStreamExists(streamUrl).then(ok => {
+              if (!ok) {
+                console.log(`[video] 720p stream missing, keeping original for ${fileName}`);
+                return;
+              }
+              console.log(`[video] playing 720p stream for ${fileName}`);
+              big.src = streamUrl;
+            }).catch(() => {
+              console.warn(`[video] stream HEAD failed, using original for ${fileName}`);
+              big.src = originalSrc;
+            });
+          } else {
+            console.log(`[video] no 720p stream available, using original for ${fileName}`);
           }
+
           big.dataset.originalSrc = originalSrc;
-          big.dataset.streamSrc = preferredSrc;
-          big.addEventListener('error', () => {
-            if (big.dataset.streamFallbackDone) return;
-            big.dataset.streamFallbackDone = 'true';
-            big.src = big.dataset.originalSrc;
-          }, { once: true });
+          big.dataset.streamSrc = streamUrl || '';
+
+          if (streamUrl) {
+            const fallback = () => {
+              if (big.dataset.streamFallbackDone) return;
+              big.dataset.streamFallbackDone = 'true';
+              console.warn(`[video] stream failed, falling back to original for ${fileName}`);
+              big.src = big.dataset.originalSrc;
+            };
+            big.addEventListener('error', fallback, { once: true });
+          }
         }
-        big.src = preferredSrc;
         const done = () => resumeThumbLoading();
         if (isVideo) {
           big.addEventListener('canplaythrough', done, { once: true }); // best-effort “fully buffered”
