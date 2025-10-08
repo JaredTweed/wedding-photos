@@ -16,7 +16,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap"
     rel="stylesheet">
-  <!-- <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet"> -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 
   <!-- <link rel="manifest" href="./manifest.json"> -->
@@ -31,6 +31,7 @@
       --secondary-color: hsl(96 21% 94%); */
       --font-size: 1.2rem;
       --image-width: 160px;
+      --site-font: "Crimson Text", "Libre Baskerville", serif;
     }
 
     html,
@@ -53,7 +54,7 @@
 
       /* turn off the blue tap highlight on iOS/Android */
       -webkit-tap-highlight-color: transparent;
-      font-family: "Crimson Text", "Libre Baskerville", serif;
+      font-family: var(--site-font, "Crimson Text", "Libre Baskerville", serif);
 
       margin: 0;
       background: #ffffff;
@@ -820,6 +821,20 @@
     let KEY_PREFIX = '';
     const TRANSCODE_SUFFIX = '_720p.mp4';
     const VIDEO_EXT_RE = /\.(mp4|mov|webm)$/i;
+    const FONT_OPTIONS = {
+      serif: "'Crimson Text', 'Libre Baskerville', serif",
+      sans: "'Poppins', 'Segoe UI', sans-serif"
+    };
+    const DEFAULT_FONT_KEY = 'serif';
+
+    function resolveFontKey(value) {
+      if (!value) return DEFAULT_FONT_KEY;
+      if (FONT_OPTIONS[value]) return value;
+      for (const [key, css] of Object.entries(FONT_OPTIONS)) {
+        if (css === value) return key;
+      }
+      return DEFAULT_FONT_KEY;
+    }
 
     function normalizePrefix(value) {
       if (!value) return '';
@@ -847,7 +862,8 @@
         BUCKET: MANAGED_BUCKET,
         ICO_IMAGE: "",
         PLAN: 'managed',
-        OBJECT_PREFIX: 'sites/demo/'
+        OBJECT_PREFIX: 'sites/demo/',
+        FONT_KEY: DEFAULT_FONT_KEY
       };
       const snap = await db.collection('sites').doc(slugValue).get();
       if (!snap.exists) throw new Error('Site not found');
@@ -866,23 +882,30 @@
         BUCKET: isManaged ? MANAGED_BUCKET : d.bucket,
         ICO_IMAGE: d.icoImage || "",
         PLAN: plan,
-        OBJECT_PREFIX: objectPrefix
+        OBJECT_PREFIX: objectPrefix,
+        FONT_KEY: resolveFontKey(d.fontFamily)
       };
     }
 
     let config;
+    let redirectingTo404 = false;
     try {
       config = await loadSiteConfig(slug || fallbackSlug);
     } catch (err) {
       if (slug) {
         console.warn('Site not found, redirecting to 404:', slug, err);
         window.location.replace('/404.html');
-        await new Promise(() => { /* keep script idle until redirect */ });
+        redirectingTo404 = true;
+      } else {
+        throw err;
       }
-      throw err;
     }
 
-    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE, PLAN, OBJECT_PREFIX } = config;
+    if (redirectingTo404) {
+      await new Promise(() => { /* keep script idle until redirect */ });
+    }
+
+    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE, PLAN, OBJECT_PREFIX, FONT_KEY } = config;
 
     const IS_MANAGED_PLAN = PLAN === 'managed';
     const prefixCandidate = (OBJECT_PREFIX && OBJECT_PREFIX.length)
@@ -891,10 +914,14 @@
     KEY_PREFIX = normalizePrefix(prefixCandidate);
 
     // Apply theme + title/favicon
+    const FONT = FONT_OPTIONS[FONT_KEY] || FONT_OPTIONS[DEFAULT_FONT_KEY];
+
     document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
     document.title = SITE_TITLE;
     document.getElementById('page-title').textContent = SITE_TITLE;
     if (ICO_IMAGE) document.getElementById('favicon').href = ICO_IMAGE;
+    document.documentElement.style.setProperty('--site-font', FONT);
+    document.body.style.fontFamily = FONT;
 
     // Build secondary color like your original code
     function getSecondaryColor(primaryHSL) {

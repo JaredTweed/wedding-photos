@@ -453,83 +453,11 @@
       </div>
 
       <div class="field">
-        <label for="useS3">Storage Option</label>
-        <select id="useS3" onchange="toggleS3Fields()">
-          <option value="managed">Use SharedLens managed storage</option>
-          <option value="self-managed">Bring my own S3 bucket</option>
+        <label for="siteFont">Site Font</label>
+        <select id="siteFont">
+          <option value="serif">Elegant Serif (Crimson Text)</option>
+          <option value="sans">Modern Sans (Poppins)</option>
         </select>
-      </div>
-
-      <div id="s3Fields" style="display:none;">
-        <div class="field" style="margin-top:.5rem;">
-          <button class="btn" type="button" onclick="toggleInfoBox()">How do I get this info?</button>
-        </div>
-
-        <div class="field">
-          <label for="bucketName">Bucket Title</label>
-          <input id="bucketName" type="text" placeholder="my-bucket-title" />
-        </div>
-
-        <div class="field">
-          <label for="bucketRegion">Bucket Region</label>
-          <input id="bucketRegion" type="text" placeholder="ca-central-1" />
-        </div>
-
-        <div class="field">
-          <label for="idPool">Cognito Identity Pool ID</label>
-          <input id="idPool" type="text" placeholder="ca-central-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
-        </div>
-
-        <div id="s3Instructions" style="display:none; margin-top:.5rem;">
-          <div class="color-card" style="box-shadow:none;">
-            <p style="margin-top:0"><strong>Step 1:</strong> Create an S3 bucket and replace
-              <code>my-bucket-title</code> accordingly.
-            </p>
-            <p><strong>Bucket Policy:</strong></p>
-            <pre
-              style="text-align:left; white-space:pre-wrap; word-break:break-word; border:1px solid #000; border-radius:10px; padding:.75rem; box-shadow:0 3px 0 #000; background:#fff;">{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowPublicRead",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::my-bucket-title/*"
-    }
-  ]
-}</pre>
-
-            <p><strong>CORS Configuration:</strong></p>
-            <pre
-              style="text-align:left; white-space:pre-wrap; word-break:break-word; border:1px solid #000; border-radius:10px; padding:.75rem; box-shadow:0 3px 0 #000; background:#fff;">[
-  {
-    "AllowedHeaders": ["*"],
-    "AllowedMethods": ["GET","PUT","POST","DELETE","HEAD"],
-    "AllowedOrigins": ["*","null"],
-    "ExposeHeaders": ["ETag","x-amz-request-id","x-amz-meta-description","x-amz-meta-otherkey"],
-    "MaxAgeSeconds": 1800
-  }
-]</pre>
-
-            <p><strong>Step 2:</strong> Create a role with permissions.</p>
-            <pre
-              style="text-align:left; white-space:pre-wrap; word-break:break-word; border:1px solid #000; border-radius:10px; padding:.75rem; box-shadow:0 3px 0 #000; background:#fff;">{
-  "Version": "2012-10-17",
-  "Statement": [
-    { "Effect": "Allow", "Action": "s3:ListBucket", "Resource": "arn:aws:s3:::my-bucket-title" },
-    { "Effect": "Allow", "Action": ["s3:GetObject","s3:PutObject","s3:DeleteObject"], "Resource": "arn:aws:s3:::my-bucket-title/*" }
-  ]
-}</pre>
-
-            <p><strong>Step 3:</strong> Create a Cognito Identity Pool and enable guest access using the role from Step
-              2.</p>
-          </div>
-        </div>
-      </div>
-
-      <div id="managedMessage" class="notice" style="display:none; margin-top:1rem;">
-        We will host your uploads in a SharedLens-managed bucket. Switch to “Bring my own S3 bucket” anytime if you prefer to control the storage yourself.
       </div>
 
       <div class="button-row">
@@ -555,6 +483,20 @@
 
   <script>
     const managedConfigPromise = import('/config.js');
+    const FONT_OPTIONS = {
+      serif: "'Crimson Text', 'Libre Baskerville', serif",
+      sans: "'Poppins', 'Segoe UI', sans-serif"
+    };
+    const DEFAULT_FONT_KEY = 'serif';
+
+    function resolveFontKey(value) {
+      if (!value) return DEFAULT_FONT_KEY;
+      if (FONT_OPTIONS[value]) return value;
+      for (const [key, css] of Object.entries(FONT_OPTIONS)) {
+        if (css === value) return key;
+      }
+      return DEFAULT_FONT_KEY;
+    }
     let editingSite = null;
 
     const ensureTrailingSlash = (value) => {
@@ -605,18 +547,6 @@
 
     // Initialize color display
     updateColor();
-
-    /* --- S3 toggle & info box --- */
-    function toggleS3Fields() {
-      const mode = document.getElementById('useS3').value;
-      const isSelfManaged = mode === 'self-managed';
-      document.getElementById('s3Fields').style.display = isSelfManaged ? 'block' : 'none';
-      document.getElementById('managedMessage').style.display = isSelfManaged ? 'none' : 'block';
-    }
-    function toggleInfoBox() {
-      const box = document.getElementById('s3Instructions');
-      box.style.display = box.style.display === 'block' ? 'none' : 'block';
-    }
 
 
 
@@ -718,6 +648,23 @@
     const authBtn = document.getElementById('sl-auth');
     const siteResult = document.getElementById('siteResult');
 
+    const params = new URLSearchParams(window.location.search);
+    const rawSlugParam = (params.get('slug') || '').trim().toLowerCase();
+    const SLUG_PARAM = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(rawSlugParam) ? rawSlugParam : '';
+
+    function showSiteNotice(message) {
+      if (!siteResult) return;
+      if (!message) {
+        siteResult.style.display = 'none';
+        siteResult.textContent = '';
+        siteResult.removeAttribute('data-state');
+        return;
+      }
+      siteResult.textContent = message;
+      siteResult.style.display = 'block';
+      siteResult.dataset.state = 'notice';
+    }
+
     // Sign-in helper
     async function signInWithGoogle() {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -796,21 +743,52 @@
       return clean.toLowerCase().replace(/ /g, '-');
     }
 
-    // --- Prefill the form with your latest site (if you’ve created one before) ---
+    // --- Prefill the form with the requested site (or latest) ---
     async function prefillFromAccount() {
       const user = await waitForUser();
       if (!user) return; // not signed in → nothing to prefill
 
-      const snap = await db.collection('sites')
-        .where('createdBy', '==', user.uid)
-        .orderBy('createdAt', 'desc')
-        .limit(1)
-        .get();
+      let docSnap = null;
+      editingSite = null;
 
-      if (snap.empty) return;
+      if (SLUG_PARAM) {
+        try {
+          const candidate = await db.collection('sites').doc(SLUG_PARAM).get();
+          if (!candidate.exists) {
+            showSiteNotice(`No site named "${SLUG_PARAM}" was found. Complete the form below to create it.`);
+            return;
+          }
 
-      const doc = snap.docs[0];
-      const d = doc.data();
+          const candidateData = candidate.data();
+          if ((candidateData.createdBy || '') !== user.uid) {
+            showSiteNotice('You do not have permission to edit this site.');
+            return;
+          }
+
+          docSnap = candidate;
+        } catch (err) {
+          console.error('Failed to load site from slug parameter', err);
+          showSiteNotice('Could not load that site. Please reload and try again.');
+          return;
+        }
+      } else {
+        const snap = await db.collection('sites')
+          .where('createdBy', '==', user.uid)
+          .orderBy('createdAt', 'desc')
+          .limit(1)
+          .get();
+
+        if (snap.empty) {
+          showSiteNotice('');
+          return;
+        }
+
+        docSnap = snap.docs[0];
+      }
+
+      if (!docSnap) return;
+
+      const d = docSnap.data();
       // 1) Title
       const titleEl = document.getElementById('siteTitle');  // exists in your form
       titleEl.value = d.title || '';
@@ -827,77 +805,31 @@
 
       // 3) S3 settings
       const plan = d.plan || (d.bucket && d.region && d.idPool ? 'self-managed' : 'managed');
-      document.getElementById('useS3').value = plan;
+      const fontSelect = document.getElementById('siteFont');
+      const storedKey = resolveFontKey(d.fontFamily);
+      fontSelect.value = storedKey;
 
-      document.getElementById('bucketName').value = plan === 'self-managed' ? (d.bucket || '') : '';
-      document.getElementById('bucketRegion').value = plan === 'self-managed' ? (d.region || '') : '';
-      document.getElementById('idPool').value = plan === 'self-managed' ? (d.idPool || '') : '';
-      if (typeof toggleS3Fields === 'function') toggleS3Fields();
+      const slugForEditing = d.slug || docSnap.id;
+
+      if (SLUG_PARAM) {
+        showSiteNotice(`Editing existing site: /${slugForEditing}`);
+      } else {
+        showSiteNotice(`Editing latest site: /${slugForEditing}`);
+      }
 
       editingSite = {
-        slug: d.slug || doc.id,
+        slug: slugForEditing,
         plan,
-        objectPrefix: ensureTrailingSlash(d.objectPrefix || (plan === 'managed' ? `sites/${(d.slug || doc.id)}/` : '')),
+        objectPrefix: ensureTrailingSlash(d.objectPrefix || (plan === 'managed' ? `sites/${slugForEditing}/` : '')),
         bucket: d.bucket || '',
         region: d.region || '',
-        idPool: d.idPool || ''
+        idPool: d.idPool || '',
+        fontFamily: storedKey
       };
     }
 
     // Run prefill as soon as auth resolves (user or null)
     firebase.auth().onAuthStateChanged(() => { prefillFromAccount(); });
-
-    // Reflect whatever the HTML default is on first paint
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof toggleS3Fields === 'function') toggleS3Fields();
-    });
-
-
-    // --- S3 bucket health check (list → put → public head → delete) ---
-    async function s3HealthCheck({ region, idPool, bucket }) {
-      // Dynamic import keeps your form a classic script; no bundler needed
-      const s3lib = await import("https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser");
-      const idlib = await import("https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser");
-
-      const { S3Client, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } = s3lib;
-      const { fromCognitoIdentityPool } = idlib;
-
-      const s3 = new S3Client({
-        region,
-        credentials: fromCognitoIdentityPool({ identityPoolId: idPool, clientConfig: { region } })
-      });
-
-      const key = `__healthcheck__/${Date.now()}_${Math.random().toString(36).slice(2)}.txt`;
-      let putOk = false;
-
-      try {
-        // 1) Bucket exists & List allowed
-        await s3.send(new ListObjectsV2Command({ Bucket: bucket, MaxKeys: 0 }));
-
-        // 2) Can upload
-        await s3.send(new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          Body: new Blob(['ok'], { type: 'text/plain' }),
-          ContentType: 'text/plain'
-        }));
-        putOk = true;
-
-        // 3) Object publicly readable (matches how home.html fetches via HTTPS URL)
-        const headUrl = `https://${bucket}.s3.${region}.amazonaws.com/${encodeURIComponent(key)}`;
-        const resp = await fetch(headUrl, { method: 'HEAD' });
-        if (!resp.ok) throw new Error(`Public read failed (HTTP ${resp.status}) — check your bucket policy & CORS.`);
-
-        return { ok: true };
-      } catch (err) {
-        return { ok: false, message: err.message || String(err) };
-      } finally {
-        // 4) Clean up if we managed to PUT
-        if (putOk) {
-          try { await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })); } catch { }
-        }
-      }
-    }
 
     // --- Submit handler: now includes the S3 check ---
     async function submitForm(e) {
@@ -909,6 +841,7 @@
         if (siteResult) {
           siteResult.style.display = 'none';
           siteResult.textContent = '';
+          siteResult.removeAttribute('data-state');
         }
         const user = await waitForUser();
         if (!user) { alert('Please sign in first.'); return; }
@@ -922,31 +855,33 @@
         const l = document.getElementById('light').value;
         const primaryColor = `hsl(${h} ${s}% ${l}%)`;
 
-        // S3 fields
-        const storageChoice = document.getElementById('useS3').value;
-        const plan = storageChoice === 'self-managed' ? 'self-managed' : 'managed';
+        const fontSelect = document.getElementById('siteFont');
+        const fontKeyRaw = (fontSelect.value || '').trim();
+        const fontFamilyKey = resolveFontKey(fontKeyRaw);
 
+        const isEditing = !!(editingSite && editingSite.slug);
+        const oldSlug = isEditing ? editingSite.slug : null;
+        const slugChanged = isEditing && oldSlug !== slug;
+
+        let plan = 'managed';
         let bucket = '';
         let region = '';
         let idPool = '';
         let objectPrefix = '';
 
-        if (plan === 'self-managed') {
-          bucket = (document.getElementById('bucketName').value || '').trim();
-          region = (document.getElementById('bucketRegion').value || '').trim();
-          idPool = (document.getElementById('idPool').value || '').trim();
+        if (isEditing && editingSite.plan === 'self-managed') {
+          plan = 'self-managed';
+          bucket = editingSite.bucket || '';
+          region = editingSite.region || '';
+          idPool = editingSite.idPool || '';
+          objectPrefix = ensureTrailingSlash(editingSite.objectPrefix || `sites/${oldSlug || slug}`);
 
           if (!bucket || !region || !idPool) {
-            alert('Please provide the bucket, region, and identity pool for your S3 setup.');
-            return;
-          }
-
-          const result = await s3HealthCheck({ region, idPool, bucket });
-          if (!result.ok) {
-            alert('S3 check failed: ' + result.message + '\n\nPlease fix the bucket policy/CORS/role permissions and try again.');
+            alert('This site was created with a personal S3 bucket. Please contact support to update its credentials.');
             return;
           }
         } else {
+          plan = 'managed';
           try {
             const managed = await managedConfigPromise;
             bucket = managed.BUCKET;
@@ -954,25 +889,17 @@
             idPool = managed.ID_POOL;
           } catch (err) {
             console.error('Managed config load failed', err);
-            alert('Managed storage is not configured yet. Please choose “Bring my own S3 bucket” or try again later.');
+            alert('Managed storage is not configured yet. Please try again later.');
             return;
           }
 
           if (!bucket || !region || !idPool) {
-            alert('Managed storage is not configured yet. Please choose “Bring my own S3 bucket” or try again later.');
+            alert('Managed storage is not configured yet. Please try again later.');
             return;
           }
 
-          if (editingSite && editingSite.plan === 'managed') {
-            objectPrefix = ensureTrailingSlash(editingSite.objectPrefix || `sites/${editingSite.slug}`);
-          } else {
-            objectPrefix = ensureTrailingSlash(`sites/${slug}`);
-          }
+          objectPrefix = ensureTrailingSlash(editingSite?.objectPrefix || `sites/${slug}`);
         }
-
-        const isEditing = !!(editingSite && editingSite.slug);
-        const oldSlug = isEditing ? editingSite.slug : null;
-        const slugChanged = isEditing && oldSlug !== slug;
 
         if (slugChanged) {
           const existing = await db.collection('sites').doc(slug).get();
@@ -1009,6 +936,7 @@
           bucket,
           objectPrefix,
           plan,
+          fontFamily: fontFamilyKey,
           icoImage: "",
           createdBy: user.uid,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1026,14 +954,16 @@
         editingSite = {
           slug,
           plan,
-          objectPrefix: plan === 'managed' ? objectPrefix : '',
+          objectPrefix,
           bucket,
           region,
-          idPool
+          idPool,
+          fontFamily: fontFamilyKey
         };
 
         if (siteResult) {
           const url = new URL(`/${slug}`, window.location.origin).toString();
+          siteResult.dataset.state = 'success';
           siteResult.innerHTML = `Your site is ready at <a href="${url}" target="_blank" rel="noopener">${url}</a>`;
           siteResult.style.display = 'block';
           siteResult.scrollIntoView({ behavior: 'smooth', block: 'center' });

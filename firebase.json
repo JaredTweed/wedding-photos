@@ -10,7 +10,8 @@
       { "source": "/form", "destination": "/form.html" },
       { "source": "/home", "destination": "/home.html" },
       { "source": "/:slug", "destination": "/home.html" }
-    ]
+    ],
+    "errorPage": "404.html"
   },
   "firestore": {
     "database": "(default)",
