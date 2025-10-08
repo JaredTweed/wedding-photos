@@ -703,6 +703,12 @@
       width: calc(100vw - var(--safe-left) - var(--safe-right));
     }
 
+    body.drag-over #container {
+      outline: 3px dashed var(--primary-color);
+      outline-offset: 8px;
+    }
+
+
     /* 5. Scrollable panel inside: same trick so bottom row is visible */
     #panelContainer,
     .tab-panel.active {
@@ -1350,11 +1356,14 @@
       switchTab(false);
     }
 
-    // ── upload flow ──────────────────────────────────────────────────────────
-    // wrap your picker.onchange to show progress
-    picker.onchange = async ev => {
-      const files = Array.from(ev.target.files);
-      if (files.length === 0) return;
+    async function processSelectedFiles(selected) {
+      if (!Array.isArray(selected)) selected = Array.from(selected || []);
+      selected = selected.filter(f => f && typeof f.size === 'number');
+      if (selected.length === 0) return;
+      if (uploading) {
+        console.warn('Upload already in progress; ignoring dropped files.');
+        return;
+      }
 
       /* UI setup -------------------------------------------------------- */
       tsLabel.textContent = '';
@@ -1362,16 +1371,16 @@
       ensureOverlayContent();
       overlayContent.innerHTML =
         `<div style="color:#fff;font-size:1.2rem;text-align:center;padding:1rem;">
-       Uploading 1 / ${files.length}…
+       Uploading 1 / ${selected.length}…
        </div>`;
       overlay.classList.add('visible');
 
       const newKeys = [];
 
       /* ---- NEW: process in 5-file chunks on iOS, all at once elsewhere ---- */
-      const CHUNK = isiOS ? 3 : files.length;
-      for (let start = 0; start < files.length; start += CHUNK) {
-        const slice = files.slice(start, start + CHUNK);
+      const CHUNK = isiOS ? 3 : selected.length;
+      for (let start = 0; start < selected.length; start += CHUNK) {
+        const slice = selected.slice(start, start + CHUNK);
 
         for (const [index, file] of slice.entries()) {
           const key = `${Date.now()}_${file.name}`;
@@ -1429,24 +1438,65 @@
           /* update overlay after each chunk */
           overlayContent.innerHTML =
             `<div style="color:#fff;font-size:1.2rem;text-align:center;padding:1rem;">
-            Uploading ${start + index + 2} / ${files.length}…</div>`;
+            Uploading ${start + index + 2} / ${selected.length}…</div>`;
         }
       }
 
       /* All done -------------------------------------------------------- */
       overlayContent.innerHTML = `<div style="color: white; font-size: 1.2rem;
                                 text-align: center; padding: 1rem;">
-                                 Uploaded ${files.length} / ${files.length}<br>
+                                 Uploaded ${selected.length} / ${selected.length}<br>
                                  Success!!
                               </div>`;
       await new Promise(r => setTimeout(r, 900));
 
       uploading = false;
       overlay.classList.remove('visible');
-      picker.value = '';
+      if (picker) picker.value = '';
 
       await appendNew(newKeys);
+    }
+
+    // ── upload flow ──────────────────────────────────────────────────────────
+    picker.onchange = ev => {
+      processSelectedFiles(Array.from(ev.target.files || []))
+        .catch(err => console.error('Upload failed', err));
     };
+
+    let dragDepth = 0;
+    const hasFiles = evt => Array.from(evt.dataTransfer?.types || []).includes('Files');
+
+    document.addEventListener('dragenter', evt => {
+      if (uploading || !hasFiles(evt)) return;
+      dragDepth++;
+      document.body.classList.add('drag-over');
+    });
+
+    document.addEventListener('dragover', evt => {
+      if (!hasFiles(evt)) return;
+      evt.preventDefault();
+      evt.dataTransfer.dropEffect = uploading ? 'none' : 'copy';
+    });
+
+    document.addEventListener('dragleave', evt => {
+      if (!hasFiles(evt)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) document.body.classList.remove('drag-over');
+    });
+
+    document.addEventListener('drop', evt => {
+      if (!hasFiles(evt)) return;
+      evt.preventDefault();
+      dragDepth = 0;
+      document.body.classList.remove('drag-over');
+      if (uploading) {
+        console.warn('Upload already in progress; ignoring dropped files.');
+        return;
+      }
+      const dropped = Array.from(evt.dataTransfer?.files || []);
+      processSelectedFiles(dropped)
+        .catch(err => console.error('Upload failed', err));
+    });
 
     // ── overlay & download ────────────────────────────────────────────────────
     // let currentSrc = "", currentName = "";
