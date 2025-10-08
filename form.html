@@ -384,6 +384,16 @@
       }
     }
   </style>
+  <script>
+    (function enforceCanonicalFormPath() {
+      if (!/^https?:$/i.test(window.location.protocol)) return;
+      if (/\/form\.html$/i.test(window.location.pathname)) {
+        const query = window.location.search || '';
+        const hash = window.location.hash || '';
+        window.location.replace('/form' + query + hash);
+      }
+    })();
+  </script>
 </head>
 
 <body>
@@ -736,6 +746,7 @@
 
     // Title: letters/numbers + single spaces (ASCII), no leading/trailing spaces
     const TITLE_RE = /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/;
+    const RESERVED_SLUGS = new Set(['form', 'home', '404']);
 
     function toSlug(title) {
       const clean = title.trim().replace(/\s+/g, ' ');
@@ -862,6 +873,11 @@
         const isEditing = !!(editingSite && editingSite.slug);
         const oldSlug = isEditing ? editingSite.slug : null;
         const slugChanged = isEditing && oldSlug !== slug;
+
+        if ((!isEditing || slugChanged) && RESERVED_SLUGS.has(slug)) {
+          alert('That title is reserved. Please choose a different site name.');
+          return;
+        }
 
         let plan = 'managed';
         let bucket = '';

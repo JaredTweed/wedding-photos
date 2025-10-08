@@ -235,13 +235,13 @@
 
     // If we came back from a redirect and got a user, continue to form
     auth.getRedirectResult()
-      .then(res => { if (res.user) window.location.href = 'form.html'; })
+      .then(res => { if (res.user) window.location.href = '/form'; })
       .catch(e => alert('Sign-in failed: ' + (e.message || e)));
 
     async function signInWithGoogle() {
       // If already signed in, just continue
       if (auth.currentUser) {
-        window.location.href = 'form.html';
+        window.location.href = '/form';
         return;
       }
 
@@ -256,7 +256,7 @@
           return; // page will redirect away
         }
         await auth.signInWithPopup(provider);
-        window.location.href = 'form.html';
+        window.location.href = '/form';
       } catch (e) {
         if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
           await auth.signInWithRedirect(provider);
