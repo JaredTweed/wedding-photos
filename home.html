@@ -809,8 +809,11 @@
     const fallbackSlug = ''; // if you want a default demo config when opening /home.html
 
     const THUMB_FOLDER = 'thumbs/';   // folder that will live in the *same* bucket
+    const STREAM_FOLDER = 'streams/';
     const THUMB_SIZE = 330;         // shortest side in px
     let KEY_PREFIX = '';
+    const TRANSCODE_SUFFIX = '_720p.mp4';
+    const VIDEO_EXT_RE = /\.(mp4|mov|webm)$/i;
 
     function normalizePrefix(value) {
       if (!value) return '';
@@ -969,6 +972,15 @@
 
     // 1C – given the *original* key, return the thumb key
     const thumbKeyOf = k => `${THUMB_FOLDER}${k.replace(/\.[^.]+$/, '.jpg')}`;
+    const isVideoKey = key => VIDEO_EXT_RE.test(key);
+    const isTranscodedVideoKey = key => key.startsWith(STREAM_FOLDER) || key.toLowerCase().endsWith(TRANSCODE_SUFFIX);
+    const streamKeyOf = originalKey => {
+      const parts = originalKey.split('/');
+      const baseName = parts.pop() || originalKey;
+      const nameWithoutExt = baseName.replace(/\.[^.]+$/, '');
+      const dir = parts.length ? parts.join('/') + '/' : '';
+      return `${STREAM_FOLDER}${dir}${nameWithoutExt}${TRANSCODE_SUFFIX}`;
+    };
 
 
 
@@ -1408,7 +1420,7 @@
     // ── overlay & download ────────────────────────────────────────────────────
     // let currentSrc = "", currentName = "";
     let currentSrc = "", currentKey = "";
-    function openOverlay(src, isVideo, _tsReadable, fileName) {
+    function openOverlay(originalSrc, isVideo, _tsReadable, fileName) {
 
       swallowNextClick = true;
       setTimeout(() => {
@@ -1418,12 +1430,13 @@
 
         // 1) Find the <figure> whose lazy-loaded img/video src matches
         const selector = isVideo
-          ? `video[src="${src}"]`
-          : `img[src="${src}"]`;
+          ? `video[src="${originalSrc}"]`
+          : `img[src="${originalSrc}"]`;
         const mediaEl = document.querySelector(selector);
         let dateMs = Date.now();
+        let fig = null;
         if (mediaEl) {
-          const fig = mediaEl.closest('figure');
+          fig = mediaEl.closest('figure');
           if (fig && fig.dataset.taken) {
             dateMs = Number(fig.dataset.taken);
           }
@@ -1444,7 +1457,7 @@
         const formatted = `${timePart}, ${datePart}`;
 
         // 3) Build the overlay
-        currentSrc = src;
+        currentSrc = originalSrc;
         currentKey = fileName;
         // clear out any previous <img> or <video> children
         overlay.querySelectorAll('img, video').forEach(el => el.remove());
@@ -1459,7 +1472,21 @@
           ? Object.assign(document.createElement('video'), { controls: true, preload: 'auto', playsInline: true })
           : Object.assign(document.createElement('img'), { loading: 'eager', decoding: 'sync' });
         if ('fetchPriority' in big) big.fetchPriority = 'high';
-        big.src = src;
+        let preferredSrc = originalSrc;
+        if (isVideo) {
+          const streamKey = fig?.dataset.streamKey || '';
+          if (streamKey) {
+            preferredSrc = s3Url(streamKey);
+          }
+          big.dataset.originalSrc = originalSrc;
+          big.dataset.streamSrc = preferredSrc;
+          big.addEventListener('error', () => {
+            if (big.dataset.streamFallbackDone) return;
+            big.dataset.streamFallbackDone = 'true';
+            big.src = big.dataset.originalSrc;
+          }, { once: true });
+        }
+        big.src = preferredSrc;
         const done = () => resumeThumbLoading();
         if (isVideo) {
           big.addEventListener('canplaythrough', done, { once: true }); // best-effort “fully buffered”
@@ -1744,7 +1771,7 @@
 
     async function refineDate(key, origDate) {
       // 1) Videos don’t carry EXIF
-      if (/\.(mp4|mov|webm)$/i.test(key)) {
+      if (isVideoKey(key)) {
         return origDate;
       }
 
@@ -1793,7 +1820,8 @@
         const originals = allObjects.filter(obj =>
           obj.Key &&
           !obj.Key.toLowerCase().endsWith('.json') &&
-          !obj.Key.startsWith(THUMB_FOLDER)
+          !obj.Key.startsWith(THUMB_FOLDER) &&
+          !isTranscodedVideoKey(obj.Key)
         );
 
         if (!originals.length) {
@@ -1897,7 +1925,8 @@
         const allObjects = await listAllObjects();
         const Contents = allObjects.filter(obj =>
           !obj.Key.toLowerCase().endsWith('.json') &&
-          !obj.Key.startsWith(THUMB_FOLDER)          //  << add this line
+          !obj.Key.startsWith(THUMB_FOLDER) &&
+          !isTranscodedVideoKey(obj.Key)
         );
 
         // 2. build a “raw” index using LastModified first
@@ -1977,7 +2006,7 @@
     }
 
     async function appendNew(keys) {
-      keys = keys.filter(k => !k.toLowerCase().endsWith('.json'));
+      keys = keys.filter(k => !k.toLowerCase().endsWith('.json') && !isTranscodedVideoKey(k));
 
       const me = mine();
 
@@ -2053,7 +2082,7 @@
     // 2) URL variant simply reuses the above
     async function getExifDateFromURL(key, fallbackMs) {
       // Skip videos — they won’t have EXIF
-      if (/\.(mp4|mov|webm)$/i.test(key)) {
+      if (isVideoKey(key)) {
         return new Date(fallbackMs);
       }
 
@@ -2069,7 +2098,7 @@
     const s3Url = k => `https://${BUCKET}.s3.${REGION}.amazonaws.com/${encodeKeyForUrl(toS3Key(k))}`;
 
     async function buildFigure(Key, takenDate, mySet) {
-      if (Key.toLowerCase().endsWith('.json')) return null;
+      if (Key.toLowerCase().endsWith('.json') || isTranscodedVideoKey(Key)) return null;
 
       // This makes the images above the screen to be loaded in chunks
       // If the image is inserted above the screen
@@ -2093,11 +2122,12 @@
       }
 
       async function insertFigure(Key, takenDate, mySet) {
-        const fullUrl = s3Url(Key);               // big file
+        const isVideo = isVideoKey(Key);
+        const fullUrl = s3Url(Key);               // big file (original)
         const thumbUrl = s3Url(thumbKeyOf(Key));   // small jpeg
+        const streamKey = isVideo ? streamKeyOf(Key) : '';
 
         const isMine = mySet.has(Key);
-        const isVideo = /\.(mp4|mov|webm)$/i.test(Key);
 
         const timePart = takenDate.toLocaleTimeString("en-US", {
           hour: "2-digit",
@@ -2116,6 +2146,7 @@
         fig.style.touchAction = 'manipulation';             // for better pointer behavior
         fig.addEventListener('contextmenu', e => e.preventDefault());  // block long-press menu
         fig.dataset.key = Key;
+        if (isVideo) fig.dataset.streamKey = streamKey;
         tagWithTaken(fig, takenDate);
         fig.style.cursor = 'pointer';
 
@@ -2231,6 +2262,7 @@
 
           // 2) Re-bind the click to openOverlay
           clone.onclick = fig.onclick;
+          if (isVideo) clone.dataset.streamKey = streamKey;
 
           // // 3) Swap out the delete button’s handler to just open (no delete)
           // const origDel  = fig .querySelector('.del');   // original delete handler
@@ -2283,11 +2315,17 @@
        * Each arrow callback receives its own `k`, so the template literal
        * `${k}.json` is always defined.
        * ----------------------------------------------------------------- */
-      const tasks = keys.flatMap(k => [
-        s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(k) })), // main file
-        s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: toS3Key(`${k}.json`) })), // credit JSON
-        s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(thumbKeyOf(k)) }))
-      ]);
+      const tasks = keys.flatMap(k => {
+        const items = [
+          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(k) })),
+          s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: toS3Key(`${k}.json`) })),
+          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(thumbKeyOf(k)) }))
+        ];
+        if (isVideoKey(k)) {
+          items.push(s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(streamKeyOf(k)) })));
+        }
+        return items;
+      });
 
       await Promise.allSettled(tasks);      // continue even if one key is missing
 
@@ -2327,7 +2365,8 @@
         await Promise.all([
           s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(key) })),
           s3.send(new DeleteObjectCommand({ Bucket: META_BUCKET, Key: toS3Key(`${key}.json`) })),
-          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(thumbKeyOf(key)) }))
+          s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(thumbKeyOf(key)) })),
+          ...(isVideoKey(key) ? [s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: toS3Key(streamKeyOf(key)) }))] : [])
         ]);
 
         // remove from localStorage
