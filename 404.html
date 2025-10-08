@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Page Not Found · Shared Lens</title>
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family:Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #111;
+      --paper: #f8f8f8;
+      --accent: #111;
+      font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 8px;
+      background: radial-gradient(circle at top, rgba(17,17,17,0.04), transparent 55%);
+    }
+
+    .card {
+      width: min(720px, 100%);
+      background: #fff;
+      border: 1.5px solid #000;
+      border-radius: 18px;
+      box-shadow: 0 12px 0 #000;
+      padding: clamp(1.75rem, 3vw, 2.75rem);
+      text-align: center;
+    }
+
+    .brand {
+      display: grid;
+      justify-items: center;
+      gap: .75rem;
+      margin-bottom: 1rem;
+    }
+
+    .logo-mark {
+      width: 120px;
+      height: 120px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));
+    }
+
+    .wordmark {
+      margin: 0;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.8rem, 5vw, 2.4rem);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 1rem;
+      color: #4b5563;
+      font-style: italic;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 6vw, 2.8rem);
+      margin: 1.5rem 0 .5rem;
+      font-family: 'Cormorant Garamond', serif;
+      letter-spacing: 0.03em;
+    }
+
+    p {
+      margin: 0 auto 1.5rem;
+      max-width: 60ch;
+      line-height: 1.6;
+      color: #374151;
+    }
+
+    .hint {
+      display: inline-block;
+      font-size: .95rem;
+      color: #6b7280;
+      margin-bottom: 1.5rem;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: .85rem 1.4rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      border: 2px solid #000;
+      transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, color .16s ease;
+      box-shadow: 0 6px 0 #000;
+      background: #fff;
+      color: #000;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 0 #000;
+    }
+
+    .btn.primary {
+      background: #000;
+      color: #fff;
+    }
+
+    .details {
+      padding: 1rem 1.25rem;
+      background: rgba(17,17,17,0.04);
+      border-radius: 12px;
+      font-size: .95rem;
+      color: #4b5563;
+    }
+
+    code {
+      font-family: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
+      background: rgba(17,17,17,0.08);
+      padding: 0.08rem 0.35rem;
+      border-radius: 6px;
+      font-size: .88rem;
+    }
+
+    @media (max-width: 520px) {
+      .logo-mark {
+        width: 96px;
+        height: 96px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <section class="brand">
+      <img class="logo-mark" src="./assets/shared-lens-logo.png" alt="Shared Lens logo">
+      <h2 class="wordmark">Shared Lens</h2>
+      <p class="subtitle">Curate and share wedding memories effortlessly</p>
+    </section>
+
+    <h1>We couldn’t find that page</h1>
+    <p>
+      The link you followed might be broken, or the site slug was mistyped. If you’re looking for a gallery,
+      try returning to the home page or signing in to create a new one.
+    </p>
+    <span class="hint">Error code: 404</span>
+
+    <div class="button-group">
+      <a class="btn primary" href="/">Go to SharedLens.ca</a>
+      <a class="btn" href="/form">Create a gallery</a>
+    </div>
+
+    <div class="details">
+      <p style="margin:0;">If you believe this is an error, double-check the address or contact the site owner for the correct link.</p>
+    </div>
+  </main>
+</body>
+</html>

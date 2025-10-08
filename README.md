@@ -12,8 +12,6 @@ To delete all the items on the server: `aws s3 rm s3://the-wedding-share --recur
 
 TODO:
 - Make the managed S3 buckets purchasable.
-- Make not found webpage for non-existent url paths.
-- Make scrolling on the form not risk affecting the color.
 - Make it possible to delete your webpage and/or all the data on it.
 -->
 

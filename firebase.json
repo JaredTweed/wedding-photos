@@ -9,8 +9,7 @@
     "rewrites": [
       { "source": "/form", "destination": "/form.html" },
       { "source": "/home", "destination": "/home.html" },
-      { "source": "/:slug", "destination": "/home.html" },
-      { "source": "**", "destination": "/index.html"}
+      { "source": "/:slug", "destination": "/home.html" }
     ]
   },
   "firestore": {

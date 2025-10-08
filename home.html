@@ -870,8 +870,19 @@
       };
     }
 
-    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE, PLAN, OBJECT_PREFIX } =
-      await loadSiteConfig(slug || fallbackSlug);
+    let config;
+    try {
+      config = await loadSiteConfig(slug || fallbackSlug);
+    } catch (err) {
+      if (slug) {
+        console.warn('Site not found, redirecting to 404:', slug, err);
+        window.location.replace('/404.html');
+        await new Promise(() => { /* keep script idle until redirect */ });
+      }
+      throw err;
+    }
+
+    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE, PLAN, OBJECT_PREFIX } = config;
 
     const IS_MANAGED_PLAN = PLAN === 'managed';
     const prefixCandidate = (OBJECT_PREFIX && OBJECT_PREFIX.length)
