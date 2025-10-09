@@ -188,6 +188,23 @@
       filter: brightness(0.9);
     }
 
+    .btn-outline {
+      background: #fff;
+      color: #111;
+      box-shadow: 0 6px 0 #000;
+    }
+
+    .btn-outline:hover {
+      transform: translateY(-2px);
+      background: #f4f4f4;
+    }
+
+    .btn-outline:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 0 #000;
+      background: #e5e5e5;
+    }
+
     .btn-danger {
       background: #fff5f5;
       color: #991b1b;
@@ -335,6 +352,28 @@
       color: #555;
       opacity: .9;
       text-align: center;
+    }
+
+    .notice-text {
+      margin-bottom: .75rem;
+    }
+
+    .notice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      justify-content: center;
+    }
+
+    .notice-actions .btn {
+      width: 100%;
+    }
+
+    @media (min-width: 560px) {
+      .notice-actions .btn {
+        width: auto;
+        min-width: 160px;
+      }
     }
 
     .danger-zone {
@@ -543,16 +582,16 @@
         <button type="submit" class="btn btn-fill">Submit</button>
       </div>
 
+      <div id="siteResult" class="notice" style="display:none; margin-top:1rem;"></div>
+
       <div id="deleteSiteSection" class="danger-zone" aria-live="polite">
         <h3>Delete this site</h3>
-        <p id="deleteSiteHelp">This will permanently remove the site and its files. Type "<span id="deleteSitePhrase"></span>" to confirm.</p>
+        <p id="deleteSiteHelp">This will permanently remove the site and its files. Type "<span id="deleteSitePhrase"></span>" (the saved site title) to confirm.</p>
         <div class="danger-actions">
           <input id="deleteSiteConfirm" type="text" inputmode="text" autocomplete="off" aria-describedby="deleteSiteHelp" placeholder="delete Site Title">
           <button type="button" class="btn btn-danger" id="deleteSiteButton">Delete site permanently</button>
         </div>
       </div>
-
-      <div id="siteResult" class="notice" style="display:none; margin-top:1rem;"></div>
     </form>
   </main>
 
@@ -752,13 +791,14 @@
       const hasContent = (() => {
         if (typeof message === 'string') return message !== '';
         if (message && typeof message === 'object') {
-          const { prefix, linkHref, linkText, suffix, text, afterRender } = message;
+          const { prefix, linkHref, linkText, suffix, text, afterRender, buttons } = message;
           return Boolean(
             (typeof prefix === 'string' && prefix !== '') ||
             linkHref ||
             (typeof linkText === 'string' && linkText !== '') ||
             (typeof suffix === 'string' && suffix !== '') ||
             (typeof text === 'string' && text !== '') ||
+            (Array.isArray(buttons) && buttons.length) ||
             typeof afterRender === 'function'
           );
         }
@@ -772,47 +812,64 @@
         return;
       }
 
-      siteResult.textContent = '';
+      siteResult.innerHTML = '';
       siteResult.style.display = 'block';
-      siteResult.dataset.state = 'notice';
+      const state = (typeof message === 'object' && message && message.state) ? message.state : 'notice';
+      siteResult.dataset.state = state;
+
       if (typeof message === 'string') {
         siteResult.textContent = message;
         return;
       }
 
-      const { prefix = '', text = '', linkHref = '', linkText = '', suffix = '', afterRender } = message || {};
-      if (prefix) siteResult.appendChild(document.createTextNode(prefix));
-      if (text) siteResult.appendChild(document.createTextNode(text));
+      const { prefix = '', text = '', linkHref = '', linkText = '', suffix = '', buttons = [], afterRender } = message || {};
+      const textBlock = document.createElement('div');
+      textBlock.className = 'notice-text';
+
+      if (prefix) textBlock.appendChild(document.createTextNode(prefix));
+      if (text) textBlock.appendChild(document.createTextNode(text));
       if (linkHref) {
         const anchor = document.createElement('a');
         anchor.href = linkHref;
         anchor.textContent = linkText || linkHref;
         anchor.target = '_blank';
         anchor.rel = 'noopener noreferrer';
-        siteResult.appendChild(anchor);
+        textBlock.appendChild(anchor);
       } else if (linkText) {
-        siteResult.appendChild(document.createTextNode(linkText));
+        textBlock.appendChild(document.createTextNode(linkText));
       }
-      if (suffix) siteResult.appendChild(document.createTextNode(suffix));
+      if (suffix) textBlock.appendChild(document.createTextNode(suffix));
+
+      if (textBlock.childNodes.length) {
+        siteResult.appendChild(textBlock);
+      }
+
+      if (Array.isArray(buttons) && buttons.length) {
+        const actions = document.createElement('div');
+        actions.className = 'notice-actions';
+        buttons.forEach((buttonInfo) => {
+          const buttonEl = createNoticeButton(buttonInfo);
+          if (buttonEl) actions.appendChild(buttonEl);
+        });
+        if (actions.childNodes.length) {
+          siteResult.appendChild(actions);
+        }
+      }
+
       if (typeof afterRender === 'function') afterRender(siteResult);
     }
 
-    function appendQrDownloadLink(container, slug, siteUrl) {
-      if (!container || container.querySelector('[data-role="qr-download"]')) return;
+    function attachQrDownloadHandler(target, slug, siteUrl) {
+      if (!target || target.dataset.qrBound === '1') return;
       if (!slug || !siteUrl) return;
-
-      const qrLine = document.createElement('div');
-      qrLine.dataset.role = 'qr-download';
-      qrLine.style.marginTop = '0.5rem';
-
-      const qrLink = document.createElement('a');
-      qrLink.href = '#';
-      qrLink.textContent = 'Download QR code';
-      qrLink.addEventListener('click', async (event) => {
+      target.dataset.qrBound = '1';
+      target.addEventListener('click', async (event) => {
         event.preventDefault();
-        const originalText = qrLink.textContent;
-        qrLink.textContent = 'Preparing...';
-        qrLink.setAttribute('aria-busy', 'true');
+        const originalText = target.textContent;
+        target.textContent = 'Preparing...';
+        target.setAttribute('aria-busy', 'true');
+        const resetDisabled = 'disabled' in target;
+        if (resetDisabled) target.disabled = true;
         try {
           const qrDownloadUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(siteUrl)}`;
           const response = await fetch(qrDownloadUrl);
@@ -830,13 +887,53 @@
           console.error('Failed to download QR code', err);
           alert('Could not download the QR code. Please try again.');
         } finally {
-          qrLink.textContent = originalText;
-          qrLink.removeAttribute('aria-busy');
+          target.textContent = originalText;
+          target.removeAttribute('aria-busy');
+          if (resetDisabled) target.disabled = false;
         }
       });
+    }
 
-      qrLine.appendChild(qrLink);
-      container.appendChild(qrLine);
+    function createNoticeButton(info) {
+      if (!info || !info.label) return null;
+      const variant = info.variant || 'btn-outline';
+      let element;
+
+      if (info.kind === 'qr-download') {
+        element = document.createElement('button');
+        element.type = 'button';
+        element.className = `btn ${variant}`.trim();
+        element.textContent = info.label;
+        attachQrDownloadHandler(element, info.slug, info.siteUrl);
+        return element;
+      }
+
+      if (info.href) {
+        element = document.createElement('a');
+        element.href = info.href;
+        element.textContent = info.label;
+        element.className = `btn ${variant}`.trim();
+        if (info.target) {
+          element.target = info.target;
+        } else {
+          element.target = '_blank';
+        }
+        if (info.rel) {
+          element.rel = info.rel;
+        } else if (element.target === '_blank') {
+          element.rel = 'noopener noreferrer';
+        }
+        return element;
+      }
+
+      element = document.createElement('button');
+      element.type = 'button';
+      element.textContent = info.label;
+      element.className = `btn ${variant}`.trim();
+      if (typeof info.onClick === 'function') {
+        element.addEventListener('click', info.onClick);
+      }
+      return element;
     }
 
     function refreshDeleteSection(options = {}) {
@@ -1195,7 +1292,10 @@
         prefix: 'Editing site: ',
         linkHref: siteUrl,
         linkText: siteUrl,
-        afterRender: (container) => appendQrDownloadLink(container, slugForEditing, siteUrl)
+        buttons: [
+          { label: 'View Site', href: siteUrl, variant: 'btn-outline' },
+          { label: 'Download QR Code', kind: 'qr-download', slug: slugForEditing, siteUrl, variant: 'btn-outline' }
+        ]
       });
 
       editingSite = {
@@ -1353,10 +1453,16 @@
 
         if (siteResult) {
           const url = new URL(`/${slug}`, window.location.origin).toString();
-          siteResult.dataset.state = 'success';
-          siteResult.innerHTML = `Your site is ready at <a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-          appendQrDownloadLink(siteResult, slug, url);
-          siteResult.style.display = 'block';
+          showSiteNotice({
+            state: 'success',
+            prefix: 'Your site is ready at ',
+            linkHref: url,
+            linkText: url,
+            buttons: [
+              { label: 'View Site', href: url, variant: 'btn-outline' },
+              { label: 'Download QR Code', kind: 'qr-download', slug, siteUrl: url, variant: 'btn-outline' }
+            ]
+          });
           siteResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       } catch (err) {
