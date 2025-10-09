@@ -12,6 +12,5 @@ To delete all the items on the server: `aws s3 rm s3://the-wedding-share --recur
 
 TODO:
 - Make the managed S3 buckets purchasable.
-- Make it possible to delete your webpage and/or all the data on it.
 -->
 

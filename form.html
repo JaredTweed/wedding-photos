@@ -188,6 +188,24 @@
       filter: brightness(0.9);
     }
 
+    .btn-danger {
+      background: #fff5f5;
+      color: #991b1b;
+      border-color: #991b1b;
+      box-shadow: 0 6px 0 #991b1b;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      background: #fee2e2;
+    }
+
+    .btn-danger:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 0 #991b1b;
+      background: #fecaca;
+    }
+
     /* Color section (kept clean; only tracks are colorful) */
     .color-card {
       background: #fff;
@@ -317,6 +335,57 @@
       color: #555;
       opacity: .9;
       text-align: center;
+    }
+
+    .danger-zone {
+      display: none;
+      margin-top: 2rem;
+      padding: 1.25rem;
+      border: 2px solid #991b1b;
+      border-radius: 16px;
+      background: #fff8f8;
+      text-align: left;
+      box-shadow: 0 6px 0 #991b1b22;
+    }
+
+    .danger-zone h3 {
+      margin: 0 0 .45rem;
+      font-size: 1.05rem;
+      letter-spacing: .01em;
+      color: #7f1d1d;
+    }
+
+    .danger-zone p {
+      margin: 0 0 .75rem;
+      color: #7f1d1d;
+      font-size: .9rem;
+    }
+
+    .danger-zone .danger-actions {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .danger-zone input[type="text"] {
+      margin: 0;
+      width: 100%;
+    }
+
+    @media (min-width: 560px) {
+      .danger-zone .danger-actions {
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .danger-zone input[type="text"] {
+        flex: 1;
+      }
+
+      .danger-zone .btn-danger {
+        flex-shrink: 0;
+        margin: 0;
+      }
     }
 
     /* User bar (monochrome) */
@@ -474,6 +543,15 @@
         <button type="submit" class="btn btn-fill">Submit</button>
       </div>
 
+      <div id="deleteSiteSection" class="danger-zone" aria-live="polite">
+        <h3>Delete this site</h3>
+        <p id="deleteSiteHelp">This will permanently remove the site and its files. Type "<span id="deleteSitePhrase"></span>" to confirm.</p>
+        <div class="danger-actions">
+          <input id="deleteSiteConfirm" type="text" inputmode="text" autocomplete="off" aria-describedby="deleteSiteHelp" placeholder="delete Site Title">
+          <button type="button" class="btn btn-danger" id="deleteSiteButton">Delete site permanently</button>
+        </div>
+      </div>
+
       <div id="siteResult" class="notice" style="display:none; margin-top:1rem;"></div>
     </form>
   </main>
@@ -508,6 +586,7 @@
       return DEFAULT_FONT_KEY;
     }
     let editingSite = null;
+    let deleteConfirmPhrase = '';
 
     const ensureTrailingSlash = (value) => {
       if (!value) return '';
@@ -657,6 +736,11 @@
     const mainBtn = document.getElementById('sl-main');
     const authBtn = document.getElementById('sl-auth');
     const siteResult = document.getElementById('siteResult');
+    const siteTitleInput = document.getElementById('siteTitle');
+    const deleteSection = document.getElementById('deleteSiteSection');
+    const deletePhraseEl = document.getElementById('deleteSitePhrase');
+    const deleteInput = document.getElementById('deleteSiteConfirm');
+    const deleteButton = document.getElementById('deleteSiteButton');
 
     const params = new URLSearchParams(window.location.search);
     const rawSlugParam = (params.get('slug') || '').trim().toLowerCase();
@@ -755,6 +839,201 @@
       container.appendChild(qrLine);
     }
 
+    function refreshDeleteSection(options = {}) {
+      if (!deleteSection) return;
+      const hasSite = !!(editingSite && editingSite.slug);
+      if (!hasSite) {
+        deleteSection.style.display = 'none';
+        deleteConfirmPhrase = '';
+        if (deletePhraseEl) deletePhraseEl.textContent = '';
+        if (deleteInput && options.resetInput !== false) {
+          deleteInput.value = '';
+          deleteInput.placeholder = 'delete Site Title';
+        }
+        return;
+      }
+
+      const storedTitle = (editingSite.title || '').trim();
+      const slug = editingSite.slug || '';
+      const targetTitle = storedTitle || slug;
+      if (!targetTitle) {
+        deleteSection.style.display = 'none';
+        return;
+      }
+
+      deleteConfirmPhrase = `delete ${targetTitle}`;
+      if (deletePhraseEl) deletePhraseEl.textContent = deleteConfirmPhrase;
+      if (deleteInput) {
+        if (options.resetInput) deleteInput.value = '';
+        deleteInput.placeholder = deleteConfirmPhrase;
+      }
+      deleteSection.style.display = 'block';
+    }
+
+    if (siteTitleInput) {
+      siteTitleInput.addEventListener('input', () => refreshDeleteSection());
+    }
+    refreshDeleteSection({ resetInput: true });
+
+    let awsDepsPromise = null;
+    function loadAwsDeps() {
+      if (!awsDepsPromise) {
+        awsDepsPromise = Promise.all([
+          import("https://esm.sh/@aws-sdk/client-s3@3.569.0?bundle&target=es2020&conditions=browser"),
+          import("https://esm.sh/@aws-sdk/credential-provider-cognito-identity@3.569.0?bundle&target=es2020&conditions=browser")
+        ]).then(([s3Module, cognitoModule]) => ({
+          S3Client: s3Module.S3Client,
+          ListObjectsV2Command: s3Module.ListObjectsV2Command,
+          DeleteObjectCommand: s3Module.DeleteObjectCommand,
+          fromCognitoIdentityPool: cognitoModule.fromCognitoIdentityPool
+        })).catch(err => {
+          awsDepsPromise = null;
+          throw err;
+        });
+      }
+      return awsDepsPromise;
+    }
+
+    async function purgeS3Prefix(s3, bucket, prefix, ListObjectsV2Command, DeleteObjectCommand) {
+      if (!prefix) return;
+      let continuationToken;
+      do {
+        const resp = await s3.send(new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken
+        }));
+        const keys = (resp.Contents || []).map(obj => obj.Key).filter(Boolean);
+        if (keys.length) {
+          const chunkSize = 12;
+          for (let i = 0; i < keys.length; i += chunkSize) {
+            const chunk = keys.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(Key => s3.send(new DeleteObjectCommand({ Bucket: bucket, Key }))));
+          }
+        }
+        continuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+      } while (continuationToken);
+    }
+
+    async function deleteSiteAssets(config) {
+      const { bucket, region, idPool, objectPrefix } = config;
+      if (!bucket || !region || !idPool || !objectPrefix) return;
+      const basePrefix = objectPrefix.replace(/^\/+/, '');
+      const { S3Client, ListObjectsV2Command, DeleteObjectCommand, fromCognitoIdentityPool } = await loadAwsDeps();
+      const s3 = new S3Client({
+        region,
+        credentials: fromCognitoIdentityPool({ identityPoolId: idPool, clientConfig: { region } })
+      });
+
+      await purgeS3Prefix(s3, bucket, basePrefix, ListObjectsV2Command, DeleteObjectCommand);
+      const streamPrefix = `streams/${basePrefix}`.replace(/\/{2,}/g, '/');
+      await purgeS3Prefix(s3, bucket, streamPrefix, ListObjectsV2Command, DeleteObjectCommand);
+    }
+
+    async function handleDeleteSite() {
+      if (!editingSite || !editingSite.slug) {
+        alert('No site is currently loaded to delete.');
+        return;
+      }
+      if (!deleteInput || !deleteButton) return;
+
+      const expected = deleteConfirmPhrase;
+      const typed = (deleteInput.value || '').trim();
+      if (!expected) {
+        alert('Confirmation phrase is not ready yet. Please try again.');
+        return;
+      }
+      if (typed !== expected) {
+        alert(`Type "${expected}" exactly to confirm deletion.`);
+        return;
+      }
+      if (!window.confirm('This will permanently delete your site and all associated files. Continue?')) {
+        return;
+      }
+
+      const user = await waitForUser();
+      if (!user) {
+        alert('Please sign in first.');
+        return;
+      }
+
+      deleteButton.disabled = true;
+      deleteButton.textContent = 'Deleting...';
+
+      let deletionSucceeded = false;
+      try {
+        const slug = editingSite.slug;
+        const docRef = db.collection('sites').doc(slug);
+        const docSnap = await docRef.get();
+        if (!docSnap.exists) {
+          alert('This site no longer exists.');
+          editingSite = null;
+          refreshDeleteSection({ resetInput: true });
+          await prefillFromAccount();
+          deletionSucceeded = true;
+          return;
+        }
+
+        const data = docSnap.data();
+        if ((data.createdBy || '') !== user.uid) {
+          alert('You do not have permission to delete this site.');
+          return;
+        }
+
+        const plan = data.plan || editingSite.plan || 'managed';
+        const isManaged = plan === 'managed';
+        let bucket = '';
+        let region = '';
+        let idPool = '';
+
+        if (isManaged) {
+          const managed = await managedConfigPromise;
+          bucket = managed.BUCKET;
+          region = managed.REGION;
+          idPool = managed.ID_POOL;
+        } else {
+          bucket = data.bucket || editingSite.bucket || '';
+          region = data.region || editingSite.region || '';
+          idPool = data.idPool || editingSite.idPool || '';
+        }
+
+        const objectPrefix = ensureTrailingSlash(data.objectPrefix || editingSite.objectPrefix || (isManaged ? `sites/${slug}/` : ''));
+        const hasStorageConfig = bucket && region && idPool && objectPrefix;
+        if (hasStorageConfig) {
+          await deleteSiteAssets({ bucket, region, idPool, objectPrefix });
+        } else {
+          console.warn('Skipping storage cleanup due to missing configuration', { bucket, region, idPool, objectPrefix });
+        }
+        await docRef.delete();
+
+        const formEl = document.querySelector('form');
+        if (formEl) formEl.reset();
+        if (typeof updateColor === 'function') updateColor();
+        editingSite = null;
+        deletionSucceeded = true;
+        if (siteTitleInput) siteTitleInput.value = '';
+        refreshDeleteSection({ resetInput: true });
+        showSiteNotice('');
+        await prefillFromAccount();
+
+        if (siteResult) {
+          siteResult.dataset.state = 'success';
+          siteResult.textContent = hasStorageConfig
+            ? 'Site deleted successfully.'
+            : 'Site deleted. Remove any remaining files from storage to complete cleanup.';
+          siteResult.style.display = 'block';
+          siteResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } catch (err) {
+        console.error('Failed to delete site', err);
+        alert('Could not delete the site. Please try again.');
+      } finally {
+        deleteButton.disabled = false;
+        deleteButton.textContent = 'Delete site permanently';
+        if (!deletionSucceeded && deleteInput) deleteInput.focus();
+      }
+    }
+
     // Sign-in helper
     async function signInWithGoogle() {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -823,6 +1102,11 @@
     waitForUser().then(setUserMenu);
 
     const db = firebase.firestore();
+    if (deleteButton) {
+      deleteButton.addEventListener('click', () => {
+        handleDeleteSite();
+      });
+    }
 
     // Title: letters/numbers + single spaces (ASCII), no leading/trailing spaces
     const TITLE_RE = /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)*$/;
@@ -837,10 +1121,15 @@
     // --- Prefill the form with the requested site (or latest) ---
     async function prefillFromAccount() {
       const user = await waitForUser();
-      if (!user) return; // not signed in → nothing to prefill
+      if (!user) {
+        editingSite = null;
+        refreshDeleteSection({ resetInput: true });
+        return; // not signed in → nothing to prefill
+      }
 
       let docSnap = null;
       editingSite = null;
+      refreshDeleteSection({ resetInput: true });
 
       if (SLUG_PARAM) {
         try {
@@ -881,8 +1170,7 @@
 
       const d = docSnap.data();
       // 1) Title
-      const titleEl = document.getElementById('siteTitle');  // exists in your form
-      titleEl.value = d.title || '';
+      if (siteTitleInput) siteTitleInput.value = d.title || '';
 
       // 2) Primary color → parse "hsl(H S% L%)" and set sliders
       const m = (d.primaryColor || '').match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)/i);
@@ -917,8 +1205,10 @@
         bucket: d.bucket || '',
         region: d.region || '',
         idPool: d.idPool || '',
-        fontFamily: storedKey
+        fontFamily: storedKey,
+        title: d.title || ''
       };
+      refreshDeleteSection({ resetInput: true });
     }
 
     // Run prefill as soon as auth resolves (user or null)
@@ -939,7 +1229,7 @@
         const user = await waitForUser();
         if (!user) { alert('Please sign in first.'); return; }
 
-        const titleRaw = document.getElementById('siteTitle').value || '';
+        const titleRaw = siteTitleInput ? siteTitleInput.value || '' : '';
         let slug; try { slug = toSlug(titleRaw); } catch (err) { alert(err.message); return; }
 
         // Color → HSL string
@@ -1056,8 +1346,10 @@
           bucket,
           region,
           idPool,
-          fontFamily: fontFamilyKey
+          fontFamily: fontFamilyKey,
+          title: docData.title
         };
+        refreshDeleteSection({ resetInput: true });
 
         if (siteResult) {
           const url = new URL(`/${slug}`, window.location.origin).toString();
