@@ -664,15 +664,95 @@
 
     function showSiteNotice(message) {
       if (!siteResult) return;
-      if (!message) {
+
+      const hasContent = (() => {
+        if (typeof message === 'string') return message !== '';
+        if (message && typeof message === 'object') {
+          const { prefix, linkHref, linkText, suffix, text, afterRender } = message;
+          return Boolean(
+            (typeof prefix === 'string' && prefix !== '') ||
+            linkHref ||
+            (typeof linkText === 'string' && linkText !== '') ||
+            (typeof suffix === 'string' && suffix !== '') ||
+            (typeof text === 'string' && text !== '') ||
+            typeof afterRender === 'function'
+          );
+        }
+        return false;
+      })();
+
+      if (!hasContent) {
         siteResult.style.display = 'none';
         siteResult.textContent = '';
         siteResult.removeAttribute('data-state');
         return;
       }
-      siteResult.textContent = message;
+
+      siteResult.textContent = '';
       siteResult.style.display = 'block';
       siteResult.dataset.state = 'notice';
+      if (typeof message === 'string') {
+        siteResult.textContent = message;
+        return;
+      }
+
+      const { prefix = '', text = '', linkHref = '', linkText = '', suffix = '', afterRender } = message || {};
+      if (prefix) siteResult.appendChild(document.createTextNode(prefix));
+      if (text) siteResult.appendChild(document.createTextNode(text));
+      if (linkHref) {
+        const anchor = document.createElement('a');
+        anchor.href = linkHref;
+        anchor.textContent = linkText || linkHref;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        siteResult.appendChild(anchor);
+      } else if (linkText) {
+        siteResult.appendChild(document.createTextNode(linkText));
+      }
+      if (suffix) siteResult.appendChild(document.createTextNode(suffix));
+      if (typeof afterRender === 'function') afterRender(siteResult);
+    }
+
+    function appendQrDownloadLink(container, slug, siteUrl) {
+      if (!container || container.querySelector('[data-role="qr-download"]')) return;
+      if (!slug || !siteUrl) return;
+
+      const qrLine = document.createElement('div');
+      qrLine.dataset.role = 'qr-download';
+      qrLine.style.marginTop = '0.5rem';
+
+      const qrLink = document.createElement('a');
+      qrLink.href = '#';
+      qrLink.textContent = 'Download QR code';
+      qrLink.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const originalText = qrLink.textContent;
+        qrLink.textContent = 'Preparing...';
+        qrLink.setAttribute('aria-busy', 'true');
+        try {
+          const qrDownloadUrl = `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(siteUrl)}`;
+          const response = await fetch(qrDownloadUrl);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          const downloadLink = document.createElement('a');
+          downloadLink.href = objectUrl;
+          downloadLink.download = `${slug}-qr.png`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(objectUrl);
+        } catch (err) {
+          console.error('Failed to download QR code', err);
+          alert('Could not download the QR code. Please try again.');
+        } finally {
+          qrLink.textContent = originalText;
+          qrLink.removeAttribute('aria-busy');
+        }
+      });
+
+      qrLine.appendChild(qrLink);
+      container.appendChild(qrLine);
     }
 
     // Sign-in helper
@@ -822,11 +902,13 @@
 
       const slugForEditing = d.slug || docSnap.id;
 
-      if (SLUG_PARAM) {
-        showSiteNotice(`Editing existing site: /${slugForEditing}`);
-      } else {
-        showSiteNotice(`Editing latest site: /${slugForEditing}`);
-      }
+      const siteUrl = `https://sharedlens.ca/${slugForEditing}`;
+      showSiteNotice({
+        prefix: 'Editing site: ',
+        linkHref: siteUrl,
+        linkText: siteUrl,
+        afterRender: (container) => appendQrDownloadLink(container, slugForEditing, siteUrl)
+      });
 
       editingSite = {
         slug: slugForEditing,
@@ -980,7 +1062,8 @@
         if (siteResult) {
           const url = new URL(`/${slug}`, window.location.origin).toString();
           siteResult.dataset.state = 'success';
-          siteResult.innerHTML = `Your site is ready at <a href="${url}" target="_blank" rel="noopener">${url}</a>`;
+          siteResult.innerHTML = `Your site is ready at <a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+          appendQrDownloadLink(siteResult, slug, url);
           siteResult.style.display = 'block';
           siteResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
