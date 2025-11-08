@@ -153,6 +153,7 @@
       gap: .75rem;
       justify-items: center;
       margin-top: 1.25rem;
+      width: 100%;
     }
 
     .btn {
@@ -186,6 +187,19 @@
       transform: translateY(0);
       box-shadow: 0 2px 0 #000;
       filter: brightness(0.9);
+    }
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      box-shadow: 0 2px 0 #000;
+      filter: grayscale(0.2);
+    }
+
+    .btn-fill:disabled {
+      background: #d1d5db;
+      color: #6b7280;
+      border-color: #9ca3af;
+      box-shadow: 0 2px 0 #9ca3af;
     }
 
     .btn-outline {
@@ -374,6 +388,30 @@
         width: auto;
         min-width: 160px;
       }
+    }
+
+    #donationGate {
+      border: 1.5px solid #000;
+      border-radius: 12px;
+      padding: .75rem;
+      margin: 1rem 0 0;
+      background: #fff;
+      box-shadow: 0 4px 0 #000;
+      display: none;
+      width: 100%;
+    }
+
+    #donationGate[data-state="locked"] {
+      display: block;
+    }
+
+    #donationGate .notice-text {
+      margin-bottom: .5rem;
+    }
+
+    #donationGateActions {
+      display: flex;
+      justify-content: center;
     }
 
     .danger-zone {
@@ -578,8 +616,19 @@
         </select>
       </div>
 
+      <div id="donationGate" class="notice" aria-live="polite">
+        <p class="notice-text" id="donationGateText">
+          Please make a donation to unlock publishing.
+        </p>
+        <div id="donationGateActions">
+          <stripe-buy-button buy-button-id="buy_btn_1SR2x6BSdF09H3NsAHawvyNP"
+            publishable-key="pk_live_51QNjOMBSdF09H3NscqTuDjujnp0p13XQFKA3rbNJToEEgfZO8ZvsdDLlutOrebWsgM17UT4JOcN8wURGBBSvCjhr00oRmMt83A">
+          </stripe-buy-button>
+        </div>
+      </div>
+
       <div class="button-row">
-        <button type="submit" class="btn btn-fill">Submit</button>
+        <button type="submit" class="btn btn-fill" id="publishButton">Publish</button>
       </div>
 
       <div id="siteResult" class="notice" style="display:none; margin-top:1rem;"></div>
@@ -784,6 +833,25 @@
     const params = new URLSearchParams(window.location.search);
     const rawSlugParam = (params.get('slug') || '').trim().toLowerCase();
     const SLUG_PARAM = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(rawSlugParam) ? rawSlugParam : '';
+    const publishButton = document.getElementById('publishButton');
+    const donationGate = document.getElementById('donationGate');
+    const donationGateText = document.getElementById('donationGateText');
+    let donationCache = { uid: null, hasDonated: false, checked: false };
+    setPublishLockState({
+      locked: true,
+      message: 'Sign in and make a donation to publish your site.'
+    });
+
+    function setPublishLockState({ locked, message }) {
+      if (publishButton) publishButton.disabled = !!locked;
+      if (!donationGate) return;
+      if (locked) {
+        donationGate.dataset.state = 'locked';
+        if (message && donationGateText) donationGateText.textContent = message;
+      } else {
+        donationGate.dataset.state = 'unlocked';
+      }
+    }
 
     function showSiteNotice(message) {
       if (!siteResult) return;
@@ -1193,12 +1261,64 @@
     document.addEventListener('click', () => menuEl.classList.remove('show'));
 
     // Keep it in sync with auth state
-    firebase.auth().onAuthStateChanged(user => { setUserMenu(user); });
+    firebase.auth().onAuthStateChanged(user => {
+      setUserMenu(user);
+      ensureDonationFor(user, { force: true });
+    });
 
     // Ensure avatar/menu render ASAP on load
-    waitForUser().then(setUserMenu);
+    waitForUser().then(user => {
+      setUserMenu(user);
+      ensureDonationFor(user, { force: true });
+    });
 
     const db = firebase.firestore();
+
+    async function ensureDonationFor(user, { force = false } = {}) {
+      if (!publishButton) return false;
+      if (!user) {
+        donationCache = { uid: null, hasDonated: false, checked: true };
+        setPublishLockState({
+          locked: true,
+          message: 'Sign in and make a donation to publish your site.'
+        });
+        return false;
+      }
+
+      if (!force && donationCache.checked && donationCache.uid === user.uid) {
+        setPublishLockState({
+          locked: !donationCache.hasDonated,
+          message: donationCache.hasDonated
+            ? donationGateText?.textContent
+            : 'Please make a donation to unlock publishing.'
+        });
+        return donationCache.hasDonated;
+      }
+
+      setPublishLockState({ locked: true, message: 'Checking your donation status…' });
+      try {
+        const snap = await db.collection('donations').doc(user.uid).get();
+        const hasDonated = snap.exists && !!(snap.data()?.hasDonated);
+        donationCache = { uid: user.uid, hasDonated, checked: true };
+
+        if (hasDonated) {
+          setPublishLockState({ locked: false });
+        } else {
+          setPublishLockState({
+            locked: true,
+            message: 'Please make a donation to unlock publishing.'
+          });
+        }
+        return hasDonated;
+      } catch (err) {
+        console.error('Donation lookup failed', err);
+        setPublishLockState({
+          locked: true,
+          message: 'Contribute what this service is worth to you to publish your site.'
+        });
+        return false;
+      }
+    }
     if (deleteButton) {
       deleteButton.addEventListener('click', () => {
         handleDeleteSite();
@@ -1218,6 +1338,7 @@
     // --- Prefill the form with the requested site (or latest) ---
     async function prefillFromAccount() {
       const user = await waitForUser();
+      await ensureDonationFor(user);
       if (!user) {
         editingSite = null;
         refreshDeleteSection({ resetInput: true });
@@ -1328,6 +1449,11 @@
         }
         const user = await waitForUser();
         if (!user) { alert('Please sign in first.'); return; }
+        const hasDonation = await ensureDonationFor(user);
+        if (!hasDonation) {
+          alert('Please make a donation to Shared Lens before publishing your site.');
+          return;
+        }
 
         const titleRaw = siteTitleInput ? siteTitleInput.value || '' : '';
         let slug; try { slug = toSlug(titleRaw); } catch (err) { alert(err.message); return; }
@@ -1474,6 +1600,7 @@
       }
     }
   </script>
+  <script async src="https://js.stripe.com/v3/buy-button.js"></script>
 
 </body>
 

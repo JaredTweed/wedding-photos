@@ -6,10 +6,21 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid != null;
     }
 
+    function hasDonated() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/donations/$(request.auth.uid))
+        && get(/databases/$(database)/documents/donations/$(request.auth.uid)).data.hasDonated == true;
+    }
+
+    match /donations/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+    }
+
     match /sites/{slug} {
       allow read: if true;
 
       allow create: if isSignedIn()
+        && hasDonated()
         && request.resource.data.slug == slug
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.keys().hasOnly([
@@ -21,6 +32,7 @@ service cloud.firestore {
 
       allow update: if isSignedIn()
         && resource.data.createdBy == request.auth.uid
+        && hasDonated()
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.slug == resource.data.slug
         && request.resource.data.keys().hasOnly([
