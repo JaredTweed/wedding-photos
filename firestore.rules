@@ -9,11 +9,18 @@ service cloud.firestore {
     function hasDonated() {
       return isSignedIn()
         && exists(/databases/$(database)/documents/donations/$(request.auth.uid))
-        && get(/databases/$(database)/documents/donations/$(request.auth.uid)).data.hasDonated == true;
+        && (
+          get(/databases/$(database)/documents/donations/$(request.auth.uid)).data.hasDonated == true
+          || get(/databases/$(database)/documents/donations/$(request.auth.uid)).data.couponCode == "FREEWEDDING"
+        );
     }
 
     match /donations/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['couponCode'])
+        && request.resource.data.couponCode == "FREEWEDDING";
     }
 
     match /sites/{slug} {

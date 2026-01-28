@@ -411,7 +411,36 @@
 
     #donationGateActions {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    #donationGateActions .coupon-entry {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+      align-items: center;
+    }
+
+    #donationGateActions .coupon-row {
+      width: 100%;
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+
+    #donationGateActions .coupon-row input[type="text"] {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    #donationGateActions .coupon-hint {
+      margin: 0;
+      font-size: .8rem;
+      color: #6b7280;
+      text-align: center;
     }
 
     .danger-zone {
@@ -618,12 +647,20 @@
 
       <div id="donationGate" class="notice" aria-live="polite">
         <p class="notice-text" id="donationGateText">
-          Please make a donation to unlock publishing.
+          Please make a donation or enter a coupon code to unlock publishing.
         </p>
         <div id="donationGateActions">
           <stripe-buy-button buy-button-id="buy_btn_1SR2x6BSdF09H3NsAHawvyNP"
             publishable-key="pk_live_51QNjOMBSdF09H3NscqTuDjujnp0p13XQFKA3rbNJToEEgfZO8ZvsdDLlutOrebWsgM17UT4JOcN8wURGBBSvCjhr00oRmMt83A">
           </stripe-buy-button>
+          <div class="coupon-entry">
+            <label for="couponCode">Have a coupon?</label>
+            <div class="coupon-row">
+              <input id="couponCode" type="text" inputmode="text" autocomplete="off" placeholder="Enter coupon code">
+              <button type="button" class="btn btn-outline" id="couponApply">Apply code</button>
+            </div>
+            <p class="coupon-hint" id="couponFeedback" role="status"></p>
+          </div>
         </div>
       </div>
 
@@ -836,10 +873,17 @@
     const publishButton = document.getElementById('publishButton');
     const donationGate = document.getElementById('donationGate');
     const donationGateText = document.getElementById('donationGateText');
+    const couponInput = document.getElementById('couponCode');
+    const couponApplyButton = document.getElementById('couponApply');
+    const couponFeedback = document.getElementById('couponFeedback');
     let donationCache = { uid: null, hasDonated: false, checked: false };
+    const COUPON_CODE = 'FREEWEDDING';
+    const COUPON_STORAGE_PREFIX = 'sharedlens_coupon_code_';
+    const COUPON_PENDING_KEY = 'sharedlens_coupon_pending';
+    let activeCouponCode = '';
     setPublishLockState({
       locked: true,
-      message: 'Sign in and make a donation to publish your site.'
+      message: 'Sign in and make a donation (or enter a coupon code) to publish your site.'
     });
 
     function setPublishLockState({ locked, message }) {
@@ -851,6 +895,85 @@
       } else {
         donationGate.dataset.state = 'unlocked';
       }
+    }
+
+    function normalizeCoupon(value) {
+      return (value || '').trim().toUpperCase();
+    }
+
+    function setCouponFeedback(message, { ok = false } = {}) {
+      if (!couponFeedback) return;
+      couponFeedback.textContent = message || '';
+      couponFeedback.style.color = ok ? '#166534' : '#6b7280';
+    }
+
+    function getCouponStorageKey(uid) {
+      if (!uid) return '';
+      return `${COUPON_STORAGE_PREFIX}${uid}`;
+    }
+
+    function clearCouponState() {
+      activeCouponCode = '';
+      if (couponInput) couponInput.value = '';
+      setCouponFeedback('');
+    }
+
+    function loadStoredCouponForUser(user) {
+      clearCouponState();
+      if (!user) return;
+      try {
+        const pending = localStorage.getItem(COUPON_PENDING_KEY) || '';
+        const pendingNormalized = normalizeCoupon(pending);
+        if (pendingNormalized === COUPON_CODE) {
+          activeCouponCode = COUPON_CODE;
+          if (couponInput) couponInput.value = pending;
+          localStorage.removeItem(COUPON_PENDING_KEY);
+          setCouponFeedback('Coupon applied. Checking access…', { ok: true });
+          return;
+        }
+
+        const stored = localStorage.getItem(getCouponStorageKey(user.uid)) || '';
+        const normalized = normalizeCoupon(stored);
+        if (normalized === COUPON_CODE) {
+          activeCouponCode = COUPON_CODE;
+          if (couponInput) couponInput.value = stored;
+          setCouponFeedback('Coupon applied. Checking access…', { ok: true });
+        }
+      } catch (err) {
+        console.warn('Unable to load coupon from storage', err);
+      }
+    }
+
+    function applyCoupon(rawValue) {
+      const normalized = normalizeCoupon(rawValue);
+      if (!normalized) {
+        setCouponFeedback('Enter a coupon code to unlock publishing.');
+        activeCouponCode = '';
+        return false;
+      }
+      if (normalized !== COUPON_CODE) {
+        setCouponFeedback('That coupon code is not valid.');
+        activeCouponCode = '';
+        return false;
+      }
+
+      activeCouponCode = COUPON_CODE;
+      try {
+        const user = firebase.auth().currentUser;
+        if (user) {
+          localStorage.setItem(getCouponStorageKey(user.uid), COUPON_CODE);
+        } else {
+          localStorage.setItem(COUPON_PENDING_KEY, COUPON_CODE);
+        }
+      } catch (err) {
+        console.warn('Unable to save coupon to storage', err);
+      }
+      const user = firebase.auth().currentUser;
+      setCouponFeedback(
+        user ? 'Coupon applied. Checking access…' : 'Coupon saved. Sign in to unlock publishing.',
+        { ok: true }
+      );
+      return true;
     }
 
     function showSiteNotice(message) {
@@ -1039,6 +1162,26 @@
       siteTitleInput.addEventListener('input', () => refreshDeleteSection());
     }
     refreshDeleteSection({ resetInput: true });
+
+    if (couponApplyButton) {
+      couponApplyButton.addEventListener('click', async () => {
+        const applied = applyCoupon(couponInput ? couponInput.value : '');
+        if (!applied) return;
+        const user = await waitForUser();
+        if (user) {
+          await ensureDonationFor(user, { force: true });
+        }
+      });
+    }
+
+    if (couponInput) {
+      couponInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (couponApplyButton) couponApplyButton.click();
+        }
+      });
+    }
 
     let awsDepsPromise = null;
     function loadAwsDeps() {
@@ -1263,16 +1406,32 @@
     // Keep it in sync with auth state
     firebase.auth().onAuthStateChanged(user => {
       setUserMenu(user);
+      loadStoredCouponForUser(user);
       ensureDonationFor(user, { force: true });
     });
 
     // Ensure avatar/menu render ASAP on load
     waitForUser().then(user => {
       setUserMenu(user);
+      loadStoredCouponForUser(user);
       ensureDonationFor(user, { force: true });
     });
 
     const db = firebase.firestore();
+
+    async function ensureCouponForUser(user) {
+      if (!user || activeCouponCode !== COUPON_CODE) return false;
+      try {
+        await db.collection('donations').doc(user.uid).set({
+          couponCode: COUPON_CODE
+        }, { merge: true });
+        return true;
+      } catch (err) {
+        console.warn('Failed to save coupon code', err);
+        setCouponFeedback('Could not save coupon code. Please try again.');
+        return false;
+      }
+    }
 
     async function ensureDonationFor(user, { force = false } = {}) {
       if (!publishButton) return false;
@@ -1280,7 +1439,7 @@
         donationCache = { uid: null, hasDonated: false, checked: true };
         setPublishLockState({
           locked: true,
-          message: 'Sign in and make a donation to publish your site.'
+          message: 'Sign in and make a donation (or enter a coupon code) to publish your site.'
         });
         return false;
       }
@@ -1290,31 +1449,40 @@
           locked: !donationCache.hasDonated,
           message: donationCache.hasDonated
             ? donationGateText?.textContent
-            : 'Please make a donation to unlock publishing.'
+            : 'Please make a donation or enter a coupon code to unlock publishing.'
         });
         return donationCache.hasDonated;
       }
 
-      setPublishLockState({ locked: true, message: 'Checking your donation status…' });
+      setPublishLockState({ locked: true, message: 'Checking your access…' });
       try {
+        await ensureCouponForUser(user);
         const snap = await db.collection('donations').doc(user.uid).get();
         const hasDonated = snap.exists && !!(snap.data()?.hasDonated);
-        donationCache = { uid: user.uid, hasDonated, checked: true };
+        const hasCoupon = snap.exists && normalizeCoupon(snap.data()?.couponCode) === COUPON_CODE;
+        const hasAccess = hasDonated || hasCoupon;
+        donationCache = { uid: user.uid, hasDonated: hasAccess, checked: true };
 
-        if (hasDonated) {
+        if (hasAccess) {
           setPublishLockState({ locked: false });
+          if (hasCoupon) {
+            setCouponFeedback('Coupon applied. Publishing unlocked.', { ok: true });
+          }
         } else {
           setPublishLockState({
             locked: true,
-            message: 'Please make a donation to unlock publishing.'
+            message: 'Please make a donation or enter a coupon code to unlock publishing.'
           });
+          if (activeCouponCode === COUPON_CODE) {
+            setCouponFeedback('Coupon not found for this account. Try applying it again.');
+          }
         }
-        return hasDonated;
+        return hasAccess;
       } catch (err) {
         console.error('Donation lookup failed', err);
         setPublishLockState({
           locked: true,
-          message: 'Contribute what this service is worth to you to publish your site.'
+          message: 'Contribute what this service is worth to you (or enter a coupon code) to publish your site.'
         });
         return false;
       }
@@ -1451,7 +1619,7 @@
         if (!user) { alert('Please sign in first.'); return; }
         const hasDonation = await ensureDonationFor(user);
         if (!hasDonation) {
-          alert('Please make a donation to Shared Lens before publishing your site.');
+          alert('Please make a donation or enter a coupon code before publishing your site.');
           return;
         }
 
