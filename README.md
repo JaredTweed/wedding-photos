@@ -2,7 +2,7 @@ Site: https://sharedlens.ca
 
 To Deploy: `firebase deploy --only hosting` or `firebase deploy --only firestore:rules,hosting`
 
-Press `Ctrl+Shift+D` to download everything at full resolution.
+Use the `Download Photos` button on the form page to download everything at full resolution, or press `Ctrl+Shift+D` from the gallery page.
 
 To run: `npx http-server .`
 <!-- 
@@ -13,4 +13,3 @@ To delete all the items on the server: `aws s3 rm s3://the-wedding-share --recur
 TODO:
 - Make the managed S3 buckets purchasable.
 -->
-

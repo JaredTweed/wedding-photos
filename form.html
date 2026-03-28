@@ -1085,6 +1085,33 @@
       });
     }
 
+    function attachPhotoDownloadHandler(target, siteInfo) {
+      if (!target || target.dataset.photoDownloadBound === '1') return;
+      if (!siteInfo || !siteInfo.slug) return;
+      target.dataset.photoDownloadBound = '1';
+      target.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const originalText = target.textContent;
+        target.textContent = 'Preparing...';
+        target.setAttribute('aria-busy', 'true');
+        target.disabled = true;
+        try {
+          await downloadSitePhotos(siteInfo, {
+            onStatus(statusText) {
+              target.textContent = statusText || 'Preparing...';
+            }
+          });
+        } catch (err) {
+          console.error('Failed to download site photos', err);
+          alert('Could not download the photos. Please try again.');
+        } finally {
+          target.textContent = originalText;
+          target.removeAttribute('aria-busy');
+          target.disabled = false;
+        }
+      });
+    }
+
     function createNoticeButton(info) {
       if (!info || !info.label) return null;
       const variant = info.variant || 'btn-outline';
@@ -1096,6 +1123,15 @@
         element.className = `btn ${variant}`.trim();
         element.textContent = info.label;
         attachQrDownloadHandler(element, info.slug, info.siteUrl);
+        return element;
+      }
+
+      if (info.kind === 'photo-download') {
+        element = document.createElement('button');
+        element.type = 'button';
+        element.className = `btn ${variant}`.trim();
+        element.textContent = info.label;
+        attachPhotoDownloadHandler(element, info);
         return element;
       }
 
@@ -1200,6 +1236,211 @@
         });
       }
       return awsDepsPromise;
+    }
+
+    let zipDepPromise = null;
+    function loadZipDep() {
+      if (!zipDepPromise) {
+        zipDepPromise = import("https://esm.sh/jszip@3.10.1")
+          .then(module => module.default || module)
+          .catch(err => {
+            zipDepPromise = null;
+            throw err;
+          });
+      }
+      return zipDepPromise;
+    }
+
+    const THUMB_FOLDER = 'thumbs/';
+    const STREAM_FOLDER = 'streams/';
+    const TRANSCODE_SUFFIX = '_720p.mp4';
+
+    function stripPrefix(value, prefix) {
+      if (!value) return '';
+      if (!prefix) return value;
+      return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+    }
+
+    function encodeKeyForUrl(key) {
+      return (key || '').split('/').map(encodeURIComponent).join('/');
+    }
+
+    function s3Url(bucket, region, key) {
+      return `https://${bucket}.s3.${region}.amazonaws.com/${encodeKeyForUrl(key)}`;
+    }
+
+    const isTranscodedVideoKey = key =>
+      !!key && (key.startsWith(STREAM_FOLDER) || key.toLowerCase().endsWith(TRANSCODE_SUFFIX));
+
+    async function resolveDownloadSiteConfig(siteInfo) {
+      if (!siteInfo || !siteInfo.slug) {
+        throw new Error('Site information is missing.');
+      }
+
+      const plan = siteInfo.plan || 'managed';
+      if (plan === 'managed') {
+        const managed = await managedConfigPromise;
+        return {
+          slug: siteInfo.slug,
+          bucket: managed.BUCKET,
+          region: managed.REGION,
+          idPool: managed.ID_POOL,
+          objectPrefix: ensureTrailingSlash(siteInfo.objectPrefix || `sites/${siteInfo.slug}/`)
+        };
+      }
+
+      return {
+        slug: siteInfo.slug,
+        bucket: siteInfo.bucket || '',
+        region: siteInfo.region || '',
+        idPool: siteInfo.idPool || '',
+        objectPrefix: ensureTrailingSlash(siteInfo.objectPrefix || '')
+      };
+    }
+
+    async function listSiteObjects(s3, bucket, objectPrefix, ListObjectsV2Command) {
+      const objects = [];
+      let continuationToken;
+
+      do {
+        const resp = await s3.send(new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: objectPrefix || undefined,
+          ContinuationToken: continuationToken
+        }));
+
+        const contents = (resp.Contents || [])
+          .map(obj => {
+            const fullKey = obj.Key || '';
+            return {
+              ...obj,
+              fullKey,
+              relativeKey: stripPrefix(fullKey, objectPrefix)
+            };
+          })
+          .filter(obj => obj.relativeKey && obj.relativeKey.length);
+
+        objects.push(...contents);
+        continuationToken = resp.IsTruncated ? resp.NextContinuationToken : undefined;
+      } while (continuationToken);
+
+      return objects;
+    }
+
+    async function downloadSitePhotos(siteInfo, { onStatus = () => {} } = {}) {
+      const [{ S3Client, ListObjectsV2Command, fromCognitoIdentityPool }, JSZip] = await Promise.all([
+        loadAwsDeps(),
+        loadZipDep()
+      ]);
+      const { slug, bucket, region, idPool, objectPrefix } = await resolveDownloadSiteConfig(siteInfo);
+
+      if (!bucket || !region || !idPool) {
+        throw new Error('Site storage is not configured.');
+      }
+
+      onStatus('Preparing...');
+
+      const s3 = new S3Client({
+        region,
+        credentials: fromCognitoIdentityPool({ identityPoolId: idPool, clientConfig: { region } })
+      });
+      const allObjects = await listSiteObjects(s3, bucket, objectPrefix, ListObjectsV2Command);
+      const originals = allObjects.filter(obj =>
+        obj.relativeKey &&
+        !obj.relativeKey.toLowerCase().endsWith('.json') &&
+        !obj.relativeKey.startsWith(THUMB_FOLDER) &&
+        !isTranscodedVideoKey(obj.relativeKey)
+      );
+
+      if (!originals.length) {
+        alert('No photos or videos to download yet.');
+        return;
+      }
+
+      const zip = new JSZip();
+      const errors = [];
+      const queue = [...originals];
+      const total = queue.length;
+      let completed = 0;
+
+      const updateStatus = () => {
+        onStatus(`Downloading (${completed}/${total})...`);
+      };
+
+      const MAX_CONCURRENT_DOWNLOADS = 3;
+
+      async function worker() {
+        while (queue.length) {
+          const next = queue.shift();
+          if (!next) return;
+
+          try {
+            const response = await fetch(s3Url(bucket, region, next.fullKey));
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            const blob = await response.blob();
+            zip.file(next.relativeKey, blob);
+          } catch (err) {
+            console.error('Failed to include', next.fullKey, err);
+            errors.push(next.relativeKey || next.fullKey);
+          } finally {
+            completed++;
+            updateStatus();
+          }
+        }
+      }
+
+      updateStatus();
+      const workers = Array.from(
+        { length: Math.min(MAX_CONCURRENT_DOWNLOADS, total) },
+        () => worker()
+      );
+      await Promise.all(workers);
+
+      const successfulCount = total - errors.length;
+      if (!successfulCount) {
+        alert('Could not download any files. Please try again.');
+        return;
+      }
+
+      onStatus('Finalising...');
+      const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const safeName = (slug || 'gallery').replace(/[^a-z0-9-]+/gi, '-');
+      const filename = `${safeName || 'gallery'}-originals-${timestamp}.zip`;
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(link.href);
+        link.remove();
+      }, 0);
+
+      if (errors.length) {
+        alert(`Downloaded ${successfulCount} file${successfulCount === 1 ? '' : 's'}, but ${errors.length} failed. Check the console for details.`);
+      }
+    }
+
+    function buildSiteNoticeButtons({ slug, siteUrl, plan, bucket, region, idPool, objectPrefix }) {
+      return [
+        { label: 'View Site', href: siteUrl, variant: 'btn-outline' },
+        {
+          label: 'Download Photos',
+          kind: 'photo-download',
+          slug,
+          plan,
+          bucket,
+          region,
+          idPool,
+          objectPrefix,
+          variant: 'btn-outline'
+        },
+        { label: 'Download QR Code', kind: 'qr-download', slug, siteUrl, variant: 'btn-outline' }
+      ];
     }
 
     async function purgeS3Prefix(s3, bucket, prefix, ListObjectsV2Command, DeleteObjectCommand) {
@@ -1575,22 +1816,28 @@
       fontSelect.value = storedKey;
 
       const slugForEditing = d.slug || docSnap.id;
+      const objectPrefix = ensureTrailingSlash(d.objectPrefix || (plan === 'managed' ? `sites/${slugForEditing}/` : ''));
 
       const siteUrl = `https://sharedlens.ca/${slugForEditing}`;
       showSiteNotice({
         prefix: 'Editing site: ',
         linkHref: siteUrl,
         linkText: siteUrl,
-        buttons: [
-          { label: 'View Site', href: siteUrl, variant: 'btn-outline' },
-          { label: 'Download QR Code', kind: 'qr-download', slug: slugForEditing, siteUrl, variant: 'btn-outline' }
-        ]
+        buttons: buildSiteNoticeButtons({
+          slug: slugForEditing,
+          siteUrl,
+          plan,
+          bucket: d.bucket || '',
+          region: d.region || '',
+          idPool: d.idPool || '',
+          objectPrefix
+        })
       });
 
       editingSite = {
         slug: slugForEditing,
         plan,
-        objectPrefix: ensureTrailingSlash(d.objectPrefix || (plan === 'managed' ? `sites/${slugForEditing}/` : '')),
+        objectPrefix,
         bucket: d.bucket || '',
         region: d.region || '',
         idPool: d.idPool || '',
@@ -1752,10 +1999,15 @@
             prefix: 'Your site is ready at ',
             linkHref: url,
             linkText: url,
-            buttons: [
-              { label: 'View Site', href: url, variant: 'btn-outline' },
-              { label: 'Download QR Code', kind: 'qr-download', slug, siteUrl: url, variant: 'btn-outline' }
-            ]
+            buttons: buildSiteNoticeButtons({
+              slug,
+              siteUrl: url,
+              plan,
+              bucket,
+              region,
+              idPool,
+              objectPrefix
+            })
           });
           siteResult.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
