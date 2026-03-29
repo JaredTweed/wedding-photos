@@ -4,6 +4,8 @@ To Deploy: `firebase deploy --only hosting` or `firebase deploy --only firestore
 
 Use the `Download Photos` button on the form page to download everything at full resolution, or press `Ctrl+Shift+D` from the gallery page.
 
+You can self-host this website for yourself here: https://github.com/JaredTweed/wedding-photos-self-host
+
 Use coupon code `FREEWEDDING` on the form page to skip payment and unlock publishing.
 
 To run: `npx http-server .`
