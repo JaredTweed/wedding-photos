@@ -8,6 +8,10 @@ You can self-host this website for yourself here: https://github.com/JaredTweed/
 
 Use coupon code `FREEWEDDING` on the form page to skip payment and unlock publishing.
 
+The Stripe Buy Button is shown only after sign-in. Checkout sends the Firebase UID as Stripe's `client_reference_id` and pre-fills the signed-in email. The payment fulfiller must verify Stripe's webhook signature and set `donations/{client_reference_id}.hasDonated` to the boolean `true` with trusted server credentials after payment succeeds.
+
+Run the payment/access regression suite with `npm test`.
+
 To run: `npx http-server .`
 <!-- 
 To download: `aws s3 sync s3://the-wedding-share .`

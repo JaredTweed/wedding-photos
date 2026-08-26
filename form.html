@@ -651,7 +651,7 @@
           Please make a donation or enter a coupon code to unlock publishing.
         </p>
         <div id="donationGateActions">
-          <stripe-buy-button buy-button-id="buy_btn_1SR2x6BSdF09H3NsAHawvyNP"
+          <stripe-buy-button hidden buy-button-id="buy_btn_1SR2x6BSdF09H3NsAHawvyNP"
             publishable-key="pk_live_51QNjOMBSdF09H3NscqTuDjujnp0p13XQFKA3rbNJToEEgfZO8ZvsdDLlutOrebWsgM17UT4JOcN8wURGBBSvCjhr00oRmMt83A">
           </stripe-buy-button>
           <div class="coupon-entry">
@@ -874,6 +874,7 @@
     const publishButton = document.getElementById('publishButton');
     const donationGate = document.getElementById('donationGate');
     const donationGateText = document.getElementById('donationGateText');
+    const stripeBuyButton = document.querySelector('stripe-buy-button');
     const couponInput = document.getElementById('couponCode');
     const couponApplyButton = document.getElementById('couponApply');
     const couponFeedback = document.getElementById('couponFeedback');
@@ -882,13 +883,18 @@
     const COUPON_STORAGE_PREFIX = 'sharedlens_coupon_code_';
     const COUPON_PENDING_KEY = 'sharedlens_coupon_pending';
     let activeCouponCode = '';
+    let publishLocked = true;
+    let publishBusy = false;
+    let donationCheckPromise = null;
+    let donationCheckUid = null;
     setPublishLockState({
       locked: true,
       message: 'Sign in and make a donation (or enter a coupon code) to publish your site.'
     });
 
     function setPublishLockState({ locked, message }) {
-      if (publishButton) publishButton.disabled = !!locked;
+      publishLocked = !!locked;
+      syncPublishButtonState();
       if (!donationGate) return;
       if (locked) {
         donationGate.dataset.state = 'locked';
@@ -896,6 +902,31 @@
       } else {
         donationGate.dataset.state = 'unlocked';
       }
+    }
+
+    function syncPublishButtonState() {
+      if (publishButton) publishButton.disabled = publishLocked || publishBusy;
+    }
+
+    function configureCheckoutForUser(user) {
+      if (!stripeBuyButton) return;
+
+      if (!user) {
+        stripeBuyButton.hidden = true;
+        stripeBuyButton.removeAttribute('client-reference-id');
+        stripeBuyButton.removeAttribute('customer-email');
+        return;
+      }
+
+      // Stripe includes this ID in checkout.session.completed, allowing the
+      // payment fulfiller to grant access to the exact Firebase account.
+      stripeBuyButton.setAttribute('client-reference-id', user.uid);
+      if (user.email) {
+        stripeBuyButton.setAttribute('customer-email', user.email);
+      } else {
+        stripeBuyButton.removeAttribute('customer-email');
+      }
+      stripeBuyButton.hidden = false;
     }
 
     function normalizeCoupon(value) {
@@ -928,6 +959,7 @@
         if (pendingNormalized === COUPON_CODE) {
           activeCouponCode = COUPON_CODE;
           if (couponInput) couponInput.value = pending;
+          localStorage.setItem(getCouponStorageKey(user.uid), COUPON_CODE);
           localStorage.removeItem(COUPON_PENDING_KEY);
           setCouponFeedback('Coupon applied. Checking access…', { ok: true });
           return;
@@ -1648,13 +1680,7 @@
     // Keep it in sync with auth state
     firebase.auth().onAuthStateChanged(user => {
       setUserMenu(user);
-      loadStoredCouponForUser(user);
-      ensureDonationFor(user, { force: true });
-    });
-
-    // Ensure avatar/menu render ASAP on load
-    waitForUser().then(user => {
-      setUserMenu(user);
+      configureCheckoutForUser(user);
       loadStoredCouponForUser(user);
       ensureDonationFor(user, { force: true });
     });
@@ -1696,39 +1722,71 @@
         return donationCache.hasDonated;
       }
 
-      setPublishLockState({ locked: true, message: 'Checking your access…' });
-      try {
-        await ensureCouponForUser(user);
-        const snap = await db.collection('donations').doc(user.uid).get();
-        const hasDonated = snap.exists && !!(snap.data()?.hasDonated);
-        const hasCoupon = snap.exists && normalizeCoupon(snap.data()?.couponCode) === COUPON_CODE;
-        const hasAccess = hasDonated || hasCoupon;
-        donationCache = { uid: user.uid, hasDonated: hasAccess, checked: true };
+      if (donationCheckPromise && donationCheckUid === user.uid) {
+        const inFlightResult = await donationCheckPromise;
+        if (!force || inFlightResult) return inFlightResult;
+      }
 
-        if (hasAccess) {
-          setPublishLockState({ locked: false });
-          if (hasCoupon) {
-            setCouponFeedback('Coupon applied. Publishing unlocked.', { ok: true });
+      setPublishLockState({ locked: true, message: 'Checking your access…' });
+      donationCheckUid = user.uid;
+      const checkPromise = (async () => {
+        try {
+          await ensureCouponForUser(user);
+          const snap = await db.collection('donations').doc(user.uid).get();
+          if (firebase.auth().currentUser?.uid !== user.uid) return false;
+          const hasDonated = snap.exists && snap.data()?.hasDonated === true;
+          const hasCoupon = snap.exists && normalizeCoupon(snap.data()?.couponCode) === COUPON_CODE;
+          const hasAccess = hasDonated || hasCoupon;
+          donationCache = { uid: user.uid, hasDonated: hasAccess, checked: true };
+
+          if (hasAccess) {
+            setPublishLockState({ locked: false });
+            if (hasCoupon) {
+              setCouponFeedback('Coupon applied. Publishing unlocked.', { ok: true });
+            }
+          } else {
+            setPublishLockState({
+              locked: true,
+              message: 'Please make a donation or enter a coupon code to unlock publishing.'
+            });
+            if (activeCouponCode === COUPON_CODE) {
+              setCouponFeedback('Coupon not found for this account. Try applying it again.');
+            }
           }
-        } else {
-          setPublishLockState({
-            locked: true,
-            message: 'Please make a donation or enter a coupon code to unlock publishing.'
-          });
-          if (activeCouponCode === COUPON_CODE) {
-            setCouponFeedback('Coupon not found for this account. Try applying it again.');
+          return hasAccess;
+        } catch (err) {
+          console.error('Donation lookup failed', err);
+          if (firebase.auth().currentUser?.uid === user.uid) {
+            setPublishLockState({
+              locked: true,
+              message: 'Could not check payment status. Please try again.'
+            });
           }
+          return false;
         }
-        return hasAccess;
-      } catch (err) {
-        console.error('Donation lookup failed', err);
-        setPublishLockState({
-          locked: true,
-          message: 'Contribute what this service is worth to you (or enter a coupon code) to publish your site.'
-        });
-        return false;
+      })();
+      donationCheckPromise = checkPromise;
+
+      try {
+        return await checkPromise;
+      } finally {
+        if (donationCheckPromise === checkPromise) {
+          donationCheckPromise = null;
+          donationCheckUid = null;
+        }
       }
     }
+
+    async function refreshAccessAfterCheckout() {
+      const user = firebase.auth().currentUser;
+      if (!user || donationCache.hasDonated) return;
+      await ensureDonationFor(user, { force: true });
+    }
+
+    window.addEventListener('focus', refreshAccessAfterCheckout);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshAccessAfterCheckout();
+    });
     if (deleteButton) {
       deleteButton.addEventListener('click', () => {
         handleDeleteSite();
@@ -1854,8 +1912,8 @@
     // --- Submit handler: now includes the S3 check ---
     async function submitForm(e) {
       e.preventDefault();
-      const btn = e.submitter || document.querySelector('button[type="submit"]');
-      if (btn) btn.disabled = true;
+      publishBusy = true;
+      syncPublishButtonState();
 
       try {
         if (siteResult) {
@@ -1865,7 +1923,9 @@
         }
         const user = await waitForUser();
         if (!user) { alert('Please sign in first.'); return; }
-        const hasDonation = await ensureDonationFor(user);
+        // Always re-read before publishing so a payment completed in another
+        // tab is recognized without requiring a page reload.
+        const hasDonation = await ensureDonationFor(user, { force: true });
         if (!hasDonation) {
           alert('Please make a donation or enter a coupon code before publishing your site.');
           return;
@@ -2017,7 +2077,8 @@
           ? 'That title is taken. Try another.'
           : 'Could not create site: ' + (err.message || err));
       } finally {
-        if (btn) btn.disabled = false;
+        publishBusy = false;
+        syncPublishButtonState();
       }
     }
   </script>

@@ -1,0 +1,11 @@
+{
+  "name": "shared-lens",
+  "private": true,
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore \"node --test tests/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.2.1"
+  }
+}
