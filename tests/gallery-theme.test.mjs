@@ -50,10 +50,10 @@ describe('gallery theme selection', () => {
     assert.notEqual(getSecondaryColor('hsl(303 23.7% 54%)'), 'hsl(303 0.0% 94%)');
   });
 
-  test('the refined theme uses a neutral glider and active tab', () => {
+  test('the refined theme hides the glider and uses a neutral active tab', () => {
     assert.match(
       galleryHtml,
-      /html\[data-theme="refined"\] #tabs\.tabs \.glider \{[\s\S]*?background: #e5e5e5;/,
+      /html\[data-theme="refined"\] #tabs\.tabs \.glider \{[\s\S]*?display: none;/,
     );
     assert.match(
       galleryHtml,
