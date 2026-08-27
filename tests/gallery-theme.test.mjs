@@ -19,8 +19,8 @@ describe('gallery theme selection', () => {
       .map(([, value, label]) => ({ value, label }));
 
     assert.deepEqual(options, [
-      { value: 'classic', label: 'Classic Gallery (Poppins)' },
-      { value: 'refined', label: 'Refined Shared Lens' },
+      { value: 'classic', label: 'Playful' },
+      { value: 'refined', label: 'Refined' },
     ]);
   });
 
