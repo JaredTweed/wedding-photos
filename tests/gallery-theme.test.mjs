@@ -37,4 +37,27 @@ describe('gallery theme selection', () => {
     assert.match(galleryHtml, /html\[data-theme="refined"\] #tabs\.tabs/);
     assert.doesNotMatch(galleryHtml, /html\[data-theme="classic"\]/);
   });
+
+  test('neutral primary colors cannot leave a stale hue in the glider', () => {
+    const functionSource = galleryHtml.match(
+      /function getSecondaryColor\(primaryHSL\) \{[\s\S]*?\n    \}/,
+    )?.[0];
+    assert.ok(functionSource, 'getSecondaryColor should exist');
+
+    const getSecondaryColor = Function(`return (${functionSource})`)();
+    assert.equal(getSecondaryColor('hsl(96 23.7% 0%)'), 'hsl(96 0.0% 94%)');
+    assert.equal(getSecondaryColor('not-a-color'), 'hsl(0 0% 94%)');
+    assert.notEqual(getSecondaryColor('hsl(303 23.7% 54%)'), 'hsl(303 0.0% 94%)');
+  });
+
+  test('the refined theme uses a neutral glider and active tab', () => {
+    assert.match(
+      galleryHtml,
+      /html\[data-theme="refined"\] #tabs\.tabs \.glider \{[\s\S]*?background: #e5e5e5;/,
+    );
+    assert.match(
+      galleryHtml,
+      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header\.active \{[\s\S]*?color: #111;/,
+    );
+  });
 });
