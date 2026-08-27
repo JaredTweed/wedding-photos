@@ -917,6 +917,29 @@
       if (publishButton) publishButton.disabled = publishLocked || publishBusy;
     }
 
+    function setSiteResultBusy(busy) {
+      if (!siteResult) return;
+
+      siteResult.inert = !!busy;
+      if (busy) {
+        siteResult.setAttribute('aria-busy', 'true');
+      } else {
+        siteResult.removeAttribute('aria-busy');
+      }
+
+      siteResult.querySelectorAll('button').forEach(button => {
+        if (busy) {
+          button.dataset.disabledBeforePublish = button.disabled ? 'true' : 'false';
+          button.disabled = true;
+          return;
+        }
+        if ('disabledBeforePublish' in button.dataset) {
+          button.disabled = button.dataset.disabledBeforePublish === 'true';
+          delete button.dataset.disabledBeforePublish;
+        }
+      });
+    }
+
     function configureCheckoutForUser(user) {
       if (!stripeBuyButton) return;
 
@@ -1736,7 +1759,12 @@
         if (!force || inFlightResult) return inFlightResult;
       }
 
-      setPublishLockState({ locked: true, message: 'Checking your access…' });
+      const hasCachedAccess = donationCache.checked
+        && donationCache.uid === user.uid
+        && donationCache.hasDonated;
+      if (!hasCachedAccess) {
+        setPublishLockState({ locked: true, message: 'Checking your access…' });
+      }
       donationCheckUid = user.uid;
       const checkPromise = (async () => {
         try {
@@ -1923,13 +1951,9 @@
       e.preventDefault();
       publishBusy = true;
       syncPublishButtonState();
+      setSiteResultBusy(true);
 
       try {
-        if (siteResult) {
-          siteResult.style.display = 'none';
-          siteResult.textContent = '';
-          siteResult.removeAttribute('data-state');
-        }
         const user = await waitForUser();
         if (!user) { alert('Please sign in first.'); return; }
         // Always re-read before publishing so a payment completed in another
@@ -2087,6 +2111,7 @@
       } finally {
         publishBusy = false;
         syncPublishButtonState();
+        setSiteResultBusy(false);
       }
     }
   </script>

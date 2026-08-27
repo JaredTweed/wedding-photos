@@ -35,4 +35,23 @@ describe('checkout account association', () => {
       /snap\.data\(\)\?\.hasDonated === true/,
     );
   });
+
+  test('a fresh access check does not flash the payment gate for an authorized account', () => {
+    assert.match(
+      html,
+      /const hasCachedAccess = donationCache\.checked[\s\S]*?&& donationCache\.hasDonated;[\s\S]*?if \(!hasCachedAccess\) \{[\s\S]*?setPublishLockState\(\{ locked: true, message: 'Checking your access…' \}\);/,
+    );
+  });
+
+  test('publishing keeps the existing site result visible and disables its controls', () => {
+    const submitSource = html.match(
+      /async function submitForm\(e\) \{[\s\S]*?\n    \}/,
+    )?.[0] || '';
+
+    assert.match(submitSource, /setSiteResultBusy\(true\)/);
+    assert.match(submitSource, /setSiteResultBusy\(false\)/);
+    assert.doesNotMatch(submitSource, /siteResult\.style\.display = 'none'/);
+    assert.doesNotMatch(submitSource, /siteResult\.textContent = ''/);
+    assert.match(html, /siteResult\.inert = !!busy/);
+  });
 });
