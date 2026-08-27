@@ -159,4 +159,24 @@ describe('publishing gate', () => {
       { ...validSite('paid-user', 'invalid-theme'), theme: 'unknown' },
     ));
   });
+
+  test('owners can edit settings without changing backend retention fields', async () => {
+    const expiresAt = new Date('2029-08-27T07:00:00.000Z');
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(donationDoc(context, 'paid-user'), { hasDonated: true });
+      await setDoc(doc(context.firestore(), 'sites', 'retained-wedding'), {
+        ...validSite('paid-user', 'retained-wedding'),
+        expiresAt,
+        retentionExempt: false,
+        retentionPolicyId: 'policy-123',
+      });
+    });
+
+    const paid = testEnv.authenticatedContext('paid-user');
+    const ref = doc(paid.firestore(), 'sites', 'retained-wedding');
+    await assertSucceeds(setDoc(ref, { title: 'Updated Wedding' }, { merge: true }));
+    await assertFails(updateDoc(ref, { expiresAt: new Date('2035-01-01T00:00:00.000Z') }));
+    await assertFails(updateDoc(ref, { retentionExempt: true }));
+    await assertFails(updateDoc(ref, { retentionPolicyId: 'another-policy' }));
+  });
 });

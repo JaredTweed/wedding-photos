@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Shared Lens three-year gallery retention service
+
+Parameters:
+  CodeBucket:
+    Type: String
+  CodeKey:
+    Type: String
+  FirebaseServiceAccountSecretArn:
+    Type: String
+  RetentionMode:
+    Type: String
+    Default: dry-run
+    AllowedValues: [dry-run, apply]
+  EmailEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+  ScheduleState:
+    Type: String
+    Default: DISABLED
+    AllowedValues: [ENABLED, DISABLED]
+
+Resources:
+  RetentionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: sharedlens-retention-runtime
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: sharedlens-retention-runtime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: WriteFunctionLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/sharedlens-retention:*
+              - Sid: ReadFirebaseCredential
+                Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref FirebaseServiceAccountSecretArn
+              - Sid: ListManagedGalleryObjects
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: arn:aws:s3:::the-wedding-share
+                Condition:
+                  StringLike:
+                    s3:prefix: sites/*
+              - Sid: DeleteManagedGalleryObjects
+                Effect: Allow
+                Action: s3:DeleteObject
+                Resource: arn:aws:s3:::the-wedding-share/sites/*
+              - Sid: SendRetentionEmail
+                Effect: Allow
+                Action: ses:SendEmail
+                Resource: !Sub arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/sharedlens.ca
+
+  RetentionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/sharedlens-retention
+      RetentionInDays: 30
+
+  RetentionFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: RetentionLogGroup
+    Properties:
+      FunctionName: sharedlens-retention
+      Description: Applies Shared Lens retention dates, sends warnings, and deletes expired galleries.
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 900
+      Role: !GetAtt RetentionRole.Arn
+      Code:
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Ref CodeKey
+      Environment:
+        Variables:
+          FIREBASE_SERVICE_ACCOUNT_SECRET: !Ref FirebaseServiceAccountSecretArn
+          RETENTION_MODE: !Ref RetentionMode
+          RETENTION_POLICY_START: '2026-08-27T07:00:00.000Z'
+          RETENTION_YEARS: '3'
+          DEMO_SLUG: wedding-photos
+          MANAGED_BUCKET: the-wedding-share
+          SITE_COLLECTION: sites
+          POLICY_COLLECTION: retentionPolicies
+          SITE_ORIGIN: https://sharedlens.ca
+          EMAIL_ENABLED: !Ref EmailEnabled
+          EMAIL_FROM: Shared Lens <notifications@sharedlens.ca>
+
+  RetentionSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: sharedlens-retention-daily
+      Description: Runs Shared Lens retention processing once per day.
+      ScheduleExpression: cron(15 9 * * ? *)
+      State: !Ref ScheduleState
+      Targets:
+        - Arn: !GetAtt RetentionFunction.Arn
+          Id: sharedlens-retention
+
+  RetentionSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref RetentionFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RetentionSchedule.Arn
+
+Outputs:
+  FunctionName:
+    Value: !Ref RetentionFunction
+  RuntimeRoleArn:
+    Value: !GetAtt RetentionRole.Arn

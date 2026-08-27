@@ -12,12 +12,15 @@ The Stripe Buy Button is shown only after sign-in. Checkout sends the Firebase U
 
 Run the payment/access regression suite with `npm test`.
 
-To run: `npx http-server .`
-<!-- 
-To download: `aws s3 sync s3://the-wedding-share .`
+## Gallery retention
 
-To delete all the items on the server: `aws s3 rm s3://the-wedding-share --recursive`
+Managed galleries are retained for three years. The `wedding-photos` demo is permanently exempt. Existing galleries use August 27, 2026 as the start of their three-year period; new galleries use their original creation time. The scheduled backend in `backend/retention` owns retention dates, advance notices, and safe prefix-scoped cleanup.
+
+The backend deploys to AWS account `339712861752`, uses a dedicated Lambda runtime role, and reads its narrowly scoped Firebase service-account credential from AWS Secrets Manager. Deployments start in `dry-run` mode with the schedule disabled. Enable `apply` mode only after reviewing a manual invocation. Email remains disabled until `sharedlens.ca` is verified in SES.
+
+To run: `npx http-server .`
 
 TODO:
-- Make the managed S3 buckets purchasable.
--->
+- Make mass downloading better and make it only possible from the form (not the home.html).
+- make it so that there is a warning email 30 days prior and 7 day prior to deletion with instructions on how to mass download.
+- make sure the form warns about the 3 year expiry.

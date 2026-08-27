@@ -51,7 +51,11 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.slug == resource.data.slug
         && request.resource.data.keys().hasOnly([
-          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix', 'fontFamily', 'theme'
+          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix', 'fontFamily', 'theme',
+          'expiresAt', 'retentionExempt', 'retentionPolicyId'
+        ])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'plan', 'objectPrefix', 'fontFamily', 'theme'
         ])
         && (!('plan' in request.resource.data) || request.resource.data.plan in ['managed', 'self-managed'])
         && (!('objectPrefix' in request.resource.data) || request.resource.data.objectPrefix is string)

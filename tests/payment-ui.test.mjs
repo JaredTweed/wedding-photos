@@ -54,4 +54,19 @@ describe('checkout account association', () => {
     assert.doesNotMatch(submitSource, /siteResult\.textContent = ''/);
     assert.match(html, /siteResult\.inert = !!busy/);
   });
+
+  test('editing preserves backend retention fields and the original creation date', () => {
+    assert.match(html, /await docRef\.set\(docData, \{ merge: true \}\)/);
+    assert.match(
+      html,
+      /createdAt: isEditing && editingSite\.createdAt[\s\S]*?\? editingSite\.createdAt[\s\S]*?: firebase\.firestore\.FieldValue\.serverTimestamp\(\)/,
+    );
+  });
+
+  test('the management form explains the gallery retention date and demo exemption', () => {
+    assert.match(html, /id="retentionSummary"[^>]*hidden[^>]*aria-live="polite"/);
+    assert.match(html, /slug === 'wedding-photos' \|\| exempt/);
+    assert.match(html, /scheduled for automatic deletion on \$\{formatted\}/);
+    assert.match(html, /permanently available and never expires/);
+  });
 });

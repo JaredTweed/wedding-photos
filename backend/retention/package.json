@@ -1,0 +1,19 @@
+{
+  "name": "shared-lens-retention",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.883.0",
+    "@aws-sdk/client-secrets-manager": "^3.883.0",
+    "@aws-sdk/client-sesv2": "^3.883.0",
+    "@google-cloud/firestore": "9.0.0",
+    "google-auth-library": "11.0.2"
+  }
+}
