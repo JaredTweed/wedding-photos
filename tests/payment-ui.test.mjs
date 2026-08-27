@@ -89,6 +89,7 @@ describe('checkout account association', () => {
     assert.match(html, /You can leave this page and return later/);
     assert.match(html, /Download links are private and expire after 15 minutes/);
     assert.match(html, /job\.downloads\.length === 1 \? 'Download ZIP' : `Download part \$\{index \+ 1\}`/);
+    assert.match(html, /import\('\/config\.js\?v=archive-20260827'\)/);
   });
 
   test('legacy self-managed galleries retain the in-browser download fallback', () => {

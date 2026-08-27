@@ -14,6 +14,17 @@
       "firestore.rules",
       "firestore.indexes.json"
     ],
+    "headers": [
+      {
+        "source": "/config.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      }
+    ],
     "rewrites": [
       { "source": "/form", "destination": "/form.html" },
       { "source": "/home", "destination": "/home.html" },
