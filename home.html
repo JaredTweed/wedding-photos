@@ -643,6 +643,141 @@
       background: var(--primary-color);
     }
 
+    /* Photo-credit settings dialog */
+    #settingsDialog {
+      width: min(28rem, calc(100vw - 2rem));
+      max-width: none;
+      margin: auto;
+      padding: 0;
+      overflow: hidden;
+      color: #222;
+      background: #fff;
+      border: 1px solid color-mix(in srgb, var(--primary-color) 55%, #777);
+      border-top: 4px solid var(--primary-color);
+      border-radius: 10px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+    }
+
+    #settingsDialog::backdrop {
+      background: rgba(17, 17, 17, 0.58);
+      backdrop-filter: blur(2px);
+    }
+
+    #settingsForm {
+      display: grid;
+      gap: 1rem;
+      padding: 1.4rem;
+    }
+
+    #settingsTitle {
+      margin: 0;
+      font-size: 1.25rem;
+      line-height: 1.25;
+    }
+
+    #settingsDescription {
+      margin: -.35rem 0 0;
+      color: #555;
+      font-size: .9rem;
+      line-height: 1.55;
+    }
+
+    .settings-field {
+      display: grid;
+      gap: .4rem;
+    }
+
+    .settings-field label {
+      font-size: .9rem;
+      font-weight: 600;
+    }
+
+    #creditNameInput {
+      width: 100%;
+      padding: .75rem .85rem;
+      border: 1px solid #a3a3a3;
+      border-radius: 6px;
+      background: #fff;
+      color: #111;
+      box-sizing: border-box;
+      font: inherit;
+      font-size: 1rem;
+      caret-color: var(--primary-color);
+      user-select: text;
+      -webkit-user-select: text;
+      outline: none;
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+
+    #creditNameInput:focus {
+      border-color: color-mix(in srgb, var(--primary-color) 72%, #111);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 22%, transparent);
+    }
+
+    #settingsStatus {
+      min-height: 1.25rem;
+      margin: -.35rem 0 0;
+      color: #555;
+      font-size: .82rem;
+      line-height: 1.4;
+    }
+
+    #settingsStatus[data-state="error"] {
+      color: #b42318;
+    }
+
+    .settings-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: .65rem;
+    }
+
+    .settings-actions button {
+      min-width: 6.5rem;
+      padding: .7rem 1rem;
+      border: 1px solid #737373;
+      border-radius: 6px;
+      font: inherit;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color .16s ease, border-color .16s ease, filter .16s ease, box-shadow .16s ease;
+    }
+
+    #settingsCancel {
+      background: #fff;
+      color: #222;
+    }
+
+    #settingsSave {
+      border-color: color-mix(in srgb, var(--primary-color) 72%, #111);
+      background: var(--primary-color);
+      color: #fff;
+    }
+
+    .settings-actions button:active {
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+      filter: brightness(.86);
+    }
+
+    .settings-actions button:disabled,
+    #creditNameInput:disabled {
+      cursor: wait;
+      opacity: .62;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      #settingsCancel:hover {
+        background: #f3f3f3;
+        border-color: #333;
+      }
+
+      #settingsSave:hover {
+        filter: brightness(.9);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+      }
+    }
+
 
 
 
@@ -870,6 +1005,31 @@
       font-size: 1rem;
     }
 
+    html[data-theme="refined"] #settingsDialog {
+      color: var(--refined-ink);
+      border: 1px solid var(--refined-border);
+      border-top: 3px solid var(--primary-color);
+      border-radius: 2px;
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.2);
+    }
+
+    html[data-theme="refined"] #settingsDescription,
+    html[data-theme="refined"] #settingsStatus {
+      color: var(--refined-muted);
+    }
+
+    html[data-theme="refined"] #creditNameInput,
+    html[data-theme="refined"] .settings-actions button {
+      border-radius: 3px;
+      box-shadow: none;
+    }
+
+    html[data-theme="refined"] .settings-actions button:focus-visible,
+    html[data-theme="refined"] #creditNameInput:focus-visible {
+      outline: 2px solid var(--refined-ink);
+      outline-offset: 3px;
+    }
+
 
 
 
@@ -945,7 +1105,8 @@
     <header>
       <div id="headerControls">
         <label id="addBtn" for="filePicker">Add Photos / Videos</label>
-        <button id="settingsBtn" title="Photo-credit settings">
+        <button id="settingsBtn" type="button" title="Photo-credit settings" aria-label="Photo-credit settings"
+          aria-haspopup="dialog" aria-controls="settingsDialog">
           <img id="settingsIcon" src="./icons/settings.svg" alt=""
             style="width: 2rem; height: 2rem; box-shadow:none; vertical-align: middle;">
         </button>
@@ -970,6 +1131,24 @@
     <button id="deleteSelected">Delete</button>
     <span id="deselectAll">&times;</span>
   </div>
+
+  <dialog id="settingsDialog" aria-labelledby="settingsTitle" aria-describedby="settingsDescription">
+    <form id="settingsForm">
+      <h2 id="settingsTitle">Photo credit</h2>
+      <p id="settingsDescription">
+        Add your name so people know which uploads are yours, or leave it blank to remain anonymous.
+      </p>
+      <div class="settings-field">
+        <label for="creditNameInput">Your name</label>
+        <input id="creditNameInput" type="text" maxlength="80" autocomplete="name" placeholder="Optional">
+      </div>
+      <p id="settingsStatus" role="status" aria-live="polite"></p>
+      <div class="settings-actions">
+        <button id="settingsCancel" type="button">Cancel</button>
+        <button id="settingsSave" type="submit">Save</button>
+      </div>
+    </form>
+  </dialog>
 
   <div id="overlay">
     <div id="timestamp"></div>
@@ -1546,38 +1725,86 @@
     const loader = document.getElementById('loader');
     let downloadAllInProgress = false;
     const settingsBtn = document.getElementById('settingsBtn');
+    const settingsDialog = document.getElementById('settingsDialog');
+    const settingsForm = document.getElementById('settingsForm');
+    const creditNameInput = document.getElementById('creditNameInput');
+    const settingsStatus = document.getElementById('settingsStatus');
+    const settingsCancel = document.getElementById('settingsCancel');
+    const settingsSave = document.getElementById('settingsSave');
     const icon = document.getElementById('settingsIcon');
     const overlayBottom = document.getElementById('overlayBottom');
     const creditEl = document.querySelector('.credit');
     let overlayContent = document.getElementById('overlayContent');
+    let settingsSaving = false;
 
-    settingsBtn.addEventListener('click', async (e) => {
+    function setSettingsBusy(busy) {
+      settingsSaving = busy;
+      creditNameInput.disabled = busy;
+      settingsCancel.disabled = busy;
+      settingsSave.disabled = busy;
+      settingsSave.textContent = busy ? 'Saving…' : 'Save';
+      icon.classList.toggle('spinning', busy);
+    }
+
+    function closeSettingsDialog() {
+      if (typeof settingsDialog.close === 'function') {
+        settingsDialog.close();
+      } else {
+        settingsDialog.removeAttribute('open');
+      }
+    }
+
+    settingsBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
 
       if (creditName == null) { creditName = ""; }
-      const response = prompt(
-        "Enter your name if you want others to know which uploads are yours. Leave blank if you wish to remain anonymous.",
-        creditName || ""
-      );
+      creditNameInput.value = creditName;
+      settingsStatus.textContent = '';
+      settingsStatus.removeAttribute('data-state');
+      if (typeof settingsDialog.showModal === 'function') {
+        if (!settingsDialog.open) settingsDialog.showModal();
+      } else {
+        settingsDialog.setAttribute('open', '');
+      }
+      requestAnimationFrame(() => {
+        creditNameInput.focus();
+        creditNameInput.select();
+      });
+    });
 
-      // If the user cancels the prompt, response is null – do nothing.
-      if (response === null) { return; }
+    settingsCancel.addEventListener('click', () => {
+      if (!settingsSaving) closeSettingsDialog();
+    });
 
-      icon.classList.add("spinning");
+    settingsDialog.addEventListener('cancel', (e) => {
+      if (settingsSaving) e.preventDefault();
+    });
 
-      // Trim the response. If the user entered an empty string, treat it as clearing the credit.
-      const clean = response.trim();
-      // Store null rather than empty string if no credit is to be set.
-      creditName = clean;
-      localStorage.setItem("creditName", creditName || "");
+    settingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (settingsSaving) return;
 
-      // Update the credit for all existing uploads
-      await Promise.all(
-        getUploads().map(k => putCredit(k, creditName))
-      );
-      icon.classList.remove("spinning");
+      const clean = creditNameInput.value.trim();
+      setSettingsBusy(true);
+      settingsStatus.textContent = 'Saving photo credit…';
+      settingsStatus.removeAttribute('data-state');
+
+      try {
+        const uploads = getUploads();
+        await Promise.all(uploads.map(k => putCredit(k, clean)));
+        creditName = clean;
+        localStorage.setItem('creditName', creditName);
+        uploads.forEach(k => creditCache.set(k, creditName || null));
+        closeSettingsDialog();
+      } catch (err) {
+        console.error('Unable to save photo credit', err);
+        settingsStatus.textContent = 'Could not save your photo credit. Please try again.';
+        settingsStatus.dataset.state = 'error';
+      } finally {
+        setSettingsBusy(false);
+      }
     });
 
     tabAll.addEventListener('pointerdown', () => switchTab(true));
@@ -1900,6 +2127,7 @@
     // });
     window.addEventListener('keydown', e => {
       if (uploading && e.key === 'Escape') return;
+      if (settingsDialog.open && e.key === 'Escape') return;
       if (e.key === 'Escape') closeOverlay();
     });
 
@@ -2757,10 +2985,10 @@
       if (e.defaultPrevented) return;
 
       const isModifier = e.ctrlKey || e.metaKey;
+      const focusTag = (e.target.tagName || '').toLowerCase();
+      const isEditable = e.target.isContentEditable || focusTag === 'input' || focusTag === 'textarea';
       if (isModifier && e.shiftKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
-        const focusTag = (e.target.tagName || '').toLowerCase();
-        const isEditable = e.target.isContentEditable || focusTag === 'input' || focusTag === 'textarea';
         if (!isEditable) {
           downloadAllFullRes();
         }
@@ -2768,6 +2996,7 @@
       }
 
       if (isModifier && e.key.toLowerCase() === 'a') {
+        if (isEditable) return;
         e.preventDefault();
 
         // find the active panel
