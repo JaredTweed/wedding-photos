@@ -961,6 +961,13 @@
       ));
     }
 
+    function hideRetentionSummary() {
+      if (!retentionSummary) return;
+      retentionSummary.hidden = true;
+      retentionSummary.textContent = '';
+      delete retentionSummary.dataset.state;
+    }
+
     function showRetentionSummary({ slug = '', createdAt = null, expiresAt = null, exempt = false } = {}) {
       if (!retentionSummary) return;
       const isDemo = slug === 'wedding-photos' || exempt;
@@ -1906,6 +1913,7 @@
 
     // --- Prefill the form with the requested site (or latest) ---
     async function prefillFromAccount() {
+      hideRetentionSummary();
       const user = await waitForUser();
       await ensureDonationFor(user);
       if (!user) {

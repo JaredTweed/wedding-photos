@@ -71,4 +71,13 @@ describe('checkout account association', () => {
     assert.doesNotMatch(html, /kept for three years from its original creation date/);
     assert.match(html, /permanently available and never expires/);
   });
+
+  test('deleting the loaded gallery clears its stale retention notice', () => {
+    assert.match(
+      html,
+      /function hideRetentionSummary\(\)[\s\S]*?retentionSummary\.hidden = true;[\s\S]*?retentionSummary\.textContent = '';[\s\S]*?delete retentionSummary\.dataset\.state;/
+    );
+    assert.match(html, /async function prefillFromAccount\(\) \{\s*hideRetentionSummary\(\);/);
+    assert.match(html, /await docRef\.delete\(\);[\s\S]*?await prefillFromAccount\(\);/);
+  });
 });
