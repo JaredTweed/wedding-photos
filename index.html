@@ -169,6 +169,16 @@
       outline-offset: 3px;
     }
 
+    .btn:disabled,
+    .btn:disabled:hover {
+      cursor: wait;
+      opacity: .65;
+      background: #f3f3f3;
+      color: #525252;
+      border-color: #a3a3a3;
+      box-shadow: none;
+    }
+
     .google-icon {
       height: 20px;
       width: 20px;
@@ -209,9 +219,9 @@
     <div class="button-group">
       <button class="btn btn-fill" onclick="viewDemo()">View Demo</button>
 
-      <button class="btn btn-outline" onclick="signInWithGoogle()">
-        <img class="google-icon" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
-        Sign in with Google to Create Your Own
+      <button class="btn btn-outline" id="galleryActionButton" type="button" onclick="signInWithGoogle()" disabled>
+        <img class="google-icon" id="galleryActionGoogleIcon" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" hidden>
+        <span id="galleryActionText">Checking your account…</span>
       </button>
     </div>
   </main>
@@ -236,6 +246,17 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const galleryActionButton = document.getElementById('galleryActionButton');
+    const galleryActionGoogleIcon = document.getElementById('galleryActionGoogleIcon');
+    const galleryActionText = document.getElementById('galleryActionText');
+
+    function updateGalleryAction(user) {
+      galleryActionButton.disabled = false;
+      galleryActionGoogleIcon.hidden = !!user;
+      galleryActionText.textContent = user ? 'Manage your gallery' : 'Create your gallery';
+    }
+
+    auth.onAuthStateChanged(updateGalleryAction);
 
     // If we came back from a redirect and got a user, continue to form
     auth.getRedirectResult()
