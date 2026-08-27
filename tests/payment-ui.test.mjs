@@ -66,7 +66,9 @@ describe('checkout account association', () => {
   test('the management form explains the gallery retention date and demo exemption', () => {
     assert.match(html, /id="retentionSummary"[^>]*hidden[^>]*aria-live="polite"/);
     assert.match(html, /slug === 'wedding-photos' \|\| exempt/);
-    assert.match(html, /scheduled for automatic deletion on \$\{formatted\}/);
+    assert.match(html, /will be permanently deleted on \$\{formatted\}/);
+    assert.match(html, /asRetentionDate\(expiresAt\) \|\| addRetentionYears\(createdAt\)/);
+    assert.doesNotMatch(html, /kept for three years from its original creation date/);
     assert.match(html, /permanently available and never expires/);
   });
 });

@@ -936,7 +936,32 @@
       if (publishButton) publishButton.disabled = publishLocked || publishBusy;
     }
 
-    function showRetentionSummary({ slug = '', expiresAt = null, exempt = false } = {}) {
+    function asRetentionDate(value) {
+      if (!value) return null;
+      const date = typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function addRetentionYears(value, years = 3) {
+      const date = asRetentionDate(value) || new Date();
+      const targetYear = date.getUTCFullYear() + years;
+      const month = date.getUTCMonth();
+      const day = Math.min(
+        date.getUTCDate(),
+        new Date(Date.UTC(targetYear, month + 1, 0)).getUTCDate()
+      );
+      return new Date(Date.UTC(
+        targetYear,
+        month,
+        day,
+        date.getUTCHours(),
+        date.getUTCMinutes(),
+        date.getUTCSeconds(),
+        date.getUTCMilliseconds()
+      ));
+    }
+
+    function showRetentionSummary({ slug = '', createdAt = null, expiresAt = null, exempt = false } = {}) {
       if (!retentionSummary) return;
       const isDemo = slug === 'wedding-photos' || exempt;
       retentionSummary.hidden = false;
@@ -947,19 +972,13 @@
       }
 
       retentionSummary.dataset.state = 'active';
-      const expiryDate = expiresAt && typeof expiresAt.toDate === 'function'
-        ? expiresAt.toDate()
-        : (expiresAt ? new Date(expiresAt) : null);
-      if (expiryDate && !Number.isNaN(expiryDate.getTime())) {
-        const formatted = new Intl.DateTimeFormat('en-CA', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }).format(expiryDate);
-        retentionSummary.textContent = `This gallery and all of its photos are scheduled for automatic deletion on ${formatted}. Download anything you want to keep before then.`;
-      } else {
-        retentionSummary.textContent = 'This gallery and all of its photos are kept for three years from its original creation date.';
-      }
+      const expiryDate = asRetentionDate(expiresAt) || addRetentionYears(createdAt);
+      const formatted = new Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }).format(expiryDate);
+      retentionSummary.textContent = `This gallery and all of its photos will be permanently deleted on ${formatted}.`;
     }
 
     function setSiteResultBusy(busy) {
