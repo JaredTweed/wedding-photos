@@ -4,7 +4,15 @@
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "backend/**",
+      "tests/**",
+      "AGENTS.md",
+      "README.md",
+      "package.json",
+      "package-lock.json",
+      "firestore.rules",
+      "firestore.indexes.json"
     ],
     "rewrites": [
       { "source": "/form", "destination": "/form.html" },

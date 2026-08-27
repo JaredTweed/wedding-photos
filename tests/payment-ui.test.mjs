@@ -80,4 +80,19 @@ describe('checkout account association', () => {
     assert.match(html, /async function prefillFromAccount\(\) \{\s*hideRetentionSummary\(\);/);
     assert.match(html, /await docRef\.delete\(\);[\s\S]*?await prefillFromAccount\(\);/);
   });
+
+  test('managed gallery downloads use the authenticated background archive service', () => {
+    assert.match(html, /id="archiveDownloadResult"[^>]*hidden[^>]*aria-live="polite"/);
+    assert.match(html, /authorization: `Bearer \$\{token\}`/);
+    assert.match(html, /archiveApiRequest\('\/exports', \{[\s\S]*?method: 'POST'/);
+    assert.match(html, /archiveApiRequest\(`\/exports\/\$\{encodeURIComponent\(current\.jobId\)\}`\)/);
+    assert.match(html, /You can leave this page and return later/);
+    assert.match(html, /Download links are private and expire after 15 minutes/);
+    assert.match(html, /job\.downloads\.length === 1 \? 'Download ZIP' : `Download part \$\{index \+ 1\}`/);
+  });
+
+  test('legacy self-managed galleries retain the in-browser download fallback', () => {
+    assert.match(html, /siteInfo\.plan \|\| 'managed'\) !== 'managed'/);
+    assert.match(html, /return downloadSitePhotosInBrowser\(siteInfo, \{ onStatus \}\)/);
+  });
 });

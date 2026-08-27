@@ -2,7 +2,7 @@ Site: https://sharedlens.ca
 
 To Deploy: `firebase deploy --only hosting` or `firebase deploy --only firestore:rules,hosting`
 
-Use the `Download Photos` button on the form page to download everything at full resolution, or press `Ctrl+Shift+D` from the gallery page.
+Use the `Download Photos` button on the form page to prepare a private, temporary archive of every original photo and video. Large galleries are split into parts near 4 GB. Prepared archives are reusable for 24 hours, while each owner-only download link expires after 15 minutes.
 
 You can self-host this website for yourself here: https://github.com/JaredTweed/wedding-photos-self-host
 
@@ -12,6 +12,12 @@ The Stripe Buy Button is shown only after sign-in. Checkout sends the Firebase U
 
 Run the payment/access regression suite with `npm test`.
 
+## Gallery archives
+
+The backend in `backend/archive` verifies the Firebase ID token and gallery ownership before starting an isolated AWS Fargate task. The task streams originals from the managed S3 prefix into a separate private export bucket, so the browser never has to hold the gallery in memory. DynamoDB tracks progress and reuse; S3 lifecycle cleanup removes temporary archives automatically.
+
+Run archive tests with `npm --prefix backend/archive test`. Deploy the archive backend with `backend/archive/deploy.sh`, then keep `EXPORT_API_URL` in `config.js` aligned with the stack output.
+
 ## Gallery retention
 
 Managed galleries are retained for three years. The `wedding-photos` demo is permanently exempt. Existing galleries use August 27, 2026 as the start of their three-year period; new galleries use their original creation time. The scheduled backend in `backend/retention` owns retention dates, advance notices, and safe prefix-scoped cleanup.
@@ -19,8 +25,3 @@ Managed galleries are retained for three years. The `wedding-photos` demo is per
 The backend deploys to AWS account `339712861752`, uses a dedicated Lambda runtime role, and reads its narrowly scoped Firebase service-account credential from AWS Secrets Manager. Deployments start in `dry-run` mode with the schedule disabled. Enable `apply` mode only after reviewing a manual invocation. Email remains disabled until `sharedlens.ca` is verified in SES.
 
 To run: `npx http-server .`
-
-TODO:
-- Make mass downloading better and make it only possible from the form (not the home.html).
-- make it so that there is a warning email 30 days prior and 7 day prior to deletion with instructions on how to mass download.
-- make sure the form warns about the 3 year expiry.

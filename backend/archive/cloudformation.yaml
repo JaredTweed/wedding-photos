@@ -1,0 +1,331 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Shared Lens on-demand gallery archive service
+
+Parameters:
+  ApiCodeBucket:
+    Type: String
+  ApiCodeKey:
+    Type: String
+  WorkerImageUri:
+    Type: String
+  FirebaseServiceAccountSecretArn:
+    Type: String
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+  ExportBucketName:
+    Type: String
+  FirebaseApiKey:
+    Type: String
+    NoEcho: true
+
+Resources:
+  ExportBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref ExportBucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteTemporaryGalleryArchives
+            Status: Enabled
+            Prefix: archives/
+            ExpirationInDays: 1
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+  ArchiveJobs:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: sharedlens-gallery-archive-jobs
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  ArchiveCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: sharedlens-gallery-archives
+      ClusterSettings:
+        - Name: containerInsights
+          Value: disabled
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/sharedlens-gallery-archive-api
+      RetentionInDays: 30
+
+  WorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/ecs/sharedlens-gallery-archive-worker
+      RetentionInDays: 30
+
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: sharedlens-gallery-archive-task-execution
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: sharedlens-gallery-archive-worker
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: sharedlens-gallery-archive-worker
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ListManagedGalleryObjects
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: arn:aws:s3:::the-wedding-share
+                Condition:
+                  StringLike:
+                    s3:prefix: sites/*
+              - Sid: ReadManagedGalleryObjects
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: arn:aws:s3:::the-wedding-share/sites/*
+              - Sid: ManageTemporaryArchives
+                Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:DeleteObject
+                  - s3:PutObject
+                  - s3:ListMultipartUploadParts
+                Resource: !Sub ${ExportBucket.Arn}/archives/*
+              - Sid: UpdateArchiveJob
+                Effect: Allow
+                Action: dynamodb:UpdateItem
+                Resource: !GetAtt ArchiveJobs.Arn
+
+  ArchiveTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: sharedlens-gallery-archive-worker
+      Cpu: '512'
+      Memory: '1024'
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: archive-worker
+          Image: !Ref WorkerImageUri
+          Essential: true
+          Environment:
+            - Name: JOBS_TABLE
+              Value: !Ref ArchiveJobs
+            - Name: SOURCE_BUCKET
+              Value: the-wedding-share
+            - Name: EXPORT_BUCKET
+              Value: !Ref ExportBucket
+            - Name: MAX_ARCHIVE_BYTES
+              Value: '4294967296'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref WorkerLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: worker
+
+  ApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: sharedlens-gallery-archive-api
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: sharedlens-gallery-archive-api
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: WriteFunctionLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/sharedlens-gallery-archive-api:*
+              - Sid: ReadFirebaseCredential
+                Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref FirebaseServiceAccountSecretArn
+              - Sid: ListManagedGalleryObjects
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: arn:aws:s3:::the-wedding-share
+                Condition:
+                  StringLike:
+                    s3:prefix: sites/*
+              - Sid: ReadTemporaryArchiveMetadata
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:HeadObject
+                Resource: !Sub ${ExportBucket.Arn}/archives/*
+              - Sid: ManageArchiveJobs
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt ArchiveJobs.Arn
+              - Sid: StartAndInspectArchiveTasks
+                Effect: Allow
+                Action:
+                  - ecs:DescribeTasks
+                  - ecs:RunTask
+                Resource:
+                  - !Ref ArchiveTaskDefinition
+                  - !Sub arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task/${ArchiveCluster}/*
+              - Sid: PassArchiveTaskRoles
+                Effect: Allow
+                Action: iam:PassRole
+                Resource:
+                  - !GetAtt TaskExecutionRole.Arn
+                  - !GetAtt TaskRole.Arn
+
+  ApiFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: ApiLogGroup
+    Properties:
+      FunctionName: sharedlens-gallery-archive-api
+      Description: Authenticates gallery owners and manages temporary archive jobs.
+      Runtime: nodejs22.x
+      Architectures: [x86_64]
+      Handler: api/index.handler
+      MemorySize: 512
+      Timeout: 120
+      Role: !GetAtt ApiRole.Arn
+      Code:
+        S3Bucket: !Ref ApiCodeBucket
+        S3Key: !Ref ApiCodeKey
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref ArchiveJobs
+          SOURCE_BUCKET: the-wedding-share
+          EXPORT_BUCKET: !Ref ExportBucket
+          ECS_CLUSTER_ARN: !GetAtt ArchiveCluster.Arn
+          TASK_DEFINITION_ARN: !Ref ArchiveTaskDefinition
+          TASK_CONTAINER_NAME: archive-worker
+          SUBNET_IDS: !Join [',', !Ref SubnetIds]
+          SECURITY_GROUP_IDS: !Join [',', !Ref SecurityGroupIds]
+          FIREBASE_API_KEY: !Ref FirebaseApiKey
+          FIREBASE_SERVICE_ACCOUNT_SECRET: !Ref FirebaseServiceAccountSecretArn
+          JOB_LIFETIME_SECONDS: '86400'
+          SIGNED_URL_SECONDS: '900'
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: sharedlens-gallery-archives
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - https://sharedlens.ca
+        AllowMethods:
+          - POST
+          - GET
+          - OPTIONS
+        AllowHeaders:
+          - authorization
+          - content-type
+        MaxAge: 600
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  CreateExportRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /exports
+      Target: !Sub integrations/${ApiIntegration}
+
+  GetExportRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /exports/{jobId}
+      Target: !Sub integrations/${ApiIntegration}
+
+  DefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*
+
+Outputs:
+  ApiUrl:
+    Value: !GetAtt HttpApi.ApiEndpoint
+  ExportBucketName:
+    Value: !Ref ExportBucket
+  JobsTableName:
+    Value: !Ref ArchiveJobs
+  ClusterArn:
+    Value: !GetAtt ArchiveCluster.Arn
+  TaskDefinitionArn:
+    Value: !Ref ArchiveTaskDefinition

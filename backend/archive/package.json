@@ -1,0 +1,23 @@
+{
+  "name": "shared-lens-archive-service",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "3.1120.0",
+    "@aws-sdk/client-ecs": "3.1120.0",
+    "@aws-sdk/client-s3": "3.1120.0",
+    "@aws-sdk/client-secrets-manager": "3.1120.0",
+    "@aws-sdk/lib-dynamodb": "3.1120.0",
+    "@aws-sdk/lib-storage": "3.1120.0",
+    "@aws-sdk/s3-request-presigner": "3.1120.0",
+    "@google-cloud/firestore": "8.0.0",
+    "google-auth-library": "10.3.0",
+    "zip-stream": "7.0.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

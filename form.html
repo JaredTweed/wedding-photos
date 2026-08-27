@@ -406,6 +406,64 @@
       border-left-color: var(--primary);
     }
 
+    #archiveDownloadResult {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid #d4d4d4;
+      border-left: 3px solid var(--primary);
+      border-radius: 2px;
+      background: #fff;
+      color: #333;
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    #archiveDownloadResult[data-state="error"] {
+      border-left-color: #a12622;
+    }
+
+    .archive-title {
+      margin: 0 0 .25rem;
+      color: #111;
+      font-size: .95rem;
+      font-weight: 700;
+    }
+
+    .archive-detail {
+      margin: 0;
+      color: #555;
+      font-size: .82rem;
+    }
+
+    .archive-progress {
+      width: 100%;
+      height: 6px;
+      margin: .8rem 0 .55rem;
+      overflow: hidden;
+      border: 0;
+      border-radius: 0;
+      background: #e5e5e5;
+    }
+
+    .archive-progress::-webkit-progress-bar {
+      background: #e5e5e5;
+    }
+
+    .archive-progress::-webkit-progress-value {
+      background: var(--primary);
+    }
+
+    .archive-progress::-moz-progress-bar {
+      background: var(--primary);
+    }
+
+    .archive-downloads {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      margin-top: .85rem;
+    }
+
     @media (min-width: 560px) {
       .notice-actions .btn {
         width: auto;
@@ -700,6 +758,8 @@
 
       <div id="siteResult" class="notice" style="display:none; margin-top:1rem;"></div>
 
+      <div id="archiveDownloadResult" hidden aria-live="polite"></div>
+
       <div id="deleteSiteSection" class="danger-zone" aria-live="polite">
         <h3>Delete this site</h3>
         <p id="deleteSiteHelp">This will permanently remove the site and its files. Type "<span id="deleteSitePhrase"></span>" (the saved site title) to confirm.</p>
@@ -889,6 +949,7 @@
     const mainBtn = document.getElementById('sl-main');
     const authBtn = document.getElementById('sl-auth');
     const siteResult = document.getElementById('siteResult');
+    const archiveDownloadResult = document.getElementById('archiveDownloadResult');
     const siteTitleInput = document.getElementById('siteTitle');
     const deleteSection = document.getElementById('deleteSiteSection');
     const deletePhraseEl = document.getElementById('deleteSitePhrase');
@@ -1239,7 +1300,9 @@
           });
         } catch (err) {
           console.error('Failed to download site photos', err);
-          alert('Could not download the photos. Please try again.');
+          if ((siteInfo.plan || 'managed') !== 'managed') {
+            alert('Could not download the photos. Please try again.');
+          }
         } finally {
           target.textContent = originalText;
           target.removeAttribute('aria-busy');
@@ -1463,7 +1526,7 @@
       return objects;
     }
 
-    async function downloadSitePhotos(siteInfo, { onStatus = () => {} } = {}) {
+    async function downloadSitePhotosInBrowser(siteInfo, { onStatus = () => {} } = {}) {
       const [{ S3Client, ListObjectsV2Command, fromCognitoIdentityPool }, JSZip] = await Promise.all([
         loadAwsDeps(),
         loadZipDep()
@@ -1558,6 +1621,148 @@
 
       if (errors.length) {
         alert(`Downloaded ${successfulCount} file${successfulCount === 1 ? '' : 's'}, but ${errors.length} failed. Check the console for details.`);
+      }
+    }
+
+    let archivePollToken = 0;
+
+    function formatFileSize(value) {
+      const bytes = Math.max(0, Number(value || 0));
+      if (bytes < 1024) return `${bytes} B`;
+      const units = ['KB', 'MB', 'GB', 'TB'];
+      let size = bytes;
+      let unit = -1;
+      do {
+        size /= 1024;
+        unit++;
+      } while (size >= 1024 && unit < units.length - 1);
+      return `${size >= 10 ? size.toFixed(1) : size.toFixed(2)} ${units[unit]}`;
+    }
+
+    function hideArchiveDownloadResult() {
+      archivePollToken++;
+      if (!archiveDownloadResult) return;
+      archiveDownloadResult.hidden = true;
+      archiveDownloadResult.textContent = '';
+      delete archiveDownloadResult.dataset.state;
+    }
+
+    function renderArchiveJob(job) {
+      if (!archiveDownloadResult) return;
+      archiveDownloadResult.hidden = false;
+      archiveDownloadResult.innerHTML = '';
+      archiveDownloadResult.dataset.state = job.status === 'failed' ? 'error' : job.status;
+
+      const title = document.createElement('p');
+      title.className = 'archive-title';
+      const detail = document.createElement('p');
+      detail.className = 'archive-detail';
+
+      if (job.status === 'failed') {
+        title.textContent = 'Archive preparation failed';
+        detail.textContent = job.message || 'The archive could not be prepared. Please try again.';
+      } else if (job.status === 'completed') {
+        title.textContent = 'Your gallery download is ready';
+        const count = Number(job.totalFiles || 0);
+        detail.textContent = `${count} original file${count === 1 ? '' : 's'} · ${formatFileSize(job.totalBytes)}. Download links are private and expire after 15 minutes.`;
+      } else {
+        title.textContent = 'Preparing your gallery download';
+        const totalFiles = Number(job.totalFiles || 0);
+        const completedFiles = Number(job.completedFiles || 0);
+        detail.textContent = `${completedFiles} of ${totalFiles} original files · ${formatFileSize(job.totalBytes)} total. You can leave this page and return later.`;
+      }
+
+      archiveDownloadResult.append(title, detail);
+
+      if (job.status === 'queued' || job.status === 'processing') {
+        const total = Math.max(1, Number(job.totalBytes || job.totalFiles || 1));
+        const completed = Number(job.totalBytes || 0) > 0
+          ? Number(job.completedBytes || 0)
+          : Number(job.completedFiles || 0);
+        const progress = document.createElement('progress');
+        progress.className = 'archive-progress';
+        progress.max = total;
+        progress.value = Math.min(total, completed);
+        progress.setAttribute('aria-label', 'Gallery archive preparation progress');
+        archiveDownloadResult.appendChild(progress);
+      }
+
+      if (job.status === 'completed' && Array.isArray(job.downloads)) {
+        const downloads = document.createElement('div');
+        downloads.className = 'archive-downloads';
+        job.downloads.forEach((item, index) => {
+          const link = document.createElement('a');
+          link.className = 'btn btn-fill';
+          link.href = item.url;
+          link.textContent = job.downloads.length === 1 ? 'Download ZIP' : `Download part ${index + 1}`;
+          link.rel = 'noopener noreferrer';
+          downloads.appendChild(link);
+        });
+        archiveDownloadResult.appendChild(downloads);
+      }
+    }
+
+    async function archiveApiRequest(path, options = {}, retryAuth = true) {
+      const user = await waitForUser();
+      if (!user) throw new Error('Please sign in again to download the gallery.');
+      const managed = await managedConfigPromise;
+      const apiUrl = String(managed.EXPORT_API_URL || '').replace(/\/$/, '');
+      if (!apiUrl) throw new Error('Gallery downloads are not configured yet.');
+      const token = await user.getIdToken(!retryAuth);
+      const result = await fetch(`${apiUrl}${path}`, {
+        ...options,
+        headers: {
+          'content-type': 'application/json',
+          ...(options.headers || {}),
+          authorization: `Bearer ${token}`,
+        },
+      });
+      if (result.status === 401 && retryAuth) return archiveApiRequest(path, options, false);
+      const payload = await result.json().catch(() => ({}));
+      if (!result.ok) throw new Error(payload.message || 'The gallery download could not be prepared.');
+      return payload;
+    }
+
+    async function waitForArchive(job, token, onStatus) {
+      let current = job;
+      while (current.status === 'queued' || current.status === 'processing') {
+        if (token !== archivePollToken) return null;
+        renderArchiveJob(current);
+        const total = Number(current.totalBytes || current.totalFiles || 0);
+        const completed = Number(current.totalBytes || 0) > 0
+          ? Number(current.completedBytes || 0)
+          : Number(current.completedFiles || 0);
+        const percent = total > 0 ? Math.min(99, Math.floor((completed / total) * 100)) : 0;
+        onStatus(`Preparing ${percent}%...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (token !== archivePollToken) return null;
+        current = await archiveApiRequest(`/exports/${encodeURIComponent(current.jobId)}`);
+      }
+      if (token !== archivePollToken) return null;
+      renderArchiveJob(current);
+      if (current.status === 'failed') throw new Error(current.message || 'The archive could not be prepared.');
+      return current;
+    }
+
+    async function downloadSitePhotos(siteInfo, { onStatus = () => {} } = {}) {
+      if ((siteInfo.plan || 'managed') !== 'managed') {
+        return downloadSitePhotosInBrowser(siteInfo, { onStatus });
+      }
+
+      hideArchiveDownloadResult();
+      const token = archivePollToken;
+      onStatus('Checking gallery...');
+      try {
+        const job = await archiveApiRequest('/exports', {
+          method: 'POST',
+          body: JSON.stringify({ slug: siteInfo.slug }),
+        });
+        await waitForArchive(job, token, onStatus);
+      } catch (error) {
+        if (token === archivePollToken) {
+          renderArchiveJob({ status: 'failed', message: error.message });
+        }
+        throw error;
       }
     }
 
@@ -1914,6 +2119,7 @@
     // --- Prefill the form with the requested site (or latest) ---
     async function prefillFromAccount() {
       hideRetentionSummary();
+      hideArchiveDownloadResult();
       const user = await waitForUser();
       await ensureDonationFor(user);
       if (!user) {
