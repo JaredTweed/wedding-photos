@@ -79,4 +79,11 @@ describe('gallery theme selection', () => {
       /html\[data-theme="refined"\] figure\.selected \.select-box::after \{[\s\S]*?border: solid #fff;/,
     );
   });
+
+  test('refined hover effects only run on devices with a precise hover pointer', () => {
+    assert.match(
+      galleryHtml,
+      /@media \(hover: hover\) and \(pointer: fine\) \{[\s\S]*?#addBtn:hover[\s\S]*?#settingsBtn:hover[\s\S]*?#tabs\.tabs \.tab-header:hover/,
+    );
+  });
 });

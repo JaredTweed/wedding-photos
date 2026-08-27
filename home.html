@@ -704,20 +704,10 @@
       border-color: color-mix(in srgb, var(--primary-color) 72%, #111);
     }
 
-    html[data-theme="refined"] #addBtn:hover {
-      filter: brightness(0.9);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    }
-
     html[data-theme="refined"] #addBtn:active {
       transform: none;
       filter: brightness(0.82);
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.24);
-    }
-
-    html[data-theme="refined"] #settingsBtn:hover {
-      background: #f3f3f3;
-      border-color: var(--refined-ink);
     }
 
     html[data-theme="refined"] #settingsBtn:active {
@@ -742,10 +732,6 @@
       transition: background-color .16s ease, color .16s ease, box-shadow .16s ease;
     }
 
-    html[data-theme="refined"] #tabs.tabs .tab-header:hover {
-      background: #f3f3f3;
-    }
-
     html[data-theme="refined"] #tabs.tabs .tab-header.active {
       color: var(--refined-ink);
       font-weight: 700;
@@ -761,11 +747,6 @@
       border-radius: 2px;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 5px 16px rgba(0, 0, 0, 0.09);
       transition: box-shadow .16s ease, filter .16s ease;
-    }
-
-    html[data-theme="refined"] figure:hover img:not(.video-icon),
-    html[data-theme="refined"] figure:hover video {
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 22px rgba(0, 0, 0, 0.12);
     }
 
     html[data-theme="refined"] figure.selected img:not(.video-icon),
@@ -829,19 +810,6 @@
       transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
     }
 
-    html[data-theme="refined"] #selectionToolbar button:hover,
-    html[data-theme="refined"] #overlayBtn:hover {
-      filter: brightness(0.92);
-    }
-
-    html[data-theme="refined"] #selectionToolbar button:hover {
-      box-shadow: inset 0 0 0 1px var(--refined-ink);
-    }
-
-    html[data-theme="refined"] #overlayBtn:hover {
-      border-color: var(--refined-ink);
-    }
-
     html[data-theme="refined"] #selectionToolbar button:active,
     html[data-theme="refined"] #overlayBtn:active {
       box-shadow: inset 0 0 0 1px var(--refined-ink), inset 0 1px 2px rgba(0, 0, 0, 0.16);
@@ -853,6 +821,41 @@
     html[data-theme="refined"] .progress-row progress::-webkit-progress-bar,
     html[data-theme="refined"] .progress-row progress::-webkit-progress-value {
       border-radius: 2px;
+    }
+
+    /* Prevent touch browsers from leaving controls in a sticky hover state. */
+    @media (hover: hover) and (pointer: fine) {
+      html[data-theme="refined"] #addBtn:hover {
+        filter: brightness(0.9);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      }
+
+      html[data-theme="refined"] #settingsBtn:hover {
+        background: #f3f3f3;
+        border-color: var(--refined-ink);
+      }
+
+      html[data-theme="refined"] #tabs.tabs .tab-header:hover {
+        background: #f3f3f3;
+      }
+
+      html[data-theme="refined"] figure:hover img:not(.video-icon),
+      html[data-theme="refined"] figure:hover video {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 22px rgba(0, 0, 0, 0.12);
+      }
+
+      html[data-theme="refined"] #selectionToolbar button:hover,
+      html[data-theme="refined"] #overlayBtn:hover {
+        filter: brightness(0.92);
+      }
+
+      html[data-theme="refined"] #selectionToolbar button:hover {
+        box-shadow: inset 0 0 0 1px var(--refined-ink);
+      }
+
+      html[data-theme="refined"] #overlayBtn:hover {
+        border-color: var(--refined-ink);
+      }
     }
 
     html[data-theme="refined"] button:focus-visible,
