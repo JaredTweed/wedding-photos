@@ -713,12 +713,17 @@
     }
 
     html[data-theme="refined"] #tabs.tabs {
-      border-radius: 2px;
-      box-shadow: inset 0 0 0 1px #d4d4d4;
+      border-radius: 0;
+      box-shadow: inset 0 -1px 0 #d4d4d4;
     }
 
     html[data-theme="refined"] #tabs.tabs>* {
-      border-radius: 2px;
+      border-radius: 0;
+    }
+
+    html[data-theme="refined"] #tabs.tabs .tab-header {
+      color: #737373;
+      transition: none;
     }
 
     html[data-theme="refined"] #tabs.tabs .tab-header:hover {
@@ -727,13 +732,12 @@
 
     html[data-theme="refined"] #tabs.tabs .tab-header.active {
       color: #111;
+      font-weight: 700;
+      box-shadow: inset 0 -3px 0 #111;
     }
 
     html[data-theme="refined"] #tabs.tabs .glider {
-      border-radius: 1px;
-      background: #e5e5e5;
-      box-shadow: inset 0 0 0 1px #d4d4d4;
-      transition: none;
+      display: none;
     }
 
     html[data-theme="refined"] figure img,

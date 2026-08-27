@@ -50,14 +50,18 @@ describe('gallery theme selection', () => {
     assert.notEqual(getSecondaryColor('hsl(303 23.7% 54%)'), 'hsl(303 0.0% 94%)');
   });
 
-  test('the refined theme uses an instant neutral glider and active tab', () => {
+  test('the refined theme uses a strong underline instead of a glider', () => {
     assert.match(
       galleryHtml,
-      /html\[data-theme="refined"\] #tabs\.tabs \.glider \{[\s\S]*?background: #e5e5e5;[\s\S]*?transition: none;/,
+      /html\[data-theme="refined"\] #tabs\.tabs \.glider \{[\s\S]*?display: none;/,
     );
     assert.match(
       galleryHtml,
-      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header\.active \{[\s\S]*?color: #111;/,
+      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header\.active \{[\s\S]*?color: #111;[\s\S]*?font-weight: 700;[\s\S]*?box-shadow: inset 0 -3px 0 #111;/,
+    );
+    assert.match(
+      galleryHtml,
+      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header \{[\s\S]*?color: #737373;/,
     );
   });
 });
