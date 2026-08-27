@@ -650,10 +650,10 @@
       </div>
 
       <div class="field">
-        <label for="siteFont">Site Font</label>
-        <select id="siteFont">
-          <option value="serif">Elegant Serif (Crimson Text)</option>
-          <option value="sans">Modern Sans (Poppins)</option>
+        <label for="siteTheme">Site Theme</label>
+        <select id="siteTheme">
+          <option value="classic">Classic Gallery (Poppins)</option>
+          <option value="refined">Refined Shared Lens</option>
         </select>
       </div>
 
@@ -708,19 +708,17 @@
 
   <script>
     const managedConfigPromise = import('/config.js');
-    const FONT_OPTIONS = {
-      serif: "'Crimson Text', 'Libre Baskerville', serif",
-      sans: "'Poppins', 'Segoe UI', sans-serif"
-    };
-    const DEFAULT_FONT_KEY = 'serif';
+    const THEME_OPTIONS = new Set(['classic', 'refined']);
+    const DEFAULT_THEME_KEY = 'classic';
 
-    function resolveFontKey(value) {
-      if (!value) return DEFAULT_FONT_KEY;
-      if (FONT_OPTIONS[value]) return value;
-      for (const [key, css] of Object.entries(FONT_OPTIONS)) {
-        if (css === value) return key;
+    function resolveThemeKey(themeValue, legacyFontValue = '') {
+      if (THEME_OPTIONS.has(themeValue)) return themeValue;
+      const legacyValue = themeValue || legacyFontValue;
+      if (legacyValue === 'serif' || /Crimson Text|Libre Baskerville/.test(legacyValue)) {
+        return 'refined';
       }
-      return DEFAULT_FONT_KEY;
+      if (legacyValue === 'sans' || /Poppins/.test(legacyValue)) return 'classic';
+      return DEFAULT_THEME_KEY;
     }
     let editingSite = null;
     let deleteConfirmPhrase = '';
@@ -1881,9 +1879,9 @@
 
       // 3) S3 settings
       const plan = d.plan || (d.bucket && d.region && d.idPool ? 'self-managed' : 'managed');
-      const fontSelect = document.getElementById('siteFont');
-      const storedKey = resolveFontKey(d.fontFamily);
-      fontSelect.value = storedKey;
+      const themeSelect = document.getElementById('siteTheme');
+      const storedTheme = resolveThemeKey(d.theme, d.fontFamily);
+      themeSelect.value = storedTheme;
 
       const slugForEditing = d.slug || docSnap.id;
       const objectPrefix = ensureTrailingSlash(d.objectPrefix || (plan === 'managed' ? `sites/${slugForEditing}/` : ''));
@@ -1911,7 +1909,7 @@
         bucket: d.bucket || '',
         region: d.region || '',
         idPool: d.idPool || '',
-        fontFamily: storedKey,
+        theme: storedTheme,
         title: d.title || ''
       };
       refreshDeleteSection({ resetInput: true });
@@ -1951,9 +1949,8 @@
         const l = document.getElementById('light').value;
         const primaryColor = `hsl(${h} ${s}% ${l}%)`;
 
-        const fontSelect = document.getElementById('siteFont');
-        const fontKeyRaw = (fontSelect.value || '').trim();
-        const fontFamilyKey = resolveFontKey(fontKeyRaw);
+        const themeSelect = document.getElementById('siteTheme');
+        const themeKey = resolveThemeKey((themeSelect.value || '').trim());
 
         const isEditing = !!(editingSite && editingSite.slug);
         const oldSlug = isEditing ? editingSite.slug : null;
@@ -2037,7 +2034,7 @@
           bucket,
           objectPrefix,
           plan,
-          fontFamily: fontFamilyKey,
+          theme: themeKey,
           icoImage: "",
           createdBy: user.uid,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -2059,7 +2056,7 @@
           bucket,
           region,
           idPool,
-          fontFamily: fontFamilyKey,
+          theme: themeKey,
           title: docData.title
         };
         refreshDeleteSection({ resetInput: true });

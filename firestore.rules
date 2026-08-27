@@ -38,11 +38,12 @@ service cloud.firestore {
         && request.resource.data.slug == slug
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.keys().hasOnly([
-          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix', 'fontFamily'
+          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix', 'fontFamily', 'theme'
         ])
         && (!('plan' in request.resource.data) || request.resource.data.plan in ['managed', 'self-managed'])
         && (!('objectPrefix' in request.resource.data) || request.resource.data.objectPrefix is string)
-        && (!('fontFamily' in request.resource.data) || request.resource.data.fontFamily is string);
+        && (!('fontFamily' in request.resource.data) || request.resource.data.fontFamily is string)
+        && (!('theme' in request.resource.data) || request.resource.data.theme in ['classic', 'refined']);
 
       allow update: if isSignedIn()
         && resource.data.createdBy == request.auth.uid
@@ -50,11 +51,12 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.slug == resource.data.slug
         && request.resource.data.keys().hasOnly([
-          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix', 'fontFamily'
+          'title', 'slug', 'primaryColor', 'region', 'idPool', 'bucket', 'icoImage', 'createdBy', 'createdAt', 'plan', 'objectPrefix', 'fontFamily', 'theme'
         ])
         && (!('plan' in request.resource.data) || request.resource.data.plan in ['managed', 'self-managed'])
         && (!('objectPrefix' in request.resource.data) || request.resource.data.objectPrefix is string)
-        && (!('fontFamily' in request.resource.data) || request.resource.data.fontFamily is string);
+        && (!('fontFamily' in request.resource.data) || request.resource.data.fontFamily is string)
+        && (!('theme' in request.resource.data) || request.resource.data.theme in ['classic', 'refined']);
 
       allow delete: if isSignedIn() && resource.data.createdBy == request.auth.uid;
     }

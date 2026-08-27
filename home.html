@@ -31,7 +31,7 @@
       --secondary-color: hsl(96 21% 94%); */
       --font-size: 1.2rem;
       --image-width: 160px;
-      --site-font: "Crimson Text", "Libre Baskerville", serif;
+      --site-font: "Poppins", "Segoe UI", sans-serif;
     }
 
     html,
@@ -54,7 +54,7 @@
 
       /* turn off the blue tap highlight on iOS/Android */
       -webkit-tap-highlight-color: transparent;
-      font-family: var(--site-font, "Crimson Text", "Libre Baskerville", serif);
+      font-family: var(--site-font, "Poppins", "Segoe UI", sans-serif);
 
       margin: 0;
       background: #ffffff;
@@ -661,6 +661,137 @@
       /* was full HDR, now blended */
     }
 
+    /* Refined Shared Lens theme. Layout is intentionally inherited unchanged. */
+    html[data-theme="refined"] body {
+      background: #f6f6f6;
+      color: #111;
+    }
+
+    html[data-theme="refined"] #dateIndicator {
+      border-radius: 2px;
+      background: rgba(17, 17, 17, 0.82);
+    }
+
+    html[data-theme="refined"] header {
+      border-radius: 0;
+      box-shadow: 0 1px 0 #d4d4d4, 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    html[data-theme="refined"] #addBtn,
+    html[data-theme="refined"] #settingsBtn {
+      border: 1px solid #a3a3a3;
+      border-radius: 3px;
+      box-shadow: none;
+      box-sizing: border-box;
+      transition: background-color .16s ease, border-color .16s ease, filter .16s ease, box-shadow .16s ease;
+    }
+
+    html[data-theme="refined"] #addBtn {
+      border-color: color-mix(in srgb, var(--primary-color) 72%, #111);
+    }
+
+    html[data-theme="refined"] #addBtn:hover {
+      filter: brightness(0.9);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+    }
+
+    html[data-theme="refined"] #addBtn:active {
+      transform: none;
+      filter: brightness(0.82);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.24);
+    }
+
+    html[data-theme="refined"] #settingsBtn:hover {
+      background: #f3f3f3;
+      border-color: #525252;
+    }
+
+    html[data-theme="refined"] #settingsBtn:active {
+      transform: none;
+      background: #e5e5e5;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+    }
+
+    html[data-theme="refined"] #tabs.tabs {
+      border-radius: 2px;
+      box-shadow: inset 0 0 0 1px #d4d4d4;
+    }
+
+    html[data-theme="refined"] #tabs.tabs>* {
+      border-radius: 2px;
+    }
+
+    html[data-theme="refined"] #tabs.tabs .tab-header:hover {
+      background: #f3f3f3;
+    }
+
+    html[data-theme="refined"] #tabs.tabs .glider {
+      border-radius: 1px;
+    }
+
+    html[data-theme="refined"] figure img,
+    html[data-theme="refined"] figure video {
+      border-radius: 2px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+    }
+
+    html[data-theme="refined"] .select-box,
+    html[data-theme="refined"] .video-icon {
+      border-radius: 2px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    }
+
+    html[data-theme="refined"] #selectionToolbar {
+      box-shadow: inset 0 1px 0 #d4d4d4, 0 -8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    html[data-theme="refined"] #selectionToolbar button {
+      border-radius: 3px;
+      border: none;
+      box-shadow: inset 0 0 0 1px #a3a3a3;
+      transition: background-color .16s ease, filter .16s ease, box-shadow .16s ease;
+    }
+
+    html[data-theme="refined"] #overlayBtn {
+      border-radius: 3px;
+      border-color: #a3a3a3;
+      box-shadow: none;
+      transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+    }
+
+    html[data-theme="refined"] #selectionToolbar button:hover,
+    html[data-theme="refined"] #overlayBtn:hover {
+      filter: brightness(0.92);
+    }
+
+    html[data-theme="refined"] #selectionToolbar button:hover {
+      box-shadow: inset 0 0 0 1px #525252;
+    }
+
+    html[data-theme="refined"] #overlayBtn:hover {
+      border-color: #525252;
+    }
+
+    html[data-theme="refined"] #selectionToolbar button:active,
+    html[data-theme="refined"] #overlayBtn:active {
+      box-shadow: inset 0 0 0 1px #525252, inset 0 1px 2px rgba(0, 0, 0, 0.16);
+    }
+
+    html[data-theme="refined"] #overlayContent img,
+    html[data-theme="refined"] #overlayContent video,
+    html[data-theme="refined"] .progress-row progress,
+    html[data-theme="refined"] .progress-row progress::-webkit-progress-bar,
+    html[data-theme="refined"] .progress-row progress::-webkit-progress-value {
+      border-radius: 2px;
+    }
+
+    html[data-theme="refined"] button:focus-visible,
+    html[data-theme="refined"] label:focus-visible,
+    html[data-theme="refined"] .tab-header:focus-visible {
+      outline: 2px solid #111;
+      outline-offset: 3px;
+    }
+
 
 
 
@@ -822,19 +953,18 @@
     let KEY_PREFIX = '';
     const TRANSCODE_SUFFIX = '_720p.mp4';
     const VIDEO_EXT_RE = /\.(mp4|mov|webm)$/i;
-    const FONT_OPTIONS = {
-      serif: "'Crimson Text', 'Libre Baskerville', serif",
-      sans: "'Poppins', 'Segoe UI', sans-serif"
-    };
-    const DEFAULT_FONT_KEY = 'serif';
+    const THEME_OPTIONS = new Set(['classic', 'refined']);
+    const DEFAULT_THEME_KEY = 'classic';
+    const SITE_FONT = "'Poppins', 'Segoe UI', sans-serif";
 
-    function resolveFontKey(value) {
-      if (!value) return DEFAULT_FONT_KEY;
-      if (FONT_OPTIONS[value]) return value;
-      for (const [key, css] of Object.entries(FONT_OPTIONS)) {
-        if (css === value) return key;
+    function resolveThemeKey(themeValue, legacyFontValue = '') {
+      if (THEME_OPTIONS.has(themeValue)) return themeValue;
+      const legacyValue = themeValue || legacyFontValue;
+      if (legacyValue === 'serif' || /Crimson Text|Libre Baskerville/.test(legacyValue)) {
+        return 'refined';
       }
-      return DEFAULT_FONT_KEY;
+      if (legacyValue === 'sans' || /Poppins/.test(legacyValue)) return 'classic';
+      return DEFAULT_THEME_KEY;
     }
 
     function normalizePrefix(value) {
@@ -864,7 +994,7 @@
         ICO_IMAGE: "",
         PLAN: 'managed',
         OBJECT_PREFIX: 'sites/demo/',
-        FONT_KEY: DEFAULT_FONT_KEY
+        THEME_KEY: DEFAULT_THEME_KEY
       };
       const snap = await db.collection('sites').doc(slugValue).get();
       if (!snap.exists) throw new Error('Site not found');
@@ -884,7 +1014,7 @@
         ICO_IMAGE: d.icoImage || "",
         PLAN: plan,
         OBJECT_PREFIX: objectPrefix,
-        FONT_KEY: resolveFontKey(d.fontFamily)
+        THEME_KEY: resolveThemeKey(d.theme, d.fontFamily)
       };
     }
 
@@ -906,7 +1036,7 @@
       await new Promise(() => { /* keep script idle until redirect */ });
     }
 
-    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE, PLAN, OBJECT_PREFIX, FONT_KEY } = config;
+    const { SITE_TITLE, PRIMARY_COLOR, REGION, ID_POOL, BUCKET, ICO_IMAGE, PLAN, OBJECT_PREFIX, THEME_KEY } = config;
 
     const IS_MANAGED_PLAN = PLAN === 'managed';
     const prefixCandidate = (OBJECT_PREFIX && OBJECT_PREFIX.length)
@@ -915,14 +1045,13 @@
     KEY_PREFIX = normalizePrefix(prefixCandidate);
 
     // Apply theme + title/favicon
-    const FONT = FONT_OPTIONS[FONT_KEY] || FONT_OPTIONS[DEFAULT_FONT_KEY];
-
+    document.documentElement.dataset.theme = THEME_KEY;
     document.documentElement.style.setProperty('--primary-color', PRIMARY_COLOR);
     document.title = SITE_TITLE;
     document.getElementById('page-title').textContent = SITE_TITLE;
     if (ICO_IMAGE) document.getElementById('favicon').href = ICO_IMAGE;
-    document.documentElement.style.setProperty('--site-font', FONT);
-    document.body.style.fontFamily = FONT;
+    document.documentElement.style.setProperty('--site-font', SITE_FONT);
+    document.body.style.fontFamily = SITE_FONT;
 
     // Build secondary color like your original code
     function getSecondaryColor(primaryHSL) {

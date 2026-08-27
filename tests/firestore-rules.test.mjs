@@ -34,7 +34,7 @@ function validSite(uid, slug = 'test-wedding') {
     createdAt: serverTimestamp(),
     plan: 'managed',
     objectPrefix: `sites/${slug}/`,
-    fontFamily: 'serif',
+    theme: 'refined',
   };
 }
 
@@ -145,6 +145,18 @@ describe('publishing gate', () => {
     await assertFails(setDoc(
       doc(unpaid.firestore(), 'sites', 'unpaid-wedding'),
       validSite('unpaid-user', 'unpaid-wedding'),
+    ));
+  });
+
+  test('only supported gallery themes can be published', async () => {
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(donationDoc(context, 'paid-user'), { hasDonated: true });
+    });
+
+    const paid = testEnv.authenticatedContext('paid-user');
+    await assertFails(setDoc(
+      doc(paid.firestore(), 'sites', 'invalid-theme'),
+      { ...validSite('paid-user', 'invalid-theme'), theme: 'unknown' },
     ));
   });
 });
