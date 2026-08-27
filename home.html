@@ -662,28 +662,42 @@
     }
 
     /* Refined Shared Lens theme. Layout is intentionally inherited unchanged. */
+    html[data-theme="refined"] {
+      --refined-ink: #111;
+      --refined-muted: #606060;
+      --refined-paper: #f6f6f6;
+      --refined-surface: #fff;
+      --refined-border: #d4d4d4;
+      --refined-border-strong: #737373;
+    }
+
     html[data-theme="refined"] body {
-      background: #f6f6f6;
-      color: #111;
+      background: var(--refined-paper);
+      color: var(--refined-ink);
     }
 
     html[data-theme="refined"] #dateIndicator {
       border-radius: 2px;
-      background: rgba(17, 17, 17, 0.82);
+      background: rgba(17, 17, 17, 0.9);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .01em;
     }
 
     html[data-theme="refined"] header {
       border-radius: 0;
-      box-shadow: 0 1px 0 #d4d4d4, 0 8px 24px rgba(0, 0, 0, 0.06);
+      background: var(--refined-surface);
+      box-shadow: 0 1px 0 var(--refined-border), 0 8px 24px rgba(0, 0, 0, 0.045);
     }
 
     html[data-theme="refined"] #addBtn,
     html[data-theme="refined"] #settingsBtn {
-      border: 1px solid #a3a3a3;
+      border: 1px solid var(--refined-border-strong);
       border-radius: 3px;
       box-shadow: none;
       box-sizing: border-box;
-      transition: background-color .16s ease, border-color .16s ease, filter .16s ease, box-shadow .16s ease;
+      transition: background-color .16s ease, border-color .16s ease, color .16s ease, filter .16s ease, box-shadow .16s ease;
     }
 
     html[data-theme="refined"] #addBtn {
@@ -692,7 +706,7 @@
 
     html[data-theme="refined"] #addBtn:hover {
       filter: brightness(0.9);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
     }
 
     html[data-theme="refined"] #addBtn:active {
@@ -703,7 +717,7 @@
 
     html[data-theme="refined"] #settingsBtn:hover {
       background: #f3f3f3;
-      border-color: #525252;
+      border-color: var(--refined-ink);
     }
 
     html[data-theme="refined"] #settingsBtn:active {
@@ -714,7 +728,7 @@
 
     html[data-theme="refined"] #tabs.tabs {
       border-radius: 0;
-      box-shadow: inset 0 -1px 0 #d4d4d4;
+      box-shadow: inset 0 -1px 0 var(--refined-border);
     }
 
     html[data-theme="refined"] #tabs.tabs>* {
@@ -722,8 +736,10 @@
     }
 
     html[data-theme="refined"] #tabs.tabs .tab-header {
-      color: #737373;
-      transition: none;
+      color: var(--refined-muted);
+      font-weight: 500;
+      letter-spacing: .01em;
+      transition: background-color .16s ease, color .16s ease, box-shadow .16s ease;
     }
 
     html[data-theme="refined"] #tabs.tabs .tab-header:hover {
@@ -731,9 +747,9 @@
     }
 
     html[data-theme="refined"] #tabs.tabs .tab-header.active {
-      color: #111;
+      color: var(--refined-ink);
       font-weight: 700;
-      box-shadow: inset 0 -3px 0 #111;
+      box-shadow: inset 0 -3px 0 var(--refined-ink);
     }
 
     html[data-theme="refined"] #tabs.tabs .glider {
@@ -743,29 +759,72 @@
     html[data-theme="refined"] figure img,
     html[data-theme="refined"] figure video {
       border-radius: 2px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 5px 16px rgba(0, 0, 0, 0.09);
+      transition: box-shadow .16s ease, filter .16s ease;
+    }
+
+    html[data-theme="refined"] figure:hover img:not(.video-icon),
+    html[data-theme="refined"] figure:hover video {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 8px 22px rgba(0, 0, 0, 0.12);
+    }
+
+    html[data-theme="refined"] figure.selected img:not(.video-icon),
+    html[data-theme="refined"] figure.selected video {
+      width: 100%;
+      border: none;
+      outline: 3px solid var(--refined-ink);
+      outline-offset: -3px;
+      filter: brightness(.88);
     }
 
     html[data-theme="refined"] .select-box,
     html[data-theme="refined"] .video-icon {
       border-radius: 2px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+    }
+
+    html[data-theme="refined"] .select-box {
+      border-color: rgba(17, 17, 17, 0.55);
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    html[data-theme="refined"] figure.selected .select-box {
+      border-color: var(--refined-ink);
+      background: var(--refined-ink);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.24);
+    }
+
+    html[data-theme="refined"] figure.selected .select-box::after {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 2px;
+      width: 6px;
+      height: 11px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
     }
 
     html[data-theme="refined"] #selectionToolbar {
-      box-shadow: inset 0 1px 0 #d4d4d4, 0 -8px 24px rgba(0, 0, 0, 0.06);
+      background: var(--refined-surface);
+      box-shadow: inset 0 1px 0 var(--refined-border), 0 -8px 24px rgba(0, 0, 0, 0.05);
     }
 
     html[data-theme="refined"] #selectionToolbar button {
       border-radius: 3px;
       border: none;
-      box-shadow: inset 0 0 0 1px #a3a3a3;
+      box-shadow: inset 0 0 0 1px var(--refined-border-strong);
       transition: background-color .16s ease, filter .16s ease, box-shadow .16s ease;
+    }
+
+    html[data-theme="refined"] #deleteSelected {
+      background: #b42318;
     }
 
     html[data-theme="refined"] #overlayBtn {
       border-radius: 3px;
-      border-color: #a3a3a3;
+      border-color: var(--refined-border-strong);
       box-shadow: none;
       transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
     }
@@ -776,16 +835,16 @@
     }
 
     html[data-theme="refined"] #selectionToolbar button:hover {
-      box-shadow: inset 0 0 0 1px #525252;
+      box-shadow: inset 0 0 0 1px var(--refined-ink);
     }
 
     html[data-theme="refined"] #overlayBtn:hover {
-      border-color: #525252;
+      border-color: var(--refined-ink);
     }
 
     html[data-theme="refined"] #selectionToolbar button:active,
     html[data-theme="refined"] #overlayBtn:active {
-      box-shadow: inset 0 0 0 1px #525252, inset 0 1px 2px rgba(0, 0, 0, 0.16);
+      box-shadow: inset 0 0 0 1px var(--refined-ink), inset 0 1px 2px rgba(0, 0, 0, 0.16);
     }
 
     html[data-theme="refined"] #overlayContent img,
@@ -799,8 +858,13 @@
     html[data-theme="refined"] button:focus-visible,
     html[data-theme="refined"] label:focus-visible,
     html[data-theme="refined"] .tab-header:focus-visible {
-      outline: 2px solid #111;
+      outline: 2px solid var(--refined-ink);
       outline-offset: 3px;
+    }
+
+    html[data-theme="refined"] .empty-message {
+      color: var(--refined-muted);
+      font-size: 1rem;
     }
 
 

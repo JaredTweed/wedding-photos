@@ -57,11 +57,26 @@ describe('gallery theme selection', () => {
     );
     assert.match(
       galleryHtml,
-      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header\.active \{[\s\S]*?color: #111;[\s\S]*?font-weight: 700;[\s\S]*?box-shadow: inset 0 -3px 0 #111;/,
+      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header\.active \{[\s\S]*?color: var\(--refined-ink\);[\s\S]*?font-weight: 700;[\s\S]*?box-shadow: inset 0 -3px 0 var\(--refined-ink\);/,
     );
     assert.match(
       galleryHtml,
-      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header \{[\s\S]*?color: #737373;/,
+      /html\[data-theme="refined"\] #tabs\.tabs \.tab-header \{[\s\S]*?color: var\(--refined-muted\);/,
+    );
+  });
+
+  test('the refined theme has consistent professional surfaces and selection feedback', () => {
+    assert.match(
+      galleryHtml,
+      /html\[data-theme="refined"\] \{[\s\S]*?--refined-paper: #f6f6f6;[\s\S]*?--refined-border: #d4d4d4;/,
+    );
+    assert.match(
+      galleryHtml,
+      /html\[data-theme="refined"\] figure\.selected img:not\(\.video-icon\),[\s\S]*?outline: 3px solid var\(--refined-ink\);[\s\S]*?outline-offset: -3px;/,
+    );
+    assert.match(
+      galleryHtml,
+      /html\[data-theme="refined"\] figure\.selected \.select-box::after \{[\s\S]*?border: solid #fff;/,
     );
   });
 });
